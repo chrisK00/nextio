@@ -1,0 +1,611 @@
+.appShell {
+	width: min(100%, 1180px);
+	margin: 0 auto;
+	padding: 18px 12px 96px; /* extra bottom padding for bottom nav */
+	box-sizing: border-box;
+}
+
+.appBar {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	align-items: stretch;
+	padding-bottom: 20px;
+	border-bottom: 1px solid var(--border);
+}
+
+.eyebrow {
+	margin: 0 0 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.24em;
+	font-size: 12px;
+	color: var(--accent);
+}
+
+.subtitle {
+	margin: 10px 0 0;
+	max-width: 100%;
+}
+
+.headerActions {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	align-items: stretch;
+}
+
+.primaryButton,
+.secondaryButton {
+	border: 1px solid transparent;
+	border-radius: 999px;
+	padding: 14px 20px;
+	min-height: 48px;
+	cursor: pointer;
+	transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+	font: inherit;
+	touch-action: manipulation;
+}
+
+.primaryButton {
+	background: var(--accent);
+	color: white;
+}
+
+.secondaryButton {
+	background: transparent;
+	color: var(--text-h);
+	border-color: var(--border);
+}
+
+.primaryButton:hover,
+.secondaryButton:hover {
+	transform: translateY(-1px);
+	box-shadow: var(--shadow);
+}
+
+button:focus-visible,
+input:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 4px;
+}
+
+.searchPanel,
+.mainPanel,
+.settingsPanel {
+	margin-top: 24px;
+}
+
+.searchField {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 22px;
+}
+
+.searchField label {
+	font-weight: 600;
+}
+
+.searchField input {
+	width: 100%;
+	padding: 14px 16px;
+	border-radius: 16px;
+	border: 1px solid var(--border);
+	background: var(--code-bg);
+	min-height: 48px;
+}
+
+/* compact header/title */
+.headerTitle {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.title {
+	margin: 0;
+	font-size: 1.05rem;
+	line-height: 1.2;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.searchResults {
+	display: grid;
+	gap: 18px;
+}
+
+.tabBar {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+
+.tabButton {
+	width: 100%;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	background: transparent;
+	color: var(--text-h);
+	padding: 16px 18px;
+	min-height: 52px;
+	text-align: left;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+.tabButtonActive {
+	background: var(--accent-bg);
+	border-color: var(--accent);
+}
+
+.tabContent {
+	min-height: 320px;
+}
+
+.showList,
+.timelineList {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	gap: 18px;
+}
+
+.showListItem,
+.timelineCard,
+.showCard,
+.settingsCard {
+	border: 1px solid var(--border);
+	border-radius: 24px;
+	padding: 20px;
+	background: rgba(255, 255, 255, 0.85);
+	box-shadow: var(--shadow);
+}
+
+.showListItem {
+	display: grid;
+	gap: 14px;
+}
+
+.showListItem h3,
+.timelineCard h3 {
+	margin: 0 0 8px;
+}
+
+.showMeta {
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+	text-align: left;
+	min-width: 0;
+}
+
+.showCardMeta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	text-align: left;
+	min-width: 0;
+}
+
+.showGrid {
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+/* Force grid children to stretch so cards match heights */
+.showGrid .showCardButton { height: 100%; display: block }
+.showGrid .showCardButton > .showCard { height: 100% }
+
+.showCard {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	transition: all 0.18s ease;
+	min-height: 160px;
+}
+
+.showCardImageWrap {
+	width: 100%;
+	aspect-ratio: 4/3;
+	border-radius: 12px;
+	overflow: hidden;
+	background: var(--code-bg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* Ensure card buttons fill grid cells and avoid overlap */
+.showCardButton {
+	width: 100%;
+	box-sizing: border-box;
+	display: block;
+	text-align: left;
+}
+
+.showCardImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.showCardHeader {
+	display: block;
+}
+
+.showCardHeader span,
+.showCardMeta span {
+	font-size: 14px;
+	color: var(--text);
+}
+
+.showCardBody { display: flex; flex-direction: column; gap: 6px }
+.showCardTitle { font-size: 0.98rem }
+.showCardNetwork { font-size: 0.85rem; color: var(--text) }
+
+.timelineCard {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: 1fr;
+	align-items: flex-start;
+}
+
+.timelineDate {
+	font-weight: 700;
+	color: var(--accent);
+}
+
+.settingsHeader {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	align-items: stretch;
+	margin-bottom: 20px;
+}
+
+.settingsGrid {
+	display: grid;
+	gap: 18px;
+	grid-template-columns: 1fr;
+}
+
+.settingsCard {
+	display: grid;
+	gap: 14px;
+}
+
+.wideCard {
+	grid-column: auto;
+}
+
+.emptyState {
+	padding: 36px 22px;
+	text-align: center;
+	color: var(--text);
+	background: var(--code-bg);
+	border-radius: 20px;
+}
+
+/* Bottom navigation for mobile */
+.bottomNav {
+	position: fixed;
+	left: 12px;
+	right: 12px;
+	bottom: env(safe-area-inset-bottom, 12px);
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+	padding: 10px;
+	max-width: 720px;
+	margin: 0 auto;
+	box-sizing: border-box;
+	z-index: 60;
+	background: rgba(255,255,255,0.9);
+	border-radius: 999px;
+	box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+	backdrop-filter: blur(6px);
+}
+
+.bottomNavButton {
+	display:flex;
+	gap:8px;
+	align-items:center;
+	justify-content:center;
+	background: transparent;
+	border: none;
+	color: var(--text-h);
+	padding: 12px 8px;
+	min-height: 48px;
+	cursor: pointer;
+	border-radius: 999px;
+}
+
+.bottomNavButton svg { opacity: 0.9 }
+
+.bottomNavButton span { font-size: 0.85rem }
+
+.bottomNavActive { background: var(--accent-bg); color: var(--accent) }
+
+@media (min-width: 860px) {
+	.bottomNav { display: none; }
+}
+
+/* Bottom navigation for mobile */
+.bottomNav {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 12px;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+	padding: 10px;
+	max-width: 720px;
+	margin: 0 auto;
+	box-sizing: border-box;
+	z-index: 60;
+}
+
+.bottomNavButton {
+	background: white;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	padding: 12px 8px;
+	min-height: 48px;
+	cursor: pointer;
+}
+
+.bottomNavActive {
+	background: var(--accent-bg);
+	border-color: var(--accent);
+}
+
+@media (min-width: 860px) {
+	.bottomNav { display: none; }
+}
+
+@media (min-width: 860px) {
+	.appBar {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: flex-start;
+	}
+
+	.headerActions {
+		flex-direction: row;
+		justify-content: flex-end;
+		align-items: center;
+	}
+
+	.tabBar {
+		display: flex;
+		flex-wrap: wrap;
+	}
+
+	.showListItem {
+		display: flex;
+		justify-content: space-between;
+		gap: 20px;
+		align-items: center;
+	}
+
+	.showMeta,
+	.showCardMeta {
+		text-align: right;
+		min-width: 140px;
+	}
+
+	.showCardHeader {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.timelineCard {
+		grid-template-columns: 110px minmax(0, 1fr);
+		align-items: center;
+	}
+
+	.settingsHeader {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.settingsGrid {
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	}
+
+	.wideCard {
+		grid-column: span 2;
+	}
+}
+
+/* Detail View */
+.detailPanel {
+	margin-top: 24px;
+}
+
+.detailHeader {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin-bottom: 20px;
+	align-items: flex-start;
+}
+
+.detailHeader h2 {
+	margin: 0;
+}
+
+.showMeta {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+	font-size: 0.95em;
+	color: var(--text);
+}
+
+.showDescription {
+	margin: 0 0 20px;
+	line-height: 1.6;
+}
+
+.seasonsContainer {
+	display: grid;
+	gap: 24px;
+}
+
+.seasonSection {
+	border-top: 2px solid var(--border);
+	padding-top: 20px;
+}
+
+.seasonSection h3 {
+	margin: 0 0 16px;
+	color: var(--text-h);
+}
+
+.episodeGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 12px;
+}
+
+.episodeButton {
+	padding: 16px;
+	background: var(--code-bg);
+	border: 2px solid var(--border);
+	border-radius: 12px;
+	cursor: pointer;
+	min-height: 48px;
+	text-align: center;
+	transition: all 0.2s ease;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+}
+
+.episodeButton:hover {
+	border-color: var(--accent);
+	background: var(--accent-bg);
+	transform: translateY(-2px);
+}
+
+.episodeButton.episodeWatched {
+	background: var(--accent-bg);
+	border-color: var(--accent);
+	font-weight: 600;
+}
+
+.episodeNumber {
+	font-weight: 700;
+	color: var(--accent);
+	font-size: 0.9em;
+}
+
+.episodeTitle {
+	display: block;
+	font-size: 0.85em;
+	word-break: break-word;
+	color: var(--text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-height: 2.4em;
+	line-height: 1.2;
+}
+
+/* Clickable Show Cards */
+.showCardButton {
+	all: unset;
+	display: block;
+	cursor: pointer;
+	width: 100%;
+}
+
+.showCardButton:hover .showCard {
+	border-color: var(--accent);
+	box-shadow: var(--shadow);
+	transform: translateY(-2px);
+}
+
+/* Clickable List Items */
+.showListButton {
+	all: unset;
+	display: flex;
+	width: 100%;
+	padding: 16px;
+	border-radius: 12px;
+	background: transparent;
+	border: 1px solid var(--border);
+	cursor: pointer;
+	gap: 16px;
+	align-items: flex-start;
+	transition: all 0.2s ease;
+	font-size: inherit;
+	color: inherit;
+}
+
+.showListButton:hover {
+	border-color: var(--accent);
+	box-shadow: var(--shadow);
+	transform: translateY(-1px);
+	background: var(--accent-bg);
+}
+
+.showListButton > div {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.showListButton h3 {
+	margin: 0;
+}
+
+.showListButton p {
+	margin: 0;
+	font-size: 0.95em;
+	color: var(--text);
+}
+
+/* Clickable Timeline Cards */
+.timelineCardButton {
+	all: unset;
+	display: block;
+	cursor: pointer;
+	width: 100%;
+}
+
+.timelineCardButton:hover .timelineCard {
+	border-color: var(--accent);
+	box-shadow: var(--shadow);
+	transform: translateY(-2px);
+}
+
+.timelineCard {
+	transition: all 0.2s ease;
+	border: 1px solid var(--border);
+}
+
+@media (min-width: 860px) {
+	.detailHeader {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.episodeGrid {
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	}
+}
