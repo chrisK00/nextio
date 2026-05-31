@@ -6,10 +6,9 @@ type ShowCardProps = {
     show: TvShow
     action?: ReactNode
     onClick?: (show: TvShow) => void
-    onAdd?: (show: TvShow) => void
 }
 
-export default function ShowCard({ show, action, onClick, onAdd }: ShowCardProps) {
+export default function ShowCard({ show, action, onClick }: ShowCardProps) {
 
     return (
         <button
@@ -37,15 +36,7 @@ export default function ShowCard({ show, action, onClick, onAdd }: ShowCardProps
                     <span>{show.nextEpisode}</span>
                 </div>
                 {typeof (action) !== 'undefined' ? action : null}
-                {/** render add button inside card body when provided via onAdd prop */}
-                {/** Backwards-compatible: if caller passed `action` it's still rendered; prefer `onAdd` */}
-                {onAdd && (
-                    <div>
-                        <button className={styles.secondaryButton} onClick={(e) => { e.stopPropagation(); onAdd(show) }} type="button">
-                            Add to list
-                        </button>
-                    </div>
-                )}
+                {/* Add button removed: add action should live on the show detail page */}
             </article>
         </button>
     )

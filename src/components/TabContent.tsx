@@ -4,27 +4,6 @@ import ShowCard from './ShowCard'
 import styles from '../App.module.css'
 import useWatching from '../hooks/useWatching'
 
-function formatDaysUntilRelease(dateString?: string) {
-	if(!dateString) {
-		return null
-	}
-
-	const releaseDate = new Date(dateString)
-	const today = new Date()
-	const utcToday = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
-	const utcRelease = Date.UTC(releaseDate.getFullYear(), releaseDate.getMonth(), releaseDate.getDate())
-	const days = Math.round((utcRelease - utcToday) / (1000 * 60 * 60 * 24))
-
-	if(days <= 0) {
-		return 'Releases today'
-	}
-	if(days === 1) {
-		return 'Releases tomorrow'
-	}
-
-	return `Releases in ${days} days`
-}
-
 type TabContentProps = {
 	activeTab: TabKey
 	onShowClick?: (show: TvShow) => void
@@ -39,29 +18,19 @@ export default function TabContent({ activeTab, onShowClick }: TabContentProps) 
 
 	if(activeTab === 'watching') {
 		return (
-			<ul className={styles.showList}>
+			<div className={styles.showGrid}>
 				{watching.map((show) => (
-					<button
+					<ShowCard
 						key={show.id}
-						type="button"
-						className={styles.showListButton}
-						onClick={() => onShowClick?.(show)}
-					>
-						<div>
-							<h3>{show.title}</h3>
-							<p>{show.description}</p>
-						</div>
-						<div className={styles.showMeta}>
-							<span>{show.network}</span>
-							<span>{show.nextEpisode}</span>
-							<span>{show.episodesWatched}/{show.episodesTotal} watched</span>
-						</div>
-					</button>
+						show={show}
+						onClick={onShowClick}
+						action={<div className={styles.showCardMeta}><span>{show.episodesWatched}/{show.episodesTotal} watched</span></div>}
+					/>
 				))}
 				{watching.length === 0 && (
 					<div className={styles.emptyState}>No active shows yet. Use search to add your next series.</div>
 				)}
-			</ul>
+			</div>
 		)
 	}
 
@@ -79,26 +48,14 @@ export default function TabContent({ activeTab, onShowClick }: TabContentProps) 
 	}
 
 	return (
-		<div className={styles.timelineList}>
+		<div className={styles.showGrid}>
 			{upcoming.map((show) => (
-				<button
+				<ShowCard
 					key={show.id}
-					type="button"
-					className={styles.timelineCardButton}
-					onClick={() => onShowClick?.(show)}
-				>
-					<section className={styles.timelineCard}>
-						<div className={styles.timelineDate}>
-							{show.nextReleaseDate ? new Date(show.nextReleaseDate).toLocaleDateString() : 'TBD'}
-						</div>
-						<div>
-							<h3>{show.title}</h3>
-							<p>{show.nextEpisode} · {show.nextEpisodeTitle}</p>
-							<p>{show.network}</p>
-							<p>{formatDaysUntilRelease(show.nextReleaseDate)}</p>
-						</div>
-					</section>
-				</button>
+					show={show}
+					onClick={onShowClick}
+					action={<div className={styles.showCardMeta}><span>{show.nextReleaseDate ? new Date(show.nextReleaseDate).toLocaleDateString() : 'TBD'}</span></div>}
+				/>
 			))}
 			{upcoming.length === 0 && (
 				<div className={styles.emptyState}>No upcoming releases yet. Add shows to track future episodes.</div>

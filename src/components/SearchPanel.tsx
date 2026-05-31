@@ -6,10 +6,10 @@ type SearchPanelProps = {
   searchQuery: string
   searchResults: TvShow[]
   onQueryChange: (value: string) => void
-  onAddShow: (show: TvShow) => void
+  onShowClick?: (show: TvShow) => void
 }
 
-export default function SearchPanel({ searchQuery, searchResults, onQueryChange, onAddShow }: SearchPanelProps) {
+export default function SearchPanel({ searchQuery, searchResults, onQueryChange, onShowClick }: SearchPanelProps) {
   return (
     <section className={styles.searchPanel}>
       <div className={styles.searchField}>
@@ -33,7 +33,7 @@ export default function SearchPanel({ searchQuery, searchResults, onQueryChange,
         {searchResults.length > 0 && (
           <div className={styles.showGrid}>
             {searchResults.map((show) => (
-              <ShowCard key={show.id} show={show} onAdd={(s) => onAddShow(s)} />
+              <ShowCard key={show.id} show={show} onClick={onShowClick} />
             ))}
           </div>
         )}

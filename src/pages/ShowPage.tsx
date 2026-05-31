@@ -7,8 +7,8 @@ export default function ShowPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const decoded = id ? decodeURIComponent(id) : undefined
-  const { show, loading } = useShow(decoded)
-  const { toggleEpisode } = useAppContext()
+  const { show, loading, refetch } = useShow(decoded)
+  const { toggleEpisode, addShow } = useAppContext()
 
   return (
     <ShowDetailPanel
@@ -16,6 +16,8 @@ export default function ShowPage() {
       isLoading={loading}
       onBack={() => navigate('/')}
       onToggleEpisode={toggleEpisode}
+      onAdd={(s) => addShow(s)}
+      onRefetch={refetch}
     />
   )
 }
