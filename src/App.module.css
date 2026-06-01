@@ -423,7 +423,8 @@ input:focus-visible {
 	margin: 0 auto;
 	box-sizing: border-box;
 	z-index: 60;
-	background: rgba(255,255,255,0.9);
+	background: var(--bg);
+	border: 1px solid var(--border);
 	border-radius: 999px;
 	box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 	backdrop-filter: blur(6px);
@@ -441,6 +442,7 @@ input:focus-visible {
 	min-height: 48px;
 	cursor: pointer;
 	border-radius: 999px;
+	transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .bottomNavButton svg { opacity: 0.9 }
@@ -448,44 +450,6 @@ input:focus-visible {
 .bottomNavButton span { font-size: 0.85rem }
 
 .bottomNavActive { background: var(--accent-bg); color: var(--accent) }
-
-@media (min-width: 860px) {
-	.bottomNav { display: none; }
-}
-
-/* Bottom navigation for mobile */
-.bottomNav {
-	position: fixed;
-	left: 0;
-	right: 0;
-	bottom: 12px;
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 8px;
-	padding: 10px;
-	max-width: 720px;
-	margin: 0 auto;
-	box-sizing: border-box;
-	z-index: 60;
-}
-
-.bottomNavButton {
-	background: white;
-	border: 1px solid var(--border);
-	border-radius: 999px;
-	padding: 12px 8px;
-	min-height: 48px;
-	cursor: pointer;
-}
-
-.bottomNavActive {
-	background: var(--accent-bg);
-	border-color: var(--accent);
-}
-
-@media (min-width: 860px) {
-	.bottomNav { display: none; }
-}
 
 @media (min-width: 860px) {
 	.appBar {
@@ -552,9 +516,39 @@ input:focus-visible {
 .detailHeader {
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
+	gap: 16px;
 	margin-bottom: 20px;
-	align-items: flex-start;
+	align-items: stretch;
+}
+
+.detailHeaderActions {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.detailHeaderMain {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.detailThumbnail {
+	width: 96px;
+	height: 136px;
+	border-radius: 18px;
+	overflow: hidden;
+	box-shadow: var(--shadow);
+	flex-shrink: 0;
+}
+
+.detailThumbnail img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
 }
 
 .detailHeader h2 {

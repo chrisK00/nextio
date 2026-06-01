@@ -9,12 +9,12 @@ export default function HeaderBar({ onOpenSearch, onOpenSettings }: HeaderBarPro
 	return (
 		<header className={styles.appBar}>
 			<div className={styles.headerTitle}>
-					<p className={styles.eyebrow}>TV Show Tracker</p>
+				<p className={styles.eyebrow}>TV Show Tracker</p>
 			</div>
 
 			<div className={styles.headerActions}>
 				<button className={styles.secondaryButton} onClick={onOpenSearch} type="button">
-					Search Shows
+					Search
 				</button>
 				<button className={styles.primaryButton} onClick={onOpenSettings} type="button">
 					Settings

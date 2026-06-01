@@ -86,22 +86,32 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 	return (
 		<main className={styles.detailPanel}>
 			<div className={styles.detailHeader}>
-				<button className={styles.secondaryButton} onClick={onBack} type="button">
-					← Back
-				</button>
-				<button
-					className={styles.secondaryButton}
-					onClick={() => onFollowToggle(show, isTracked)}
-					type="button"
-				>
-					{isTracked ? 'Unfollow' : 'Add'}
-				</button>
-				<h2>{show.title}</h2>
-			</div>
-
-			<div className={styles.showMeta}>
-				<span>{show.network}</span>
-				<span>{show.status}</span>
+				<div className={styles.detailHeaderActions}>
+					<button className={styles.secondaryButton} onClick={onBack} type="button">
+						← Back
+					</button>
+					<button
+						className={styles.secondaryButton}
+						onClick={() => onFollowToggle(show, isTracked)}
+						type="button"
+					>
+						{isTracked ? 'Unfollow' : 'Add'}
+					</button>
+				</div>
+				<div className={styles.detailHeaderMain}>
+					{show.posterUrl && (
+						<div className={styles.detailThumbnail}>
+							<img src={show.posterUrl} alt={`${show.title} poster`} />
+						</div>
+					)}
+					<div>
+						<h2>{show.title}</h2>
+						<div className={styles.showMeta}>
+							<span>{show.network}</span>
+							<span>{show.status}</span>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<p className={styles.showDescription}>{show.description}</p>

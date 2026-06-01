@@ -74,7 +74,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         next[index] = { ...next[index], lastUpdatedAt: now }
         return next
       }
-      return [...prev, { id: showId, lastUpdatedAt: now }]
+      return prev
     })
   }, [])
 

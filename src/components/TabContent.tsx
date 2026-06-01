@@ -98,6 +98,7 @@ export default function TabContent({ activeTab, onShowClick }: TabContentProps) 
 										<ShowCard
 											key={show.id}
 											show={show}
+											onClick={onShowClick}
 											compact
 										/>
 									))}
