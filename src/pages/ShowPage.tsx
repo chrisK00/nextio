@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import type { TvShow } from '../services/api'
 import ShowDetailPanel from '../components/ShowDetailPanel'
 import useShow from '../hooks/useShow'
 import { useAppContext } from '../state/AppContext'
@@ -8,7 +9,15 @@ export default function ShowPage() {
   const navigate = useNavigate()
   const decoded = id ? decodeURIComponent(id) : undefined
   const { show, loading, refetch } = useShow(decoded)
-  const { toggleEpisode, addShow } = useAppContext()
+  const { watchlist, toggleEpisode, followShow, unfollowShow } = useAppContext()
+  const isTracked = show ? watchlist.some((item) => item.id === show.id) : false
+  const handleFollowToggle = (target: TvShow, tracked: boolean) => {
+    if(tracked) {
+      unfollowShow(target.id)
+    } else {
+      followShow(target)
+    }
+  }
 
   return (
     <ShowDetailPanel
@@ -16,7 +25,8 @@ export default function ShowPage() {
       isLoading={loading}
       onBack={() => navigate('/')}
       onToggleEpisode={toggleEpisode}
-      onAdd={(s) => addShow(s)}
+      onFollowToggle={handleFollowToggle}
+      isTracked={isTracked}
       onRefetch={refetch}
     />
   )

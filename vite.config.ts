@@ -8,4 +8,11 @@ export default defineConfig({
 		react(),
 		babel({ presets: [reactCompilerPreset()] })
 	],
+	// Add this css and build block to guarantee strict source mapping
+	css: {
+		devSourcemap: true
+	},
+	build: {
+		sourcemap: true
+	}
 })

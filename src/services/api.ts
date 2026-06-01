@@ -1,3 +1,5 @@
+import { showCatalog } from "./seedData"
+
 export type Episode = {
 	id: string
 	season: number
@@ -32,44 +34,6 @@ export type Settings = {
 	darkMode: boolean
 	preferredGenres: string[]
 }
-
-const showCatalog: TvShow[] = [
-	{
-		id: 'backstage-lights',
-		title: 'Backstage Lights',
-		network: 'StreamHouse',
-		status: 'Airing',
-		episodesWatched: 6,
-		episodesTotal: 12,
-		nextEpisodeTitle: 'Half Time',
-		nextEpisode: 'S4E07',
-		nextReleaseDate: '2026-06-10',
-		description: 'A drama about an ensemble cast of performers balancing fame and family.',
-	},
-	{
-		id: 'kitchen-destiny',
-		title: 'Kitchen Destiny',
-		network: 'Foodly',
-		status: 'Airing',
-		episodesWatched: 10,
-		episodesTotal: 10,
-		nextEpisodeTitle: 'Final Course',
-		nextEpisode: 'S3E09',
-		nextReleaseDate: '2026-06-18',
-		description: 'Competition cooking series where each episode ends with a shocking twist.',
-	},
-	{
-		id: 'Ms. Marvel',
-		title: 'Ms. Marvel',
-		network: 'Disney+',
-		status: 'Airing',
-		episodesWatched: 6,
-		episodesTotal: 12,
-		nextEpisodeTitle: 'The Vault',
-		description: 'An adventure series following an international team of artifact thieves.',
-		posterUrl: 'https://m.media-amazon.com/images/M/MV5BNzlkNjBmOWUtOTgzZS00OWIzLThkNWEtZTg5MGY2ODAyYzZjXkEyXkFqcGc@._V1_.jpg'
-	},
-]
 
 export async function getWatchingNow(): Promise<TvShow[]> {
 	return Promise.resolve(showCatalog.filter((show) => show.episodesWatched < show.episodesTotal).slice(0, 3))
@@ -112,7 +76,7 @@ function mapImdbResult(result: Record<string, unknown>): TvShow {
 
 export async function searchShows(query: string): Promise<TvShow[]> {
 	const trimmed = query.toLowerCase().trim()
-	if (!trimmed) {
+	if(!trimmed) {
 		return []
 	}
 
@@ -125,7 +89,7 @@ export async function searchShows(query: string): Promise<TvShow[]> {
 		const response = await fetch(`https://imdb.iamidiotareyoutoo.com/search?${params.toString()}`)
 		const data = await response.json()
 
-		if (!data || data.ok !== true || !Array.isArray(data.description)) {
+		if(!data || data.ok !== true || !Array.isArray(data.description)) {
 			return []
 		}
 
@@ -138,10 +102,10 @@ export async function searchShows(query: string): Promise<TvShow[]> {
 
 function generateMockSeasons(): Season[] {
 	const seasons: Season[] = []
-	for (let s = 1; s <= 3; s++) {
+	for(let s = 1; s <= 3; s++) {
 		const episodeCount = 10 + Math.floor(Math.random() * 3)
 		const episodes: Episode[] = []
-		for (let e = 1; e <= episodeCount; e++) {
+		for(let e = 1; e <= episodeCount; e++) {
 			episodes.push({
 				id: `${s}-${e}`,
 				season: s,
@@ -164,7 +128,7 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 		const response = await fetch(`https://imdb.iamidiotareyoutoo.com/search?${params.toString()}`)
 		const data = await response.json()
 
-		if (!data || data.ok !== true || !Array.isArray(data.description) || data.description.length === 0) {
+		if(!data || data.ok !== true || !Array.isArray(data.description) || data.description.length === 0) {
 			return null
 		}
 

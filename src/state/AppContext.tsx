@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import type { TvShow, Settings } from '../services/api'
 import * as api from '../services/api'
 
-type WatchlistItem = { id: string; title?: string; posterUrl?: string }
+type WatchlistItem = { id: string; title?: string; posterUrl?: string; lastUpdatedAt?: string }
 
 type AppContextType = {
   // lightweight user-owned data
@@ -11,7 +11,8 @@ type AppContextType = {
   settings: Settings | null
   isLoading: boolean
   refresh: () => Promise<void>
-  addShow: (show: TvShow) => void
+  followShow: (show: TvShow) => void
+  unfollowShow: (showId: string) => void
   toggleEpisode: (showId: string, season: number, episode: number) => Promise<void>
   toggleSetting: (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => Promise<void>
 }
@@ -51,12 +52,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadSettings])
 
-  const addShow = useCallback((show: TvShow) => {
-    setWatchlist((prev) => (prev.some((s) => s.id === show.id) ? prev : [...prev, { id: show.id, title: show.title, posterUrl: show.posterUrl }]))
+  const followShow = useCallback((show: TvShow) => {
+    const now = new Date().toISOString()
+    setWatchlist((prev) => {
+      if(prev.some((s) => s.id === show.id)) return prev
+      return [...prev, { id: show.id, title: show.title, posterUrl: show.posterUrl, lastUpdatedAt: now }]
+    })
+  }, [])
+
+  const unfollowShow = useCallback((showId: string) => {
+    setWatchlist((prev) => prev.filter((item) => item.id !== showId))
   }, [])
 
   const toggleEpisode = useCallback(async (showId: string, season: number, episode: number) => {
     await api.toggleEpisodeWatched(showId, season, episode)
+    const now = new Date().toISOString()
+    setWatchlist((prev) => {
+      const index = prev.findIndex((item) => item.id === showId)
+      if(index >= 0) {
+        const next = [...prev]
+        next[index] = { ...next[index], lastUpdatedAt: now }
+        return next
+      }
+      return [...prev, { id: showId, lastUpdatedAt: now }]
+    })
   }, [])
 
   const toggleSetting = useCallback(async (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => {
@@ -71,10 +90,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     settings,
     isLoading: isLoadingSettings,
     refresh: loadSettings,
-    addShow,
+    followShow,
+    unfollowShow,
     toggleEpisode,
     toggleSetting,
-  }), [watchlist, settings, isLoadingSettings, loadSettings, addShow, toggleEpisode, toggleSetting])
+  }), [watchlist, settings, isLoadingSettings, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

@@ -1,49 +1,19 @@
-import type { TvShow } from '../services/api'
-// api calls moved to SeasonHeader
-import styles from '../App.module.css'
 import { useState } from 'react'
-import SeasonHeader from './SeasonHeader'
+import type { TvShow } from '../services/api'
+import styles from '../App.module.css'
+import ShowSeasons from './ShowSeasons'
 
 type ShowDetailPanelProps = {
 	show: TvShow | null
 	isLoading: boolean
 	onBack: () => void
 	onToggleEpisode: (showId: string, season: number, episode: number) => void
-	onAdd: (show: TvShow) => void
+	onFollowToggle: (show: TvShow, tracked: boolean) => void
+	isTracked: boolean
 	onRefetch?: () => Promise<TvShow | null>
 }
 
-// season header lives in src/components/SeasonHeader.tsx
-
-function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, onRefetch }: { ep: import('../services/api').Episode, showId: string, seasonNum: number, onToggleEpisode: (showId: string, season: number, episode: number) => void | Promise<void>, onRefetch?: () => Promise<import('../services/api').TvShow | null> }) {
-	const [loading, setLoading] = useState(false)
-
-	return (
-		<button
-			key={ep.id}
-			type="button"
-			className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''}`}
-			onClick={async () => {
-				if (loading) return
-				setLoading(true)
-				try {
-					// optimistic flip: update UI immediately by calling a minimal api toggle (backend is mock)
-					await onToggleEpisode(showId, seasonNum, ep.episode)
-					await onRefetch?.()
-				} finally {
-					setLoading(false)
-				}
-			}}
-			title={ep.title}
-			disabled={loading}
-		>
-			<span className={styles.episodeNumber}>E{ep.episode}</span>
-			<span className={styles.episodeTitle}>{loading ? 'Updating…' : ep.title}</span>
-		</button>
-	)
-}
-
-export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onAdd, onRefetch }: ShowDetailPanelProps) {
+export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, isTracked, onRefetch }: ShowDetailPanelProps) {
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
 
 	// displayShow uses local optimistic state when present
@@ -57,12 +27,12 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 	const handleToggleEpisode = async (showId: string, seasonNum: number, episodeNum: number) => {
 		// optimistic update locally
 		setLocalShow((prev) => {
-			if (!prev) return prev
+			if(!prev) return prev
 			const copy: TvShow = JSON.parse(JSON.stringify(prev))
 			const season = copy.seasons?.find((s) => s.season === seasonNum)
-			if (!season) return prev
+			if(!season) return prev
 			const ep = season.episodes.find((e) => e.episode === episodeNum)
-			if (!ep) return prev
+			if(!ep) return prev
 			ep.watched = !ep.watched
 			return recomputeCounts(copy)
 		})
@@ -77,12 +47,12 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 	const handleOptimisticSeasonUpdate = (seasonNum: number, episodeNums: number[], watched: boolean) => {
 		setLocalShow((prev) => {
-			if (!prev) return prev
+			if(!prev) return prev
 			const copy: TvShow = JSON.parse(JSON.stringify(prev))
 			const season = copy.seasons?.find((s) => s.season === seasonNum)
-			if (!season) return prev
+			if(!season) return prev
 			season.episodes.forEach((ep) => {
-				if (episodeNums.includes(ep.episode)) ep.watched = watched
+				if(episodeNums.includes(ep.episode)) ep.watched = watched
 			})
 			return recomputeCounts(copy)
 		})
@@ -119,8 +89,12 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 				<button className={styles.secondaryButton} onClick={onBack} type="button">
 					← Back
 				</button>
-				<button className={styles.secondaryButton} onClick={() => onAdd(show)} type="button">
-					Add
+				<button
+					className={styles.secondaryButton}
+					onClick={() => onFollowToggle(show, isTracked)}
+					type="button"
+				>
+					{isTracked ? 'Unfollow' : 'Add'}
 				</button>
 				<h2>{show.title}</h2>
 			</div>
@@ -132,26 +106,14 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 			<p className={styles.showDescription}>{show.description}</p>
 
-				{displayShow?.seasons && displayShow.seasons.length > 0 && (
-				<div className={styles.seasonsContainer}>
-					{displayShow.seasons.map((season) => (
-						<section key={season.season} className={styles.seasonSection}>
-								<SeasonHeader season={season} showId={displayShow.id} onRefetch={onRefetch} onOptimisticUpdate={handleOptimisticSeasonUpdate} />
-							<div className={styles.episodeGrid}>
-								{season.episodes.map((ep) => (
-									<EpisodeButton
-										key={ep.id}
-										ep={ep}
-										showId={displayShow.id}
-										seasonNum={season.season}
-										onToggleEpisode={handleToggleEpisode}
-										onRefetch={onRefetch}
-									/>
-								))}
-							</div>
-						</section>
-					))}
-				</div>
+			{displayShow?.seasons && displayShow.seasons.length > 0 && (
+				<ShowSeasons
+					showId={displayShow.id}
+					seasons={displayShow.seasons}
+					onToggleEpisode={handleToggleEpisode}
+					onRefetch={onRefetch}
+					onOptimisticUpdate={handleOptimisticSeasonUpdate}
+				/>
 			)}
 		</main>
 	)

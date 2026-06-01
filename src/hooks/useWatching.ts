@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import * as api from '../services/api'
 import { useAppContext } from '../state/AppContext'
 import type { TvShow } from '../services/api'
-
-type WatchlistItem = { id: string; title?: string; posterUrl?: string }
+import { mergeShowsWithWatchlist, sortShowsByLastUpdated } from '../utils/show'
 
 export default function useWatching() {
     const { watchlist: localWatchlist } = useAppContext()
@@ -33,34 +32,16 @@ export default function useWatching() {
     }, [])
 
     const combinedWatching = useMemo(() => {
-        const map = new Map(watching.map((s) => [s.id, s]))
-        for(const item of localWatchlist as WatchlistItem[]) {
-            if(!map.has(item.id)) {
-                map.set(item.id, { id: item.id, title: item.title ?? 'Unknown', network: '', status: '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '', })
-            }
-        }
-        return Array.from(map.values())
+        const merged = mergeShowsWithWatchlist(watching, localWatchlist)
+        return sortShowsByLastUpdated(merged, localWatchlist)
     }, [watching, localWatchlist])
 
     const combinedUnwatched = useMemo(() => {
-        const map = new Map(unwatched.map((s) => [s.id, s]))
-        for(const item of localWatchlist as WatchlistItem[]) {
-            if(!map.has(item.id)) {
-                map.set(item.id, { id: item.id, title: item.title ?? 'Unknown', network: '', status: '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '', })
-            }
-        }
-        return Array.from(map.values())
+        const merged = mergeShowsWithWatchlist(unwatched, localWatchlist)
+        return sortShowsByLastUpdated(merged, localWatchlist)
     }, [unwatched, localWatchlist])
 
-    const combinedUpcoming = useMemo(() => {
-        const map = new Map(upcoming.map((s) => [s.id, s]))
-        for(const item of localWatchlist as WatchlistItem[]) {
-            if(!map.has(item.id)) {
-                map.set(item.id, { id: item.id, title: item.title ?? 'Unknown', network: '', status: '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '', })
-            }
-        }
-        return Array.from(map.values())
-    }, [upcoming, localWatchlist])
+    const combinedUpcoming = useMemo(() => mergeShowsWithWatchlist(upcoming, localWatchlist), [upcoming, localWatchlist])
 
     return { watching: combinedWatching, unwatched: combinedUnwatched, upcoming: combinedUpcoming, loading }
 }

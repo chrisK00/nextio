@@ -8,7 +8,7 @@ type TabBarProps = {
 }
 
 const tabLabels: Record<TabKey, string> = {
-	watching: 'Watching Now',
+	watching: 'My Shows',
 	unwatched: 'Unwatched Episodes',
 	upcoming: 'Upcoming Releases',
 }

@@ -151,6 +151,8 @@ input:focus-visible {
 	list-style: none;
 	padding: 0;
 	margin: 0;
+}
+
 .showListButton h3,
 .timelineCard h3,
 .showCardTitle {
@@ -162,6 +164,9 @@ input:focus-visible {
 	text-overflow: ellipsis;
 	word-break: break-word;
 }
+
+.showListButton,
+.timelineCard {
 	padding: 20px;
 	background: rgba(255, 255, 255, 0.85);
 	box-shadow: var(--shadow);
@@ -196,8 +201,72 @@ input:focus-visible {
 
 .showGrid {
 	display: grid;
-	gap: 14px;
-	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.showGridCompact {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 190px));
+	justify-content: center;
+}
+
+.timelineList {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 16px;
+}
+
+.timelineItem {
+	width: 100%;
+}
+
+@media (max-width: 520px) {
+	.showGrid {
+		grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+	}
+	.showGridCompact {
+		grid-template-columns: repeat(auto-fit, minmax(90px, 140px));
+	}
+}
+
+.watchingToolbar {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 18px;
+}
+
+.sortControls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.sortButton {
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	padding: 10px 16px;
+	background: transparent;
+	color: var(--text-h);
+	cursor: pointer;
+	transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.sortButton:hover {
+	transform: translateY(-1px);
+	box-shadow: var(--shadow);
+}
+
+.sortButtonActive {
+	background: var(--accent);
+	color: white;
+	border-color: var(--accent);
 }
 
 /* Force grid children to stretch so cards match heights */
@@ -212,6 +281,26 @@ input:focus-visible {
 	min-height: 160px;
 }
 
+.showCardCompact {
+	min-height: auto;
+	gap: 8px;
+	padding: 8px;
+	align-items: center;
+	text-align: center;
+}
+
+.showCardCompact .showCardBody {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 0;
+}
+
+.showCardCompact .showCardTitle {
+	font-size: 0.95rem;
+	line-height: 1.2;
+}
+
 .showCardImageWrap {
 	width: 100%;
 	aspect-ratio: 4/3;
@@ -221,6 +310,31 @@ input:focus-visible {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+}
+
+.showCardImageWrapCompact {
+	width: 100%;
+	aspect-ratio: 3/4;
+	border-radius: 12px;
+	overflow: hidden;
+	background: var(--code-bg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.showCardBodyCompact {
+	padding: 0;
+}
+
+.showCardCompact .showCardTitle {
+	font-size: 0.95rem;
+	line-height: 1.2;
+}
+
+.showCardCompact .showCardNetwork,
+.showCardCompact .showCardMeta {
+	display: none;
 }
 
 /* Ensure card buttons fill grid cells and avoid overlap */
@@ -632,6 +746,7 @@ input:focus-visible {
 .showCardTitle {
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
+	line-clamp: 2;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 	text-overflow: ellipsis;
