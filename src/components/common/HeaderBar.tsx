@@ -1,11 +1,9 @@
+import { useNavigate } from 'react-router'
 import styles from '../../App.module.css'
 
-type HeaderBarProps = {
-	onOpenSearch: () => void
-	onOpenSettings: () => void
-}
+export default function HeaderBar() {
+	const navigate = useNavigate()
 
-export default function HeaderBar({ onOpenSearch, onOpenSettings }: HeaderBarProps) {
 	return (
 		<header className={styles.appBar}>
 			<div className={styles.headerTitle}>
@@ -13,10 +11,10 @@ export default function HeaderBar({ onOpenSearch, onOpenSettings }: HeaderBarPro
 			</div>
 
 			<div className={styles.headerActions}>
-				<button className={styles.secondaryButton} onClick={onOpenSearch} type="button">
+				<button className={styles.secondaryButton} onClick={() => navigate('/search')} type="button">
 					Search
 				</button>
-				<button className={styles.primaryButton} onClick={onOpenSettings} type="button">
+				<button className={styles.primaryButton} onClick={() => navigate('/settings')} type="button">
 					Settings
 				</button>
 			</div>

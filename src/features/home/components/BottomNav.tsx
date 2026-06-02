@@ -6,6 +6,7 @@ type BottomNavProps = {
   onChangeTab: (tab: TabKey) => void
 }
 
+// TODO: should be a common one displayed on all pages, not just home
 export default function BottomNav({ activeTab, onChangeTab }: BottomNavProps) {
   return (
     <nav className={styles.bottomNav} aria-label="Primary navigation">

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppProvider } from './state/AppContext'
 import HeaderBar from './components/common/HeaderBar'
 import HomePage from './features/home/HomePage'
@@ -8,10 +8,9 @@ import SettingsPage from './features/settings/SettingsPage'
 import styles from './App.module.css'
 
 function AppRouter() {
-	const navigate = useNavigate()
 	return (
 		<div className={styles.appShell}>
-			<HeaderBar onOpenSearch={() => navigate('/search')} onOpenSettings={() => navigate('/settings')} />
+			<HeaderBar />
 			<Routes>
 				<Route path="/" element={<HomePage />} />
 				<Route path="/search" element={<SearchPage />} />
