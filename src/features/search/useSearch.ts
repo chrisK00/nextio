@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import * as api from '../services/api'
-import type { TvShow } from '../services/api'
+import * as api from '../../services/api'
+import type { TvShow } from '../../services/api'
 
 export default function useSearch(query: string) {
   const [results, setResults] = useState<TvShow[]>([])

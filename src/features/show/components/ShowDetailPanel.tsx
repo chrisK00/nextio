@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { TvShow } from '../services/api'
-import styles from '../App.module.css'
+import type { TvShow } from '../../../services/api'
+import styles from '../../../App.module.css'
 import ShowSeasons from './ShowSeasons'
 
 type ShowDetailPanelProps = {

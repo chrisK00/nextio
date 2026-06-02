@@ -1,6 +1,6 @@
-import type { TvShow } from '../services/api'
-import ShowCard from './ShowCard'
-import styles from '../App.module.css'
+import type { TvShow } from '../../services/api'
+import ShowCard from '../show/ShowCard'
+import styles from '../../App.module.css'
 
 type SearchPanelProps = {
   searchQuery: string

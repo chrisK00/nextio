@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import type { TvShow } from '../services/api'
-import styles from '../App.module.css'
+import type { TvShow } from '../../services/api'
+import styles from '../../App.module.css'
 
 type ShowCardProps = {
     show: TvShow

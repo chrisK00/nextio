@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import type { TvShow } from '../services/api'
-import type { TabKey } from '../types'
-import ShowCard from './ShowCard'
-import styles from '../App.module.css'
+import type { TvShow } from '../../../services/api'
+import type { TabKey } from '../../../types'
+import ShowCard from '../../show/components/ShowCard'
+import styles from '../../../App.module.css'
 import useWatching from '../hooks/useWatching'
-import { getReleaseCountdown, isRunningShow } from '../utils/show'
+import { getReleaseCountdown, isRunningShow } from '../../show/utils/show'
 
 type TabContentProps = {
 	activeTab: TabKey

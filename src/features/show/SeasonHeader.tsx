@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import * as api from '../services/api'
+import * as api from '../../services/api'
 
 export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUpdate }: {
-  season: import('../services/api').Season
+  season: import('../../services/api').Season
   showId: string
-  onRefetch?: () => Promise<import('../services/api').TvShow | null>
+  onRefetch?: () => Promise<import('../../services/api').TvShow | null>
   onOptimisticUpdate?: (seasonNum: number, episodeNums: number[], watched: boolean) => void
 }) {
   const [loading, setLoading] = useState(false)
@@ -12,9 +12,9 @@ export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUp
   const allWatched = season.episodes.every((ep) => ep.watched)
 
   return (
-    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12}}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <h3>Season {season.season}</h3>
-      <label style={{display: 'flex', alignItems: 'center', gap: 8}}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <input
           type="checkbox"
           checked={allWatched}
@@ -23,7 +23,7 @@ export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUp
             setLoading(true)
             try {
               const shouldCheck = e.target.checked
-              if (shouldCheck) {
+              if(shouldCheck) {
                 // mark only unwatched episodes watched
                 const toToggle = season.episodes.filter((ep) => !ep.watched)
                 // optimistic update

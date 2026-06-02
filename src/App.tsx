@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { AppProvider } from './state/AppContext'
-import HeaderBar from './components/HeaderBar'
-import HomePage from './pages/HomePage'
-import SearchPage from './pages/SearchPage'
-import ShowPage from './pages/ShowPage'
-import SettingsPage from './pages/SettingsPage'
+import HeaderBar from './components/common/HeaderBar'
+import HomePage from './features/home/HomePage'
+import SearchPage from './features/search/SearchPage'
+import ShowPage from './features/show/ShowPage'
+import SettingsPage from './features/settings/SettingsPage'
 import styles from './App.module.css'
 
 function AppRouter() {

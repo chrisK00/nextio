@@ -1,4 +1,4 @@
-import type { TvShow } from '../services/api'
+import type { TvShow } from '../../../services/api'
 
 export type WatchlistItem = {
     id: string

@@ -1,9 +1,13 @@
+---
+applyTo: "*"
+---
+
 # GitHub Copilot Instructions - TV Show Tracker
 
 ## 1. Project Context & Philosophy
 
 - **Product:** A TV show tracking application (managing watchlists, episode progress, and show details).
-- **Core Principle:** Mobile-first design. All layouts and user interfaces must be optimized for mobile screens first
+- **Core Principle:** Mobile-first design. All layouts and user interfaces must be optimized for mobile screens first. Keep code readable and maintainable.
 - **Pragmatic Engineering:** Prioritize clean, readable code and industry best practices. Do not over-engineer; do not introduce complex microarchitectures or redundant state management libraries unless necessary.
 - **Preservation:** Always respect the existing codebase. When writing or refactoring, modify as little as possible to keep existing features intact and avoid introducing breaking changes.
 

@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import SearchPanel from '../components/SearchPanel'
-import type { TvShow } from '../services/api'
-import { useAppContext } from '../state/AppContext'
+import SearchPanel from './components/SearchPanel'
+import type { TvShow } from '../../services/api'
+import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
-import styles from '../App.module.css'
-import useSearch from '../hooks/useSearch'
+import styles from '../../App.module.css'
+import useSearch from './hooks/useSearch'
 
 export default function SearchPage() {
   useAppContext()

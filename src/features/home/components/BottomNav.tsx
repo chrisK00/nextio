@@ -1,5 +1,5 @@
-import type { TabKey } from '../types'
-import styles from '../App.module.css'
+import type { TabKey } from '../../../types'
+import styles from '../../../App.module.css'
 
 type BottomNavProps = {
   activeTab: TabKey

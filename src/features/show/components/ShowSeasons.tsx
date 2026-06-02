@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { Season, TvShow } from '../services/api'
+import type { Season, TvShow } from '../../../services/api'
 import SeasonHeader from './SeasonHeader'
-import styles from '../App.module.css'
+import styles from '../../../App.module.css'
 
 type ShowSeasonsProps = {
     showId: string
@@ -12,7 +12,7 @@ type ShowSeasonsProps = {
 }
 
 type EpisodeButtonProps = {
-    ep: import('../services/api').Episode
+    ep: import('../../../services/api').Episode
     showId: string
     seasonNum: number
     onToggleEpisode: (showId: string, season: number, episode: number) => void

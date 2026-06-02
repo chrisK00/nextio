@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import TabContent from '../components/TabContent'
-import styles from '../App.module.css'
-import type { TabKey } from '../types'
-import BottomNav from '../components/BottomNav'
+import TabContent from './components/TabContent'
+import styles from '../../App.module.css'
+import type { TabKey } from '../../types'
+import BottomNav from './components/BottomNav'
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabKey>('unwatched')

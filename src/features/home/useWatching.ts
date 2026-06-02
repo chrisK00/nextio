@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import * as api from '../services/api'
-import { useAppContext } from '../state/AppContext'
-import type { TvShow } from '../services/api'
-import { mergeShowsWithWatchlist, sortShowsByLastUpdated } from '../utils/show'
+import * as api from '../../services/api'
+import { useAppContext } from '../../state/AppContext'
+import type { TvShow } from '../../services/api'
+import { mergeShowsWithWatchlist, sortShowsByLastUpdated } from '../show/utils/show'
 
 export default function useWatching() {
     const { watchlist: localWatchlist } = useAppContext()
