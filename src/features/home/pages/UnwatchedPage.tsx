@@ -1,0 +1,56 @@
+import { useNavigate } from 'react-router-dom'
+import type { TvShow } from '../../../services/api'
+import ShowCard from '../../show/components/ShowCard'
+import styles from '../../../App.module.css'
+import useShows from '../hooks/useShows'
+import { getReleaseCountdown } from '../../show/utils/show'
+import BottomNav from '../components/BottomNav'
+
+export default function UnwatchedPage() {
+	const navigate = useNavigate()
+	const { shows, loading } = useShows('unwatched')
+
+	function handleShowClick(show: TvShow) {
+		navigate(`/show/${encodeURIComponent(show.id)}`)
+	}
+
+	if(loading) {
+		return (
+			<main className={styles.mainPanel}>
+				<div className={styles.emptyState}>Loading your show tracking data...</div>
+				<BottomNav />
+			</main>
+		)
+	}
+
+	if(shows.length === 0) {
+		return (
+			<main className={styles.mainPanel}>
+				<div className={styles.emptyState}>No unwatched episodes found. Add more shows to follow.</div>
+				<BottomNav />
+			</main>
+		)
+	}
+
+	return (
+		<main className={styles.mainPanel}>
+			<section className={styles.tabContent}>
+				<div className={styles.showGrid}>
+					{shows.map((show) => (
+						<ShowCard
+							key={show.id}
+							show={show}
+							onClick={handleShowClick}
+							action={
+								<div className={styles.showCardMeta}>
+									<span>{show.nextReleaseDate ? getReleaseCountdown(show) : show.nextEpisodeTitle || 'Unplanned'}</span>
+								</div>
+							}
+						/>
+					))}
+				</div>
+			</section>
+			<BottomNav />
+		</main>
+	)
+}

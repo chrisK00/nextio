@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppProvider } from './state/AppContext'
 import HeaderBar from './components/common/HeaderBar'
-import HomePage from './features/home/HomePage'
+import UnwatchedPage from './features/home/pages/UnwatchedPage'
+import UpcomingPage from './features/home/pages/UpcomingPage'
+import WatchingPage from './features/home/pages/WatchingPage'
 import SearchPage from './features/search/SearchPage'
 import ShowPage from './features/show/ShowPage'
 import SettingsPage from './features/settings/SettingsPage'
@@ -12,7 +14,9 @@ function AppRouter() {
 		<div className={styles.appShell}>
 			<HeaderBar />
 			<Routes>
-				<Route path="/" element={<HomePage />} />
+				<Route path="/unwatched" element={<UnwatchedPage />} />
+				<Route path="/upcoming" element={<UpcomingPage />} />
+				<Route path="/watching" element={<WatchingPage />} />
 				<Route path="/search" element={<SearchPage />} />
 				<Route path="/show/:id" element={<ShowPage />} />
 				<Route path="/settings" element={<SettingsPage />} />

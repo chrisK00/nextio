@@ -5,6 +5,7 @@ import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
 import styles from '../../App.module.css'
 import useSearch from './hooks/useSearch'
+import BottomNav from '../home/components/BottomNav'
 
 export default function SearchPage() {
   useAppContext()
@@ -20,7 +21,7 @@ export default function SearchPage() {
   return (
     <main>
       <div className={styles.settingsHeader}>
-        <button className={styles.secondaryButton} onClick={() => navigate('/')} type="button">← Back to tracker</button>
+        <button className={styles.secondaryButton} onClick={() => navigate('/unwatched')} type="button">← Back to tracker</button>
       </div>
 
       <SearchPanel
@@ -29,6 +30,8 @@ export default function SearchPage() {
         onQueryChange={setQuery}
         onShowClick={openShow}
       />
+      
+      <BottomNav />
     </main>
   )
 }

@@ -1,6 +1,7 @@
 import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
 import styles from '../../App.module.css'
+import BottomNav from '../home/components/BottomNav'
 
 export default function SettingsPage() {
   const { settings, toggleSetting } = useAppContext()
@@ -9,7 +10,7 @@ export default function SettingsPage() {
   return (
     <main className={styles.settingsPanel}>
       <div className={styles.settingsHeader}>
-        <button className={styles.secondaryButton} onClick={() => navigate('/')} type="button">
+        <button className={styles.secondaryButton} onClick={() => navigate('/unwatched')} type="button">
           Back to tracker
         </button>
         <h2>App settings</h2>
@@ -43,6 +44,8 @@ export default function SettingsPage() {
           </div>
         </section>
       </div>
+
+      <BottomNav />
     </main>
   )
 }

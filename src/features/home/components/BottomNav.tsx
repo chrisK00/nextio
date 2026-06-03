@@ -1,19 +1,17 @@
-import type { TabKey } from '../../../types'
+import { useNavigate, useLocation } from 'react-router-dom'
 import styles from '../../../App.module.css'
 
-type BottomNavProps = {
-  activeTab: TabKey
-  onChangeTab: (tab: TabKey) => void
-}
+export default function BottomNav() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const currentPath = location.pathname
 
-// TODO: should be a common one displayed on all pages, not just home
-export default function BottomNav({ activeTab, onChangeTab }: BottomNavProps) {
   return (
     <nav className={styles.bottomNav} aria-label="Primary navigation">
       <button
         type="button"
-        className={`${styles.bottomNavButton} ${activeTab === 'unwatched' ? styles.bottomNavActive : ''}`}
-        onClick={() => onChangeTab('unwatched')}
+        className={`${styles.bottomNavButton} ${currentPath === '/unwatched' ? styles.bottomNavActive : ''}`}
+        onClick={() => navigate('/unwatched')}
         aria-label="Unwatched"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
@@ -25,8 +23,8 @@ export default function BottomNav({ activeTab, onChangeTab }: BottomNavProps) {
 
       <button
         type="button"
-        className={`${styles.bottomNavButton} ${activeTab === 'upcoming' ? styles.bottomNavActive : ''}`}
-        onClick={() => onChangeTab('upcoming')}
+        className={`${styles.bottomNavButton} ${currentPath === '/upcoming' ? styles.bottomNavActive : ''}`}
+        onClick={() => navigate('/upcoming')}
         aria-label="Upcoming"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
@@ -38,8 +36,8 @@ export default function BottomNav({ activeTab, onChangeTab }: BottomNavProps) {
 
       <button
         type="button"
-        className={`${styles.bottomNavButton} ${activeTab === 'watching' ? styles.bottomNavActive : ''}`}
-        onClick={() => onChangeTab('watching')}
+        className={`${styles.bottomNavButton} ${currentPath === '/watching' ? styles.bottomNavActive : ''}`}
+        onClick={() => navigate('/watching')}
         aria-label="My Shows"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
