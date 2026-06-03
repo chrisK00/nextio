@@ -17,8 +17,8 @@ export default function useShows(status: ShowStatus) {
             setLoading(true)
             try {
                 let data: TvShow[]
-                
-                switch(status) {
+
+                switch (status) {
                     case 'watching':
                         data = await api.getWatchingNow()
                         break
@@ -29,19 +29,25 @@ export default function useShows(status: ShowStatus) {
                         data = await api.getUpcomingReleases()
                         break
                 }
-                
-                if(!mounted) return
+
+                if (!mounted) { // in case the component unmounted while we were fetching, don't try to update state
+                    return;
+                }
                 setShows(data)
             } finally {
-                if(mounted) setLoading(false)
+                if (mounted)
+                {
+                    setLoading(false)
+                }
             }
-        })()
+        })()// ← THIS LAST () CALLS THE FUNCTION IMMEDIATELY
 
         return () => {
             mounted = false
         }
     }, [status])
 
+    // temporary solution to merge watchlist data with shows until we have a single source of truth for the watchlist data in the app
     const combined = useMemo(() => {
         const merged = mergeShowsWithWatchlist(shows, localWatchlist)
         return sortShowsByLastUpdated(merged, localWatchlist)

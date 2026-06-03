@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppProvider } from './state/AppContext'
 import HeaderBar from './components/common/HeaderBar'
-import BottomNav from './features/home/components/BottomNav'
+import BottomNav from './components/common/BottomNav'
 import UnwatchedPage from './features/home/pages/UnwatchedPage'
 import UpcomingPage from './features/home/pages/UpcomingPage'
 import WatchingPage from './features/home/pages/WatchingPage'

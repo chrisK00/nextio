@@ -31,3 +31,4 @@ applyTo: "*"
 - **Formatting:** Write self-documenting code. Use clear, intentional variable and function names over heavy code comments.
 - **Testing:** Prioritize easily testable pure functions and isolated service logic.
 - **Architecture** : Avoid introducing complex architectural patterns (e.g., microservices, event-driven) unless explicitly required. Focus on simplicity and maintainability. Structure things by domain (e.g., shows, watchlist) rather than by technical layer (e.g., controllers, services) to keep related code together and reduce unnecessary abstraction.
+- **Code style:** Never oneline if statements, always use braces
