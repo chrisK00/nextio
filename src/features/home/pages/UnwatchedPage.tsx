@@ -4,7 +4,6 @@ import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import { getReleaseCountdown } from '../../show/utils/show'
-import BottomNav from '../components/BottomNav'
 
 export default function UnwatchedPage() {
 	const navigate = useNavigate()
@@ -18,7 +17,6 @@ export default function UnwatchedPage() {
 		return (
 			<main className={styles.mainPanel}>
 				<div className={styles.emptyState}>Loading your show tracking data...</div>
-				<BottomNav />
 			</main>
 		)
 	}
@@ -27,7 +25,6 @@ export default function UnwatchedPage() {
 		return (
 			<main className={styles.mainPanel}>
 				<div className={styles.emptyState}>No unwatched episodes found. Add more shows to follow.</div>
-				<BottomNav />
 			</main>
 		)
 	}
@@ -50,7 +47,6 @@ export default function UnwatchedPage() {
 					))}
 				</div>
 			</section>
-			<BottomNav />
 		</main>
 	)
 }

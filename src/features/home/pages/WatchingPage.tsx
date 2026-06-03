@@ -5,7 +5,6 @@ import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import { isRunningShow } from '../../show/utils/show'
-import BottomNav from '../components/BottomNav'
 
 type WatchingSort = 'showStatus' | 'watchStatus'
 
@@ -42,7 +41,6 @@ export default function WatchingPage() {
 		return (
 			<main className={styles.mainPanel}>
 				<div className={styles.emptyState}>Loading your show tracking data...</div>
-				<BottomNav />
 			</main>
 		)
 	}
@@ -51,7 +49,6 @@ export default function WatchingPage() {
 		return (
 			<main className={styles.mainPanel}>
 				<div className={styles.emptyState}>No followed shows yet. Use search to add your next series.</div>
-				<BottomNav />
 			</main>
 		)
 	}
@@ -154,7 +151,6 @@ export default function WatchingPage() {
 					)}
 				</div>
 			</section>
-			<BottomNav />
 		</main>
 	)
 }

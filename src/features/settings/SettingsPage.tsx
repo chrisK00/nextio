@@ -1,7 +1,6 @@
 import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
 import styles from '../../App.module.css'
-import BottomNav from '../home/components/BottomNav'
 
 export default function SettingsPage() {
   const { settings, toggleSetting } = useAppContext()
@@ -44,8 +43,6 @@ export default function SettingsPage() {
           </div>
         </section>
       </div>
-
-      <BottomNav />
     </main>
   )
 }

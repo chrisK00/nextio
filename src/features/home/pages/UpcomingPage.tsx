@@ -4,7 +4,6 @@ import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import { getReleaseCountdown } from '../../show/utils/show'
-import BottomNav from '../components/BottomNav'
 
 export default function UpcomingPage() {
 	const navigate = useNavigate()
@@ -18,7 +17,6 @@ export default function UpcomingPage() {
 		return (
 			<main className={styles.mainPanel}>
 				<div className={styles.emptyState}>Loading your show tracking data...</div>
-				<BottomNav />
 			</main>
 		)
 	}
@@ -27,7 +25,6 @@ export default function UpcomingPage() {
 		return (
 			<main className={styles.mainPanel}>
 				<div className={styles.emptyState}>No upcoming releases yet. Add shows to track future episodes.</div>
-				<BottomNav />
 			</main>
 		)
 	}
@@ -47,7 +44,6 @@ export default function UpcomingPage() {
 					))}
 				</ol>
 			</section>
-			<BottomNav />
 		</main>
 	)
 }

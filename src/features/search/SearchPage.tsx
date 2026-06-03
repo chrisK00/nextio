@@ -5,7 +5,6 @@ import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
 import styles from '../../App.module.css'
 import useSearch from './hooks/useSearch'
-import BottomNav from '../home/components/BottomNav'
 
 export default function SearchPage() {
   useAppContext()
@@ -30,8 +29,6 @@ export default function SearchPage() {
         onQueryChange={setQuery}
         onShowClick={openShow}
       />
-      
-      <BottomNav />
     </main>
   )
 }
