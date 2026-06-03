@@ -1,15 +1,16 @@
 import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
-import styles from '../../App.module.css'
+import styles from './SettingsPage.module.css'
+import appStyles from '../../App.module.css'
 
 export default function SettingsPage() {
   const { settings, toggleSetting } = useAppContext()
   const navigate = useNavigate()
 
   return (
-    <main className={styles.settingsPanel}>
+    <main className={appStyles.settingsPanel}>
       <div className={styles.settingsHeader}>
-        <button className={styles.secondaryButton} onClick={() => navigate('/unwatched')} type="button">
+        <button className={appStyles.secondaryButton} onClick={() => navigate('/unwatched')} type="button">
           Back to tracker
         </button>
         <h2>App settings</h2>
@@ -21,7 +22,7 @@ export default function SettingsPage() {
             <strong>Notifications</strong>
             <p>Receive alerts when new episodes are coming soon.</p>
           </div>
-          <button className={styles.primaryButton} onClick={() => void toggleSetting('notificationsEnabled')} type="button">
+          <button className={appStyles.primaryButton} onClick={() => void toggleSetting('notificationsEnabled')} type="button">
             {settings?.notificationsEnabled ? 'Enabled' : 'Disabled'}
           </button>
         </label>
@@ -31,12 +32,12 @@ export default function SettingsPage() {
             <strong>Dark mode</strong>
             <p>Use a darker theme when available.</p>
           </div>
-          <button className={styles.primaryButton} onClick={() => void toggleSetting('darkMode')} type="button">
+          <button className={appStyles.primaryButton} onClick={() => void toggleSetting('darkMode')} type="button">
             {settings?.darkMode ? 'On' : 'Off'}
           </button>
         </label>
 
-        <section className={`${styles.settingsCard} ${styles.wideCard}`}>
+        <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
             <strong>Preferred genres</strong>
             <p>{settings?.preferredGenres.join(', ') || 'No genres selected'}</p>

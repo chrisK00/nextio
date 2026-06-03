@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import styles from '../../../App.module.css'
+import styles from './BottomNav.module.css'
 
 export default function BottomNav() {
   const navigate = useNavigate()

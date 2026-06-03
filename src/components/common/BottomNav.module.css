@@ -1,0 +1,40 @@
+.bottomNav {
+	position: fixed;
+	left: 12px;
+	right: 12px;
+	bottom: env(safe-area-inset-bottom, 12px);
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+	padding: 10px;
+	max-width: 720px;
+	margin: 0 auto;
+	box-sizing: border-box;
+	z-index: 60;
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+	backdrop-filter: blur(6px);
+}
+
+.bottomNavButton {
+	display:flex;
+	gap:8px;
+	align-items:center;
+	justify-content:center;
+	background: transparent;
+	border: none;
+	color: var(--text-h);
+	padding: 12px 8px;
+	min-height: 48px;
+	cursor: pointer;
+	border-radius: 999px;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.bottomNavButton svg { opacity: 0.9 }
+
+.bottomNavButton span { font-size: 0.85rem }
+
+.bottomNavActive { background: var(--accent-bg); color: var(--accent) }

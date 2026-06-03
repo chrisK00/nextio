@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router'
-import styles from '../../App.module.css'
+import appStyles from '../../App.module.css'
+import styles from './HeaderBar.module.css'
 import { CiSearch, CiSettings } from "react-icons/ci";
 
 
@@ -13,11 +14,11 @@ export default function HeaderBar() {
 			</div>
 
 			<div className={styles.headerActions}>
-				<button className={styles.secondaryButton} onClick={() => navigate('/search')} type="button">
+				<button className={appStyles.secondaryButton} onClick={() => navigate('/search')} type="button">
 					<CiSearch style={{ marginRight: '0.2rem' }} />
 					Search
 				</button>
-				<button className={styles.primaryButton} onClick={() => navigate('/settings')} type="button">
+				<button className={appStyles.primaryButton} onClick={() => navigate('/settings')} type="button">
 					<CiSettings style={{ marginRight: '0.2rem' }} />
 					Settings
 				</button>

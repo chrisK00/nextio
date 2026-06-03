@@ -1,0 +1,24 @@
+.settingsHeader {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	align-items: stretch;
+	margin-bottom: 20px;
+}
+
+.settingsGrid {
+	display: grid;
+	gap: 18px;
+	grid-template-columns: 1fr;
+}
+
+.settingsCard {
+	display: grid;
+	gap: 14px;
+}
+
+@media (min-width: 860px) {
+	.settingsGrid {
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	}
+}
