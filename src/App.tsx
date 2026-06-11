@@ -8,6 +8,9 @@ import WatchingPage from './features/home/pages/WatchingPage'
 import SearchPage from './features/search/SearchPage'
 import ShowPage from './features/show/ShowPage'
 import SettingsPage from './features/settings/SettingsPage'
+import RequireAuth from './features/auth/RequireAuth'
+import LoginPage from './features/auth/LoginPage'
+import RegisterPage from './features/auth/RegisterPage'
 import styles from './App.module.css'
 
 function AppRouter() {
@@ -21,7 +24,10 @@ function AppRouter() {
 				<Route path="/watching" element={<WatchingPage />} />
 				<Route path="/search" element={<SearchPage />} />
 				<Route path="/show/:id" element={<ShowPage />} />
-				<Route path="/settings" element={<SettingsPage />} />
+				{/* TODO auth */}
+				<Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+				<Route path="/login" element={<LoginPage />} />
+				<Route path="/register" element={<RegisterPage />} />
 			</Routes>
 			<BottomNav />
 		</div>

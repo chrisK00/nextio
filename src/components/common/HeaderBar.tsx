@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router'
+import { useNavigate } from 'react-router-dom'
+import { useAppContext } from '../../state/AppContext'
 import appStyles from '../../App.module.css'
 import styles from './HeaderBar.module.css'
 import { CiSearch, CiSettings } from "react-icons/ci";
@@ -6,6 +7,7 @@ import { CiSearch, CiSettings } from "react-icons/ci";
 
 export default function HeaderBar() {
 	const navigate = useNavigate()
+	const { isAuthenticated, username, logout } = useAppContext()
 
 	return (
 		<header className={styles.appBar}>
@@ -22,6 +24,18 @@ export default function HeaderBar() {
 					<CiSettings style={{ marginRight: '0.2rem' }} />
 					Settings
 				</button>
+
+				{isAuthenticated ? (
+					<>
+						<span className={styles.username}>{username}</span>
+						<button className={appStyles.ghostButton} onClick={() => { logout(); navigate('/') }} type="button">Logout</button>
+					</>
+				) : (
+					<>
+						<button className={appStyles.ghostButton} onClick={() => navigate('/login')} type="button">Login</button>
+						<button className={appStyles.ghostButton} onClick={() => navigate('/register')} type="button">Sign up</button>
+					</>
+				)}
 			</div>
 		</header>
 	)

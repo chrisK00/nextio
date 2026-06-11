@@ -24,6 +24,7 @@ applyTo: "*"
 - **Data Access:** Use Entity Framework Core (EF Core) with a code-first approach. Enforce proper migration patterns.
 - **REST Best Practices:** Ensure endpoints follow standard REST conventions (`GET /api/shows`, `POST /api/watchlist`). Return explicit HTTP status codes (`Ok()`, `NotFound()`, `BadRequest()`).
 - **DTOs:** Never expose raw database entities directly to the client. Always map entities to Data Transfer Objects (DTOs) before returning them via the API.
+- **File Structure:** Organize code by domain (e.g., `Features/Shows`, `Features/Watchlist`) rather than by technical layer (e.g., `Controllers`, `Services`) to keep related code together and reduce unnecessary abstraction. Also use file scoped namespaces.
 
 ## 4. Operational Guardrails
 

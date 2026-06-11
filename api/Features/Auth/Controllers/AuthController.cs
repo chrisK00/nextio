@@ -1,0 +1,130 @@
+using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using Models;
+using Services;
+
+namespace Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController(IUserService userService, JwtService jwtService) : ControllerBase
+    {
+        private readonly IUserService _userService = userService;
+        private readonly JwtService _jwtService = jwtService;
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest req)
+        {
+            var existing = await _userService.GetByUsernameAsync(req.Username);
+            if (existing is not null)
+                return Conflict(new { error = "User already exists" });
+
+            var user = await _userService.CreateAsync(req.Username, req.Password);
+
+            var token = _jwtService.CreateToken(user.Id.ToString(), user.Username);
+            var refresh = GenerateRefreshToken();
+
+            // persist refresh token
+            // TODO move to service layer and handle cleanup of old tokens. controller should not be aware of db context. add that to ai instructions aswell
+            var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
+            db.RefreshTokens.Add(new RefreshToken { Id = Guid.NewGuid(), UserId = user.Id, Token = refresh.Token, CreatedAt = refresh.CreatedAt, ExpiresAt = refresh.ExpiresAt });
+            await db.SaveChangesAsync();
+
+            SetRefreshTokenCookie(refresh.Token, refresh.ExpiresAt);
+
+            var returnRefresh = Request.Headers.TryGetValue("X-Return-RefreshToken", out var rv) && string.Equals(rv.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+            return Ok(new AuthResponse(token, (long)TimeSpan.FromHours(1).TotalSeconds, returnRefresh ? refresh.Token : null));
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] AuthRequest req)
+        {
+            var valid = await _userService.ValidateCredentialsAsync(req.Username, req.Password);
+            if (!valid) return Unauthorized(new { error = "Invalid credentials" });
+
+            var user = await _userService.GetByUsernameAsync(req.Username);
+            if (user is null) return Unauthorized();
+
+            var token = _jwtService.CreateToken(user.Id.ToString(), user.Username);
+            var refresh = GenerateRefreshToken();
+
+            var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
+            db.RefreshTokens.Add(new Models.RefreshToken { Id = Guid.NewGuid(), UserId = user.Id, Token = refresh.Token, CreatedAt = refresh.CreatedAt, ExpiresAt = refresh.ExpiresAt });
+            await db.SaveChangesAsync();
+
+            SetRefreshTokenCookie(refresh.Token, refresh.ExpiresAt);
+
+            var returnRefreshLogin = Request.Headers.TryGetValue("X-Return-RefreshToken", out var lrv) && string.Equals(lrv.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+            return Ok(new AuthResponse(token, (long)TimeSpan.FromHours(1).TotalSeconds, returnRefreshLogin ? refresh.Token : null));
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            var refreshToken = Request.Cookies["refreshToken"] ?? (await HttpContext.Request.ReadFromJsonAsync<RefreshRequest>())?.RefreshToken;
+            if (string.IsNullOrEmpty(refreshToken)) return Unauthorized();
+
+            var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
+            var stored = await db.RefreshTokens.FirstOrDefaultAsync(r => r.Token == refreshToken && !r.IsRevoked && r.ExpiresAt > DateTime.UtcNow);
+            if (stored is null) return Unauthorized();
+
+            var user = await db.Users.FindAsync(stored.UserId);
+            if (user is null) return Unauthorized();
+
+            // rotate refresh token
+            stored.IsRevoked = true;
+            var newRefresh = GenerateRefreshToken();
+            db.RefreshTokens.Add(new Models.RefreshToken { Id = Guid.NewGuid(), UserId = user.Id, Token = newRefresh.Token, CreatedAt = newRefresh.CreatedAt, ExpiresAt = newRefresh.ExpiresAt, ReplacedByToken = null });
+            await db.SaveChangesAsync();
+
+            SetRefreshTokenCookie(newRefresh.Token, newRefresh.ExpiresAt);
+
+            var newAccess = _jwtService.CreateToken(user.Id.ToString(), user.Username);
+            // TODO check if safe enough instead of cookie (due to future mobile client)
+            var returnRefreshRefresh = Request.Headers.TryGetValue("X-Return-RefreshToken", out var rrv) && string.Equals(rrv.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+            return Ok(new AuthResponse(newAccess, (long)TimeSpan.FromHours(1).TotalSeconds, returnRefreshRefresh ? newRefresh.Token : null));
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
+                var stored = await db.RefreshTokens.FirstOrDefaultAsync(r => r.Token == refreshToken);
+                if (stored != null)
+                {
+                    stored.IsRevoked = true;
+                    await db.SaveChangesAsync();
+                }
+            }
+
+            Response.Cookies.Delete("refreshToken");
+            return Ok();
+        }
+
+        private void SetRefreshTokenCookie(string token, DateTime expires)
+        {
+            Response.Cookies.Append("refreshToken", token, new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                HttpOnly = true,
+                Expires = expires,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                Secure = false // set true in production over HTTPS
+            });
+        }
+
+        // TODO does not belong in controller
+        private (string Token, DateTime CreatedAt, DateTime ExpiresAt) GenerateRefreshToken()
+        {
+            var random = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var created = DateTime.UtcNow;
+            var expires = created.AddDays(7);
+            return (random, created, expires);
+        }
+    }
+
+    record RefreshRequest(string RefreshToken);
+}

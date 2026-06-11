@@ -160,3 +160,62 @@ export async function getAppSettings(): Promise<Settings> {
 export async function saveAppSettings(settings: Settings): Promise<Settings> {
 	return Promise.resolve(settings)
 }
+
+// --- Authentication API ---
+// TODO move to its own file
+export type AuthResponse = {
+	token: string
+	expiresInSeconds: number
+}
+
+const API_BASE = '/api'
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+	const res = await fetch(`${API_BASE}${path}`, {
+		method: 'POST',
+		credentials: 'include',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(body),
+	})
+
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
+}
+
+export async function authRegister(username: string, password: string): Promise<AuthResponse> {
+	return postJson<AuthResponse>('/auth/register', { username, password })
+}
+
+export async function authLogin(username: string, password: string): Promise<AuthResponse> {
+	return postJson<AuthResponse>('/auth/login', { username, password })
+}
+
+export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promise<Response> {
+	const token = localStorage.getItem('token')
+	const headers = new Headers(opts.headers || {})
+	if(token) headers.set('Authorization', `Bearer ${token}`)
+
+	const fetchOpts: RequestInit = { credentials: 'include', ...opts, headers }
+	const res = await fetch(path.startsWith('/') ? path : `${API_BASE}${path}`, fetchOpts)
+
+	if(res.status === 401) {
+		// attempt refresh
+		const r = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+		if(r.ok) {
+			const data = await r.json() as AuthResponse
+			localStorage.setItem('token', data.token)
+			// retry original request once
+			const retryHeaders = new Headers(opts.headers || {})
+			retryHeaders.set('Authorization', `Bearer ${data.token}`)
+			return fetch(path.startsWith('/') ? path : `${API_BASE}${path}`, { ...opts, credentials: 'include', headers: retryHeaders })
+		}
+	}
+
+	return res
+}
+
+export async function getProtectedTest(): Promise<{ message: string }> {
+	const res = await fetchWithAuth('/test')
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
+}
