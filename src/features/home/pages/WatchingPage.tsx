@@ -132,7 +132,7 @@ export default function WatchingPage() {
 									</div>
 								</section>
 							)}
-                            // if we have fullywatchedshows we can show them in a separate section at the bottom, but only if the user has at least one show with unwatched episodes
+							{/* if we have fullywatchedshows we can show them in a separate section at the bottom, but only if the user has at least one show with unwatched episodes */}
 							{fullyWatchedShows.length > 0 && (
 								<section>
 									<h2>Fully watched</h2>
