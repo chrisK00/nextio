@@ -1,9 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import type { TvShow, Settings } from '../services/api'
+import type { TvShow, Settings, LibraryTvShow, LibraryMovie, LibraryResponse } from '../services/api'
 import * as api from '../services/api'
 
-type WatchlistItem = { id: string; title?: string; posterUrl?: string; lastUpdatedAt?: string; mediaType: 'tv' | 'movie' }
+type WatchlistItem = TvShow & {
+  lastUpdatedAt?: string
+  lastSyncedAt?: string
+  syncError?: string
+}
 
 type AppContextType = {
   // lightweight user-owned data
@@ -44,6 +48,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [authLoading, setAuthLoading] = useState(false)
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem('username'))
 
+  const applyLibrary = useCallback((library: LibraryResponse) => {
+    setWatchlist(library.tvShows.map(mapLibraryTvShow))
+    setMovies(library.movies.map(mapLibraryMovie))
+  }, [])
+
+  const loadLibrary = useCallback(async () => {
+    if(!token) {
+      setWatchlist([])
+      setMovies([])
+      return
+    }
+    const library = await api.getLibrary()
+    applyLibrary(library)
+  }, [applyLibrary, token])
+
   const loadSettings = useCallback(async () => {
     setIsLoadingSettings(true)
     try {
@@ -64,6 +83,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       mounted = false
     }
   }, [loadSettings])
+
+  useEffect(() => {
+    let mounted = true
+    void (async () => {
+      if(!mounted) return
+      await loadLibrary()
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [loadLibrary, token])
 
   // validate token on startup
   useEffect(() => {
@@ -91,39 +121,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [token])
 
   const followShow = useCallback((show: TvShow) => {
-    const now = new Date().toISOString()
     if((show.mediaType ?? 'tv') === 'movie') {
-      setMovies((prev) => {
-        if(prev.some((s) => s.id === show.id)) return prev
-        return [...prev, show]
-      })
-      return
+      void api.addLibraryMovie(show).then(loadLibrary)
+    } else {
+      void api.addLibraryTvShow(show).then(loadLibrary)
     }
-
-    setWatchlist((prev) => {
-      if(prev.some((s) => s.id === show.id)) return prev
-      return [...prev, { id: show.id, title: show.title, posterUrl: show.posterUrl, lastUpdatedAt: now, mediaType: 'tv' }]
-    })
-  }, [])
+  }, [loadLibrary])
 
   const unfollowShow = useCallback((showId: string) => {
-    setWatchlist((prev) => prev.filter((item) => item.id !== showId))
-    setMovies((prev) => prev.filter((item) => item.id !== showId))
-  }, [])
+    void api.removeLibraryTvShow(showId)
+      .catch(async () => {
+        await api.removeLibraryMovie(showId)
+      })
+      .finally(() => {
+        void loadLibrary()
+      })
+  }, [loadLibrary])
 
   const toggleEpisode = useCallback(async (showId: string, season: number, episode: number) => {
-    await api.toggleEpisodeWatched(showId, season, episode)
-    const now = new Date().toISOString()
-    setWatchlist((prev) => {
-      const index = prev.findIndex((item) => item.id === showId)
-      if(index >= 0) {
-        const next = [...prev]
-        next[index] = { ...next[index], lastUpdatedAt: now }
-        return next
-      }
-      return prev
-    })
-  }, [])
+    await api.setLibraryEpisodeWatched(showId, season, episode)
+    await loadLibrary()
+  }, [loadLibrary])
 
   const toggleSetting = useCallback(async (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => {
     if(!settings) return
@@ -155,6 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('username', username)
         setToken(res.token)
         setUsername(username)
+        await loadLibrary()
       } finally { setAuthLoading(false) }
     },
     register: async (username: string, password: string) => {
@@ -165,6 +184,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('username', username)
         setToken(res.token)
         setUsername(username)
+        await loadLibrary()
       } finally { setAuthLoading(false) }
     },
 
@@ -174,9 +194,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [watchlist, movies, settings, isLoadingSettings, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting])
+  }), [watchlist, movies, settings, isLoadingSettings, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
+}
+
+function mapLibraryTvShow(item: LibraryTvShow): WatchlistItem {
+  return {
+    id: item.id,
+    title: item.title,
+    posterUrl: item.posterUrl,
+    network: item.network ?? 'TV',
+    status: item.status ?? 'Tracked',
+    episodesWatched: item.episodes.filter((episode) => episode.watched).length,
+    episodesTotal: Math.max(item.episodes.length, 1),
+    nextEpisodeTitle: item.nextReleaseDate ? 'Next release' : 'Tracked show',
+    nextEpisode: item.nextReleaseDate,
+    nextReleaseDate: item.nextReleaseDate,
+    description: item.description ?? item.title,
+    mediaType: 'tv',
+    lastUpdatedAt: item.updatedAt,
+    lastSyncedAt: item.lastSyncedAt,
+    syncError: item.syncError,
+  }
+}
+
+function mapLibraryMovie(item: LibraryMovie): TvShow {
+  return {
+    id: item.id,
+    title: item.title,
+    mediaType: 'movie',
+    network: 'Movie',
+    status: 'Watched',
+    episodesWatched: 1,
+    episodesTotal: 1,
+    nextEpisodeTitle: 'Movie',
+    description: item.description ?? item.title,
+    posterUrl: item.posterUrl,
+  }
 }
 
 export default AppContext

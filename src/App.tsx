@@ -24,6 +24,9 @@ function AppRouter() {
 				<Route path="/upcoming" element={<UpcomingPage />} />
 				<Route path="/watching" element={<WatchingPage />} />
 				<Route path="/movies" element={<MoviesPage />} />
+				<Route path="/library" element={<WatchingPage />} />
+				<Route path="/library/tv" element={<WatchingPage />} />
+				<Route path="/library/movies" element={<MoviesPage />} />
 				<Route path="/search" element={<SearchPage />} />
 				<Route path="/show/:id" element={<ShowPage />} />
 				{/* TODO auth */}

@@ -9,8 +9,8 @@ export default function ShowPage() {
   const navigate = useNavigate()
   const decoded = id ? decodeURIComponent(id) : undefined
   const { show, loading, refetch } = useShow(decoded)
-  const { watchlist, toggleEpisode, followShow, unfollowShow } = useAppContext()
-  const isTracked = show ? watchlist.some((item) => item.id === show.id) : false
+  const { watchlist, movies, toggleEpisode, followShow, unfollowShow } = useAppContext()
+  const isTracked = show ? watchlist.some((item) => item.id === show.id) || movies.some((movie) => movie.id === show.id) : false
   const handleFollowToggle = (target: TvShow, tracked: boolean) => {
     if(tracked) {
       unfollowShow(target.id)

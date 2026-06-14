@@ -1,5 +1,3 @@
-import { showCatalog } from "./seedData"
-
 export type Episode = {
 	id: string
 	season: number
@@ -35,6 +33,60 @@ export type SearchResults = {
 	movies: TvShow[]
 }
 
+export type TvEpisodeItem = {
+	season: number
+	episode: number
+	watched: boolean
+}
+
+export type LibraryTvShow = {
+	id: string
+	title: string
+	posterUrl?: string
+	network?: string
+	status?: string
+	description?: string
+	nextReleaseDate?: string
+	followedAt: string
+	updatedAt: string
+	lastSyncedAt?: string
+	syncError?: string
+	episodes: TvEpisodeItem[]
+}
+
+export type LibraryMovie = {
+	id: string
+	title: string
+	posterUrl?: string
+	description?: string
+	watchedAt: string
+}
+
+export type LibraryResponse = {
+	tvShows: LibraryTvShow[]
+	movies: LibraryMovie[]
+}
+
+export type LibraryTvShowDetails = {
+	show: LibraryTvShow
+	episodes: TvEpisodeItem[]
+}
+
+export type LibrarySyncItem = {
+	showId: string
+	title: string
+	success: boolean
+	message: string
+	syncedAt: string
+}
+
+export type LibrarySyncResponse = {
+	total: number
+	succeeded: number
+	failed: number
+	items: LibrarySyncItem[]
+}
+
 export const emptySearchResults: SearchResults = {
 	tvShows: [],
 	movies: [],
@@ -51,22 +103,6 @@ export type Settings = {
 	notificationsEnabled: boolean
 	darkMode: boolean
 	preferredGenres: string[]
-}
-
-export async function getWatchingNow(): Promise<TvShow[]> {
-	return Promise.resolve(showCatalog.filter((show) => show.episodesWatched < show.episodesTotal).slice(0, 3))
-}
-
-export async function getUnwatchedShows(): Promise<TvShow[]> {
-	return Promise.resolve(showCatalog.filter((show) => show.episodesWatched < show.episodesTotal))
-}
-
-export async function getUpcomingReleases(): Promise<TvShow[]> {
-	return Promise.resolve(
-		showCatalog
-			.filter((show) => show.nextReleaseDate)
-			.sort((a, b) => (a.nextReleaseDate! > b.nextReleaseDate! ? 1 : -1)),
-	)
 }
 
 function mapSearchItem(result: Record<string, unknown>): TvShow {
@@ -119,25 +155,6 @@ export async function searchShows(query: string): Promise<SearchResults> {
 	}
 }
 
-function generateMockSeasons(): Season[] {
-	const seasons: Season[] = []
-	for(let s = 1; s <= 3; s++) {
-		const episodeCount = 10 + Math.floor(Math.random() * 3)
-		const episodes: Episode[] = []
-		for(let e = 1; e <= episodeCount; e++) {
-			episodes.push({
-				id: `${s}-${e}`,
-				season: s,
-				episode: e,
-				title: `Episode ${e}`,
-				watched: s === 1 && e <= 5,
-			})
-		}
-		seasons.push({ season: s, episodes })
-	}
-	return seasons
-}
-
 export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 	try {
 		const [mediaType, rawId] = imdbId.includes(':') ? imdbId.split(':', 2) : ['tv', imdbId]
@@ -150,9 +167,6 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 
 		const result = data as Record<string, unknown>
 		const show = mapSearchItem(result)
-		if(show.mediaType === 'tv') {
-			show.seasons = generateMockSeasons()
-		}
 		return show
 	} catch {
 		return null
@@ -173,6 +187,85 @@ export async function getAppSettings(): Promise<Settings> {
 		darkMode: false,
 		preferredGenres: ['Drama', 'Sci-Fi', 'Mystery'],
 	})
+}
+
+export async function getLibrary(): Promise<LibraryResponse> {
+	try {
+		const res = await fetchWithAuth('/library')
+		if(!res.ok) return { tvShows: [], movies: [] }
+		return normalizeLibrary(await res.json())
+	} catch {
+		return { tvShows: [], movies: [] }
+	}
+}
+
+export async function getLibraryTvShow(id: string): Promise<LibraryTvShowDetails | null> {
+	try {
+		const res = await fetchWithAuth(`/library/tv/${encodeURIComponent(id)}`)
+		if(!res.ok) return null
+		return await res.json() as LibraryTvShowDetails
+	} catch {
+		return null
+	}
+}
+
+function normalizeLibrary(data: unknown): LibraryResponse {
+	const payload = data as Partial<LibraryResponse> | null
+	return {
+		tvShows: Array.isArray(payload?.tvShows) ? payload!.tvShows : [],
+		movies: Array.isArray(payload?.movies) ? payload!.movies : [],
+	}
+}
+
+export async function addLibraryTvShow(show: TvShow): Promise<void> {
+	await fetchWithAuth('/library/tv', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			id: show.id,
+			title: show.title,
+			posterUrl: show.posterUrl,
+			mediaType: show.mediaType ?? 'tv',
+		}),
+	})
+}
+
+export async function addLibraryMovie(movie: TvShow): Promise<void> {
+	await fetchWithAuth('/library/movies', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			id: movie.id,
+			title: movie.title,
+			posterUrl: movie.posterUrl,
+			description: movie.description,
+			mediaType: movie.mediaType ?? 'movie',
+		}),
+	})
+}
+
+export async function removeLibraryTvShow(id: string): Promise<void> {
+	await fetchWithAuth(`/library/tv/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function removeLibraryMovie(id: string): Promise<void> {
+	await fetchWithAuth(`/library/movies/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function setLibraryEpisodeWatched(showId: string, season: number, episode: number, watched?: boolean): Promise<void> {
+	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ season, episode, watched }),
+	})
+}
+
+export async function syncLibrary(): Promise<LibrarySyncResponse> {
+	const res = await fetchWithAuth('/library/sync', { method: 'POST' })
+	if(!res.ok) {
+		throw new Error(await res.text())
+	}
+	return res.json()
 }
 
 export async function saveAppSettings(settings: Settings): Promise<Settings> {
@@ -214,7 +307,8 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 	if(token) headers.set('Authorization', `Bearer ${token}`)
 
 	const fetchOpts: RequestInit = { credentials: 'include', ...opts, headers }
-	const res = await fetch(path.startsWith('/') ? path : `${API_BASE}${path}`, fetchOpts)
+	const url = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
+	const res = await fetch(url, fetchOpts)
 
 	if(res.status === 401) {
 		// attempt refresh
@@ -225,7 +319,8 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 			// retry original request once
 			const retryHeaders = new Headers(opts.headers || {})
 			retryHeaders.set('Authorization', `Bearer ${data.token}`)
-			return fetch(path.startsWith('/') ? path : `${API_BASE}${path}`, { ...opts, credentials: 'include', headers: retryHeaders })
+			const retryUrl = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
+			return fetch(retryUrl, { ...opts, credentials: 'include', headers: retryHeaders })
 		}
 	}
 

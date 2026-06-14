@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Features.Search.Services;
+using Features.Library.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "change_this_development_key_to_a_long_random_value";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "nextio";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "nextio_clients";
+var dbPath = Path.Combine(builder.Environment.ContentRootPath, "nextio.db");
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -27,11 +29,14 @@ builder.Services.AddCors(options =>
 builder.Services.AddSingleton<Services.JwtService>();
 builder.Services.AddDbContext<Data.ApplicationDbContext>(options =>
 {
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db");
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? $"Data Source={dbPath}");
 });
 
 builder.Services.AddScoped<IPasswordHasher<Models.User>, PasswordHasher<Models.User>>();
 builder.Services.AddScoped<Services.IUserService, Services.UserService>();
+builder.Services.AddScoped<ILibraryService, LibraryService>();
+builder.Services.AddScoped<ILibrarySyncService, LibrarySyncService>();
+builder.Services.AddHostedService<LibrarySyncWorker>();
 builder.Services.AddHttpClient<TmdbSearchService>(client =>
 {
     client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
@@ -83,8 +88,14 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var db = scope.ServiceProvider.GetRequiredService<Data.ApplicationDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.GetPendingMigrations();
+    if (db.Database.CanConnect() || db.Database.GetPendingMigrations().Any())
+    {
+        logger.LogWarning("Applied Migrations: {AppliedMigrationsCount}, Pending Migrations: {PendingMigrationsCount}", db.Database.GetAppliedMigrations().Count(), db.Database.GetPendingMigrations().Count());
+        db.Database.Migrate();
+    }
 }
 
 app.Run();

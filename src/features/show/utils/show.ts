@@ -1,9 +1,6 @@
 import type { TvShow } from '../../../services/api'
 
-export type WatchlistItem = {
-    id: string
-    title?: string
-    posterUrl?: string
+export type WatchlistItem = TvShow & {
     lastUpdatedAt?: string
 }
 
@@ -32,25 +29,4 @@ export const sortShowsByLastUpdated = (shows: TvShow[], watchlist: WatchlistItem
         if(bUpdated) return 1
         return a.title.localeCompare(b.title)
     })
-}
-
-export const mergeShowsWithWatchlist = (shows: TvShow[], watchlist: WatchlistItem[]) => {
-    const map = new Map(shows.map((show) => [show.id, show]))
-    for(const item of watchlist) {
-        if(!map.has(item.id)) {
-            map.set(item.id, {
-                id: item.id,
-                title: item.title ?? 'Unknown',
-                network: '',
-                status: '',
-                episodesWatched: 0,
-                episodesTotal: 0,
-                nextEpisodeTitle: '',
-                description: '',
-                posterUrl: item.posterUrl,
-                mediaType: 'tv',
-            })
-        }
-    }
-    return Array.from(map.values())
 }
