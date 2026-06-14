@@ -48,6 +48,7 @@ export const mergeShowsWithWatchlist = (shows: TvShow[], watchlist: WatchlistIte
                 nextEpisodeTitle: '',
                 description: '',
                 posterUrl: item.posterUrl,
+                mediaType: 'tv',
             })
         }
     }

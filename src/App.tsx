@@ -5,6 +5,7 @@ import BottomNav from './components/common/BottomNav'
 import UnwatchedPage from './features/home/pages/UnwatchedPage'
 import UpcomingPage from './features/home/pages/UpcomingPage'
 import WatchingPage from './features/home/pages/WatchingPage'
+import MoviesPage from './features/home/pages/MoviesPage'
 import SearchPage from './features/search/SearchPage'
 import ShowPage from './features/show/ShowPage'
 import SettingsPage from './features/settings/SettingsPage'
@@ -22,6 +23,7 @@ function AppRouter() {
 				<Route path="/unwatched" element={<UnwatchedPage />} />
 				<Route path="/upcoming" element={<UpcomingPage />} />
 				<Route path="/watching" element={<WatchingPage />} />
+				<Route path="/movies" element={<MoviesPage />} />
 				<Route path="/search" element={<SearchPage />} />
 				<Route path="/show/:id" element={<ShowPage />} />
 				{/* TODO auth */}

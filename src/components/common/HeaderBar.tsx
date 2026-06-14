@@ -20,6 +20,9 @@ export default function HeaderBar() {
 					<CiSearch style={{ marginRight: '0.2rem' }} />
 					Search
 				</button>
+				<button className={appStyles.secondaryButton} onClick={() => navigate('/movies')} type="button">
+					Movies
+				</button>
 				<button className={appStyles.primaryButton} onClick={() => navigate('/settings')} type="button">
 					<CiSettings style={{ marginRight: '0.2rem' }} />
 					Settings

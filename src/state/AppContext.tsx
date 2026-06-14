@@ -3,11 +3,13 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import type { TvShow, Settings } from '../services/api'
 import * as api from '../services/api'
 
-type WatchlistItem = { id: string; title?: string; posterUrl?: string; lastUpdatedAt?: string }
+type WatchlistItem = { id: string; title?: string; posterUrl?: string; lastUpdatedAt?: string; mediaType: 'tv' | 'movie' }
 
 type AppContextType = {
   // lightweight user-owned data
   watchlist: WatchlistItem[]
+  tvShows: WatchlistItem[]
+  movies: TvShow[]
   settings: Settings | null
   isLoading: boolean
   refresh: () => Promise<void>
@@ -35,6 +37,7 @@ export function useAppContext() {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   // client-side only state: lightweight watchlist metadata and UI settings
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([])
+  const [movies, setMovies] = useState<TvShow[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
@@ -89,14 +92,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const followShow = useCallback((show: TvShow) => {
     const now = new Date().toISOString()
+    if((show.mediaType ?? 'tv') === 'movie') {
+      setMovies((prev) => {
+        if(prev.some((s) => s.id === show.id)) return prev
+        return [...prev, show]
+      })
+      return
+    }
+
     setWatchlist((prev) => {
       if(prev.some((s) => s.id === show.id)) return prev
-      return [...prev, { id: show.id, title: show.title, posterUrl: show.posterUrl, lastUpdatedAt: now }]
+      return [...prev, { id: show.id, title: show.title, posterUrl: show.posterUrl, lastUpdatedAt: now, mediaType: 'tv' }]
     })
   }, [])
 
   const unfollowShow = useCallback((showId: string) => {
     setWatchlist((prev) => prev.filter((item) => item.id !== showId))
+    setMovies((prev) => prev.filter((item) => item.id !== showId))
   }, [])
 
   const toggleEpisode = useCallback(async (showId: string, season: number, episode: number) => {
@@ -122,6 +134,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value: AppContextType = useMemo(() => ({
     watchlist,
+    tvShows: watchlist.filter((item) => item.mediaType !== 'movie'),
+    movies,
     settings,
     isLoading: isLoadingSettings,
     refresh: loadSettings,
@@ -160,7 +174,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [watchlist, settings, isLoadingSettings, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting])
+  }), [watchlist, movies, settings, isLoadingSettings, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
