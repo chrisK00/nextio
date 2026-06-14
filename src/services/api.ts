@@ -150,7 +150,9 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 
 		const result = data as Record<string, unknown>
 		const show = mapSearchItem(result)
-		show.seasons = generateMockSeasons()
+		if(show.mediaType === 'tv') {
+			show.seasons = generateMockSeasons()
+		}
 		return show
 	} catch {
 		return null

@@ -116,7 +116,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 			<p className={styles.showDescription}>{show.description}</p>
 
-			{displayShow?.seasons && displayShow.seasons.length > 0 && (
+			{displayShow?.mediaType !== 'movie' && displayShow?.seasons && displayShow.seasons.length > 0 && (
 				<ShowSeasons
 					showId={displayShow.id}
 					seasons={displayShow.seasons}
