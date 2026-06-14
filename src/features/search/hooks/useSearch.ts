@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import * as api from '../../../services/api'
-import type { TvShow } from '../../../services/api'
+import type { SearchResults } from '../../../services/api'
 
 export default function useSearch(query: string) {
-  const [results, setResults] = useState<TvShow[]>([])
+  const [results, setResults] = useState<SearchResults | null>(null)
   const [loading, setLoading] = useState(false)
+  const trimmedQuery = query.trim()
 
   useEffect(() => {
     let mounted = true
-    if(!query.trim()) {
-      void Promise.resolve().then(() => { if(mounted) setResults([]) })
+    if(!trimmedQuery) {
       return () => { mounted = false }
     }
 
@@ -27,7 +27,10 @@ export default function useSearch(query: string) {
     return () => {
       mounted = false
     }
-  }, [query])
+  }, [query, trimmedQuery])
 
-  return { results, loading }
+  return {
+    results: trimmedQuery ? results : null,
+    loading: trimmedQuery.length > 0 && loading,
+  }
 }

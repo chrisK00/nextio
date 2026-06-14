@@ -92,6 +92,17 @@ input:focus-visible {
 	gap: 18px;
 }
 
+.searchSection {
+	display: grid;
+	gap: 12px;
+}
+
+.searchSectionTitle {
+	margin: 0;
+	font-size: 1.05rem;
+	color: var(--text-h);
+}
+
 .tabBar {
 	display: grid;
 	gap: 10px;

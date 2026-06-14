@@ -17,6 +17,7 @@ export type Season = {
 export type TvShow = {
 	id: string
 	title: string
+	mediaType?: 'tv' | 'movie'
 	network: string
 	status: string
 	episodesWatched: number
@@ -27,6 +28,23 @@ export type TvShow = {
 	description: string
 	seasons?: Season[]
 	posterUrl?: string
+}
+
+export type SearchResults = {
+	tvShows: TvShow[]
+	movies: TvShow[]
+}
+
+export const emptySearchResults: SearchResults = {
+	tvShows: [],
+	movies: [],
+}
+
+export function normalizeSearchResults(results?: Partial<SearchResults> | null): SearchResults {
+	return {
+		tvShows: results?.tvShows ?? [],
+		movies: results?.movies ?? [],
+	}
 }
 
 export type Settings = {
@@ -51,52 +69,53 @@ export async function getUpcomingReleases(): Promise<TvShow[]> {
 	)
 }
 
-function mapImdbResult(result: Record<string, unknown>): TvShow {
-	const title = String(result['#TITLE'] ?? 'Untitled')
-	const imdbId = String(result['#IMDB_ID'] ?? title)
-	const year = result['#YEAR'] ? String(result['#YEAR']) : 'Unknown'
-	const actors = String(result['#ACTORS'] ?? '')
-	const aka = String(result['#AKA'] ?? '')
-	const posterUrl = String(result['#IMG_POSTER'] ?? '')
+function mapSearchItem(result: Record<string, unknown>): TvShow {
+	const mediaType = String(result.mediaType ?? result.MediaType ?? result['media_type'] ?? 'tv') as 'tv' | 'movie'
+	const title = String(result.title ?? result.Title ?? result.name ?? result.Name ?? 'Untitled')
+	const id = String(result.id ?? result.Id ?? title)
+	const posterPath = String(result.posterUrl ?? result.PosterUrl ?? result.poster_path ?? result.PosterPath ?? '')
+	const releaseYear = String(result.releaseYear ?? result.ReleaseYear ?? '')
+	const releaseDate = String(result.nextReleaseDate ?? result.NextReleaseDate ?? result.release_date ?? result.ReleaseDate ?? result.first_air_date ?? result.FirstAirDate ?? '')
 
 	return {
-		id: imdbId,
+		id: `${mediaType}:${id}`,
 		title,
-		network: aka || 'IMDb',
+		mediaType,
+		network: mediaType === 'movie' ? 'Movie' : 'TV',
 		status: 'Released',
 		episodesWatched: 0,
 		episodesTotal: 1,
-		nextEpisodeTitle: `Year ${year}`,
-		nextEpisode: year,
-		nextReleaseDate: undefined,
-		description: actors || `Search result for ${title}`,
-		posterUrl,
+		nextEpisodeTitle: mediaType === 'movie' ? 'Movie' : 'TV Series',
+		nextEpisode: releaseYear || releaseDate || undefined,
+		nextReleaseDate: releaseDate || undefined,
+		description: String(result.description ?? result.Description ?? `Search result for ${title}`),
+		posterUrl: posterPath.startsWith('http') ? posterPath : (posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : undefined),
 	}
 }
 
-export async function searchShows(query: string): Promise<TvShow[]> {
+export async function searchShows(query: string): Promise<SearchResults> {
 	const trimmed = query.toLowerCase().trim()
 	if(!trimmed) {
-		return []
+		return emptySearchResults
 	}
 
 	const params = new URLSearchParams({
-		q: trimmed,
-		v: '1',
+		query: trimmed,
 	})
 
 	try {
-		const response = await fetch(`https://imdb.iamidiotareyoutoo.com/search?${params.toString()}`)
+		const response = await fetch(`${API_BASE}/search?${params.toString()}`)
 		const data = await response.json()
 
-		if(!data || data.ok !== true || !Array.isArray(data.description)) {
-			return []
+		if(!data) {
+			return emptySearchResults
 		}
 
-		const results = data.description as unknown[]
-		return results.slice(0, 12).map((item) => mapImdbResult(item as Record<string, unknown>))
+		const tvShows = Array.isArray(data.tvShows) ? data.tvShows.map((item: unknown) => mapSearchItem(item as Record<string, unknown>)) : []
+		const movies = Array.isArray(data.movies) ? data.movies.map((item: unknown) => mapSearchItem(item as Record<string, unknown>)) : []
+		return normalizeSearchResults({ tvShows, movies })
 	} catch {
-		return []
+		return emptySearchResults
 	}
 }
 
@@ -120,20 +139,17 @@ function generateMockSeasons(): Season[] {
 }
 
 export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
-	const params = new URLSearchParams({
-		q: imdbId,
-	})
-
 	try {
-		const response = await fetch(`https://imdb.iamidiotareyoutoo.com/search?${params.toString()}`)
+		const [mediaType, rawId] = imdbId.includes(':') ? imdbId.split(':', 2) : ['tv', imdbId]
+		const response = await fetch(`${API_BASE}/search/${encodeURIComponent(mediaType)}/${encodeURIComponent(rawId)}`)
 		const data = await response.json()
 
-		if(!data || data.ok !== true || !Array.isArray(data.description) || data.description.length === 0) {
+		if(!data) {
 			return null
 		}
 
-		const result = data.description[0] as Record<string, unknown>
-		const show = mapImdbResult(result)
+		const result = data as Record<string, unknown>
+		const show = mapSearchItem(result)
 		show.seasons = generateMockSeasons()
 		return show
 	} catch {

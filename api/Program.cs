@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Features.Search.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,9 +30,12 @@ builder.Services.AddDbContext<Data.ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db");
 });
 
-
 builder.Services.AddScoped<IPasswordHasher<Models.User>, PasswordHasher<Models.User>>();
 builder.Services.AddScoped<Services.IUserService, Services.UserService>();
+builder.Services.AddHttpClient<TmdbSearchService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
+});
 
 builder.Services.AddAuthentication(options =>
 {
