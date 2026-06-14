@@ -13,8 +13,8 @@ export default function LoginPage() {
     const submit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
-        if(!username || username.length < 3) return setError('Username must be at least 3 characters')
-        if(!password || password.length < 6) return setError('Password must be at least 6 characters')
+        if(!username || username.length < 1) return setError('Username must be at least 1 characters')
+        if(!password || password.length < 1) return setError('Password must be at least 1 characters')
         try {
             await login(username, password)
             navigate('/')

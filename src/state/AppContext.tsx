@@ -64,13 +64,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // validate token on startup
   useEffect(() => {
+
+    // TODO check if pattern is common
     let mounted = true
     void (async () => {
       if(!token) return
       try {
         setAuthLoading(true)
         await api.getProtectedTest()
-      } catch {
+      } catch(error: unknown) {
+        console.error('Token validation failed:', error)
         // invalid token
         if(!mounted) return
         localStorage.removeItem('token')
@@ -130,26 +133,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!token,
     authLoading: authLoading,
     username,
-    login: async (u: string, p: string) => {
+    login: async (username: string, password: string) => {
       setAuthLoading(true)
       try {
-        const res = await api.authLogin(u, p)
+        const res = await api.authLogin(username, password)
         localStorage.setItem('token', res.token)
-        localStorage.setItem('username', u)
+        localStorage.setItem('username', username)
         setToken(res.token)
-        setUsername(u)
+        setUsername(username)
       } finally { setAuthLoading(false) }
     },
-    register: async (u: string, p: string) => {
+    register: async (username: string, password: string) => {
       setAuthLoading(true)
       try {
-        const res = await api.authRegister(u, p)
+        const res = await api.authRegister(username, password)
         localStorage.setItem('token', res.token)
-        localStorage.setItem('username', u)
+        localStorage.setItem('username', username)
         setToken(res.token)
-        setUsername(u)
+        setUsername(username)
       } finally { setAuthLoading(false) }
     },
+
     logout: () => {
       localStorage.removeItem('token')
       localStorage.removeItem('username')

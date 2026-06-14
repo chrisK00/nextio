@@ -26,7 +26,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddSingleton<Services.JwtService>();
 builder.Services.AddDbContext<Data.ApplicationDbContext>(options =>
 {
-    options.UseSqlite(builder.Configuration.GetConnectionString("Data Source=nextio.db"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db");
 });
 
 

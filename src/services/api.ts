@@ -168,7 +168,7 @@ export type AuthResponse = {
 	expiresInSeconds: number
 }
 
-const API_BASE = '/api'
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api`;
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
 	const res = await fetch(`${API_BASE}${path}`, {
@@ -214,8 +214,7 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 	return res
 }
 
-export async function getProtectedTest(): Promise<{ message: string }> {
-	const res = await fetchWithAuth('/test')
+export async function getProtectedTest(): Promise<void> {
+	const res = await fetchWithAuth('/test/auth')
 	if(!res.ok) throw new Error(await res.text())
-	return res.json()
 }
