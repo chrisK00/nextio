@@ -160,7 +160,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [watchlist, settings, isLoadingSettings, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting])
+  }), [watchlist, settings, isLoadingSettings, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
