@@ -163,3 +163,4 @@ src/.vs/config/applicationhost.config
 nextio.db
 nextio.db-shm
 nextio.db-wal
+api/appsettings.Development.json
