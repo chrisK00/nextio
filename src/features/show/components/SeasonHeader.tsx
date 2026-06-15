@@ -28,12 +28,12 @@ export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUp
                 const toToggle = season.episodes.filter((ep) => !ep.watched)
                 // optimistic update
                 onOptimisticUpdate?.(season.season, toToggle.map((ep) => ep.episode), true)
-                await Promise.all(toToggle.map((ep) => api.toggleEpisodeWatched(showId, season.season, ep.episode)))
+                await Promise.all(toToggle.map((ep) => api.setLibraryEpisodeWatched(showId, season.season, ep.episode, true)))
               } else {
                 // mark only watched episodes unwatched
                 const toToggle = season.episodes.filter((ep) => ep.watched)
                 onOptimisticUpdate?.(season.season, toToggle.map((ep) => ep.episode), false)
-                await Promise.all(toToggle.map((ep) => api.toggleEpisodeWatched(showId, season.season, ep.episode)))
+                await Promise.all(toToggle.map((ep) => api.setLibraryEpisodeWatched(showId, season.season, ep.episode, false)))
               }
               await onRefetch?.()
             } finally {

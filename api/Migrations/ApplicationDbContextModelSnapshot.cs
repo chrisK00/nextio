@@ -63,6 +63,9 @@ namespace nextio.Api.Migrations
                     b.Property<DateTime>("FollowedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsFollowing")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("LastSyncedAt")
                         .HasColumnType("TEXT");
 

@@ -11,20 +11,16 @@ type ShowSeasonsProps = {
     onOptimisticUpdate: (seasonNum: number, episodeNums: number[], watched: boolean) => void
 }
 
-type EpisodeButtonProps = {
+function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode }: {
     ep: import('../../../services/api').Episode
     showId: string
     seasonNum: number
     onToggleEpisode: (showId: string, season: number, episode: number) => void
-    onRefetch?: () => Promise<TvShow | null>
-}
-
-function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, onRefetch }: EpisodeButtonProps) {
+}) {
     const [loading, setLoading] = useState(false)
 
     return (
         <button
-            key={ep.id}
             type="button"
             className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''}`}
             onClick={async () => {
@@ -32,7 +28,6 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, onRefetch }: Ep
                 setLoading(true)
                 try {
                     await onToggleEpisode(showId, seasonNum, ep.episode)
-                    await onRefetch?.()
                 } finally {
                     setLoading(false)
                 }
@@ -60,7 +55,6 @@ export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetc
                                 showId={showId}
                                 seasonNum={season.season}
                                 onToggleEpisode={onToggleEpisode}
-                                onRefetch={onRefetch}
                             />
                         ))}
                     </div>

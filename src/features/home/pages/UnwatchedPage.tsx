@@ -40,7 +40,7 @@ export default function UnwatchedPage() {
 							onClick={handleShowClick}
 							action={
 								<div className={styles.showCardMeta}>
-									<span>{show.nextReleaseDate ? getReleaseCountdown(show) : show.nextEpisodeTitle || 'Unplanned'}</span>
+									<span className={`${styles.badge} ${styles.badgeNext}`}>▶ {show.nextEpisodeTitle}</span>
 								</div>
 							}
 						/>

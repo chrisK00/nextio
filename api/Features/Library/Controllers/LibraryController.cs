@@ -69,15 +69,15 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
     public async Task<IActionResult> SetEpisode(string id, [FromBody] UpdateEpisodeRequest request, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-        try
-        {
-            await _libraryService.SetEpisodeAsync(userId, id, request, cancellationToken);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        await _libraryService.SetEpisodeAsync(userId, id, request, cancellationToken);
+        return NoContent();
+    }
 
+    [HttpDelete("tv/{id}/episodes")]
+    public async Task<IActionResult> ClearProgress(string id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        await _libraryService.ClearProgressAsync(userId, id, cancellationToken);
         return NoContent();
     }
 

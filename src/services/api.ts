@@ -173,6 +173,44 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 	}
 }
 
+type TmdbSeasonEpisode = { episodeNumber: number; name: string; airDate?: string }
+type TmdbSeason = { seasonNumber: number; name: string; episodes: TmdbSeasonEpisode[] }
+
+// TODO cache on backend not frontend? i wonder how much ram this could use
+const seasonsCache = new Map<string, { seasons: Season[]; expiresAt: number }>()
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
+
+export async function getShowSeasons(showId: string): Promise<Season[]> {
+	const cached = seasonsCache.get(showId)
+	if(cached && cached.expiresAt > Date.now()) return cached.seasons
+
+	try {
+		const [, rawId] = showId.includes(':') ? showId.split(':', 2) : ['tv', showId]
+		const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/seasons`)
+		if(!res.ok) return []
+		const data = await res.json() as TmdbSeason[]
+		const seasons = data.map((s) => ({
+			season: s.seasonNumber,
+			episodes: s.episodes.map((e) => ({
+				id: `${showId}-${s.seasonNumber}-${e.episodeNumber}`,
+				season: s.seasonNumber,
+				episode: e.episodeNumber,
+				title: e.name,
+				airDate: e.airDate,
+				watched: false,
+			})),
+		}))
+		seasonsCache.set(showId, { seasons, expiresAt: Date.now() + CACHE_TTL_MS })
+		return seasons
+	} catch {
+		return []
+	}
+}
+
+export async function clearLibraryProgress(showId: string): Promise<void> {
+	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes`, { method: 'DELETE' })
+}
+
 export async function toggleEpisodeWatched(_showId: string, _season: number, _episode: number): Promise<void> {
 	// TODO: Implement episode watched toggle when backend API is ready
 	void _showId

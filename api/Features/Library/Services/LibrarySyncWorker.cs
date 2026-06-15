@@ -13,10 +13,10 @@ public sealed class LibrarySyncWorker(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
-        while(await timer.WaitForNextTickAsync(stoppingToken))
+        do
         {
             await RunSyncAsync(stoppingToken);
-        }
+        } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
     private async Task RunSyncAsync(CancellationToken cancellationToken)
@@ -28,10 +28,10 @@ public sealed class LibrarySyncWorker(
             var result = await syncService.SyncAllAsync(cancellationToken);
             _logger.LogInformation("Library sync completed. Total: {Total}, Succeeded: {Succeeded}, Failed: {Failed}", result.Total, result.Succeeded, result.Failed);
         }
-        catch(OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Library sync worker failed.");
         }

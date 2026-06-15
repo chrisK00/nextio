@@ -13,17 +13,19 @@ public interface ILibraryService
     Task RemoveTvShowAsync(Guid userId, string id, CancellationToken cancellationToken = default);
     Task RemoveMovieAsync(Guid userId, string id, CancellationToken cancellationToken = default);
     Task SetEpisodeAsync(Guid userId, string id, UpdateEpisodeRequest request, CancellationToken cancellationToken = default);
+    Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default);
 }
 
-public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
+public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService) : ILibraryService
 {
     private readonly ApplicationDbContext _db = db;
+    private readonly ILibrarySyncService _syncService = syncService;
 
     public async Task<LibraryResponse> GetLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var tvEntities = await _db.UserTvShows
             .Include(x => x.Episodes)
-            .Where(x => x.UserId == userId)
+            .Where(x => x.UserId == userId && x.IsFollowing)
             .OrderByDescending(x => x.UpdatedAt)
             .ToListAsync(cancellationToken);
 
@@ -61,7 +63,7 @@ public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
             .Include(x => x.Episodes)
             .FirstOrDefaultAsync(x => x.UserId == userId && x.ShowId == id, cancellationToken);
 
-        if(show is null)
+        if (show is null)
         {
             return null;
         }
@@ -114,10 +116,13 @@ public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
                 Status = request.Status,
                 Description = request.Description,
                 NextReleaseDate = request.NextReleaseDate,
+                IsFollowing = true,
                 FollowedAt = now,
                 UpdatedAt = now,
             };
             _db.UserTvShows.Add(show);
+            await _db.SaveChangesAsync(cancellationToken);
+            await _syncService.SyncShowAsync(show, cancellationToken);
         }
         else
         {
@@ -127,6 +132,7 @@ public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
             show.Status = request.Status;
             show.Description = request.Description;
             show.NextReleaseDate = request.NextReleaseDate;
+            show.IsFollowing = true;
             show.UpdatedAt = now;
         }
 
@@ -170,12 +176,9 @@ public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
     public async Task RemoveTvShowAsync(Guid userId, string id, CancellationToken cancellationToken = default)
     {
         var show = await _db.UserTvShows.FirstOrDefaultAsync(x => x.UserId == userId && x.ShowId == id, cancellationToken);
-        if (show is null)
-        {
-            return;
-        }
-
-        _db.UserTvShows.Remove(show);
+        if (show is null) return;
+        show.IsFollowing = false;
+        show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
     }
 
@@ -196,9 +199,22 @@ public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
         var show = await _db.UserTvShows
             .Include(x => x.Episodes)
             .FirstOrDefaultAsync(x => x.UserId == userId && x.ShowId == id, cancellationToken);
+
         if (show is null)
         {
-            throw new KeyNotFoundException("Show not found.");
+            // Auto-create a minimal record so episode progress can be saved without explicitly following
+            show = new UserTvShow
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                ShowId = id,
+                Title = id,
+                IsFollowing = false,
+                FollowedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            _db.UserTvShows.Add(show);
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         var episode = show.Episodes.FirstOrDefault(x => x.Season == request.Season && x.Episode == request.Episode);
@@ -213,7 +229,7 @@ public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
                 Watched = request.Watched ?? true,
                 UpdatedAt = DateTime.UtcNow,
             };
-            show.Episodes.Add(episode);
+            _db.UserTvShowEpisodes.Add(episode);
         }
         else
         {
@@ -221,6 +237,17 @@ public sealed class LibraryService(ApplicationDbContext db) : ILibraryService
             episode.UpdatedAt = DateTime.UtcNow;
         }
 
+        show.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default)
+    {
+        var show = await _db.UserTvShows
+            .Include(x => x.Episodes)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.ShowId == id, cancellationToken);
+        if (show is null) return;
+        _db.UserTvShowEpisodes.RemoveRange(show.Episodes);
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
     }

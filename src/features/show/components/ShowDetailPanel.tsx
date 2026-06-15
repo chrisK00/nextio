@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { TvShow } from '../../../services/api'
 import styles from '../../../App.module.css'
 import ShowSeasons from './ShowSeasons'
@@ -16,7 +16,11 @@ type ShowDetailPanelProps = {
 export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, isTracked, onRefetch }: ShowDetailPanelProps) {
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
 
-	// displayShow uses local optimistic state when present
+	// Keep localShow in sync with incoming show prop (e.g. after parent refetch)
+	useEffect(() => {
+		setLocalShow(show)
+	}, [show])
+
 	const displayShow = localShow ?? show
 
 	function recomputeCounts(s: TvShow) {
@@ -25,7 +29,6 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 	}
 
 	const handleToggleEpisode = async (showId: string, seasonNum: number, episodeNum: number) => {
-		// optimistic update locally
 		setLocalShow((prev) => {
 			if(!prev) return prev
 			const copy: TvShow = JSON.parse(JSON.stringify(prev))
@@ -40,8 +43,8 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 		try {
 			await onToggleEpisode(showId, seasonNum, episodeNum)
 		} catch {
-			// on error, refetch from server to restore
-			await onRefetch?.()
+			const fresh = await onRefetch?.()
+			if(fresh) setLocalShow(fresh)
 		}
 	}
 

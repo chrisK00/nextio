@@ -23,7 +23,7 @@ export default function ShowPage() {
     <ShowDetailPanel
       show={show}
       isLoading={loading}
-      onBack={() => navigate('/')}
+      onBack={() => navigate(-1)}
       onToggleEpisode={toggleEpisode}
       onFollowToggle={handleFollowToggle}
       isTracked={isTracked}

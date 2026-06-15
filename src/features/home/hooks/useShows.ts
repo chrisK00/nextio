@@ -15,8 +15,10 @@ export default function useShows(status: ShowStatus) {
 
             switch(status) {
                 case 'watching':
+                    return true
                 case 'unwatched':
-                    return show.episodesWatched < show.episodesTotal
+                    // show has a next episode to watch (not "Up to date")
+                    return show.nextEpisodeTitle !== 'Up to date'
                 case 'upcoming':
                     return Boolean(show.nextReleaseDate)
             }

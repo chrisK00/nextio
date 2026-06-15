@@ -85,4 +85,61 @@ public sealed class TmdbDetailResponse
 
     [JsonPropertyName("release_date")]
     public string? ReleaseDate { get; init; }
+
+    [JsonPropertyName("next_episode_to_air")]
+    public TmdbNextEpisode? NextEpisodeToAir { get; init; }
+}
+
+public sealed class TmdbNextEpisode
+{
+    [JsonPropertyName("air_date")]
+    public string? AirDate { get; init; }
+}
+
+// Seasons/episodes models
+
+public sealed record SeasonEpisodeItem(int EpisodeNumber, string Name, string? AirDate);
+
+public sealed record SeasonItem(int SeasonNumber, string Name, IReadOnlyList<SeasonEpisodeItem> Episodes);
+
+public sealed class TmdbSeasonResponse
+{
+    [JsonPropertyName("season_number")]
+    public int SeasonNumber { get; init; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("episodes")]
+    public IReadOnlyList<TmdbEpisode> Episodes { get; init; } = Array.Empty<TmdbEpisode>();
+}
+
+public sealed class TmdbEpisode
+{
+    [JsonPropertyName("episode_number")]
+    public int EpisodeNumber { get; init; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("air_date")]
+    public string? AirDate { get; init; }
+}
+
+public sealed class TmdbTvDetailsResponse
+{
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
+
+    [JsonPropertyName("seasons")]
+    public IReadOnlyList<TmdbTvSeasonInfo> Seasons { get; init; } = Array.Empty<TmdbTvSeasonInfo>();
+}
+
+public sealed class TmdbTvSeasonInfo
+{
+    [JsonPropertyName("season_number")]
+    public int SeasonNumber { get; init; }
+
+    [JsonPropertyName("episode_count")]
+    public int EpisodeCount { get; init; }
 }

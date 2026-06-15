@@ -200,6 +200,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 }
 
 function mapLibraryTvShow(item: LibraryTvShow): WatchlistItem {
+  const sorted = [...item.episodes].sort((a, b) => a.season - b.season || a.episode - b.episode)
+  const firstUnwatched = sorted.find((e) => !e.watched)
+  const lastWatched = [...sorted].reverse().find((e) => e.watched)
+
+  let nextEpisodeTitle: string
+  if(sorted.length === 0) {
+    nextEpisodeTitle = 'S1 E1'
+  } else if(firstUnwatched) {
+    nextEpisodeTitle = `S${firstUnwatched.season} E${firstUnwatched.episode}`
+  } else if(lastWatched && item.nextReleaseDate) {
+    // All tracked episodes watched but more are coming
+    nextEpisodeTitle = `S${lastWatched.season} E${lastWatched.episode + 1}`
+  } else {
+    nextEpisodeTitle = 'Up to date'
+  }
+
   return {
     id: item.id,
     title: item.title,
@@ -208,7 +224,7 @@ function mapLibraryTvShow(item: LibraryTvShow): WatchlistItem {
     status: item.status ?? 'Tracked',
     episodesWatched: item.episodes.filter((episode) => episode.watched).length,
     episodesTotal: Math.max(item.episodes.length, 1),
-    nextEpisodeTitle: item.nextReleaseDate ? 'Next release' : 'Tracked show',
+    nextEpisodeTitle,
     nextEpisode: item.nextReleaseDate,
     nextReleaseDate: item.nextReleaseDate,
     description: item.description ?? item.title,

@@ -7,7 +7,7 @@ public sealed record UpsertTrackedShowRequest(
     string? Network,
     string? Status,
     string? Description,
-    string? NextReleaseDate,
+    DateTime? NextReleaseDate,
     string MediaType);
 
 public sealed record UpdateEpisodeRequest(int Season, int Episode, bool? Watched);
@@ -31,7 +31,7 @@ public sealed record TvShowItem(
     string? Network,
     string? Status,
     string? Description,
-    string? NextReleaseDate,
+    DateTime? NextReleaseDate,
     DateTime FollowedAt,
     DateTime UpdatedAt,
     DateTime? LastSyncedAt,

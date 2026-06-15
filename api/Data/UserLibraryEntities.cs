@@ -11,11 +11,12 @@ public sealed class UserTvShow
     public string? Network { get; set; }
     public string? Status { get; set; }
     public string? Description { get; set; }
-    public string? NextReleaseDate { get; set; }
+    public DateTime? NextReleaseDate { get; set; }
     public DateTime? LastSyncedAt { get; set; }
     public string? SyncError { get; set; }
     public DateTime FollowedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsFollowing { get; set; } = true;
     public List<UserTvShowEpisode> Episodes { get; set; } = [];
 }
 

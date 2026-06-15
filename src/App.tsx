@@ -19,17 +19,16 @@ function AppRouter() {
 		<div className={styles.appShell}>
 			<HeaderBar />
 			<Routes>
-				<Route path="/" element={<UnwatchedPage />} />
-				<Route path="/unwatched" element={<UnwatchedPage />} />
-				<Route path="/upcoming" element={<UpcomingPage />} />
-				<Route path="/watching" element={<WatchingPage />} />
-				<Route path="/movies" element={<MoviesPage />} />
-				<Route path="/library" element={<WatchingPage />} />
-				<Route path="/library/tv" element={<WatchingPage />} />
-				<Route path="/library/movies" element={<MoviesPage />} />
-				<Route path="/search" element={<SearchPage />} />
-				<Route path="/show/:id" element={<ShowPage />} />
-				{/* TODO auth */}
+				<Route path="/" element={<RequireAuth><UnwatchedPage /></RequireAuth>} />
+				<Route path="/unwatched" element={<RequireAuth><UnwatchedPage /></RequireAuth>} />
+				<Route path="/upcoming" element={<RequireAuth><UpcomingPage /></RequireAuth>} />
+				<Route path="/watching" element={<RequireAuth><WatchingPage /></RequireAuth>} />
+				<Route path="/movies" element={<RequireAuth><MoviesPage /></RequireAuth>} />
+				<Route path="/library" element={<RequireAuth><WatchingPage /></RequireAuth>} />
+				<Route path="/library/tv" element={<RequireAuth><WatchingPage /></RequireAuth>} />
+				<Route path="/library/movies" element={<RequireAuth><MoviesPage /></RequireAuth>} />
+				<Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
+				<Route path="/show/:id" element={<RequireAuth><ShowPage /></RequireAuth>} />
 				<Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/register" element={<RegisterPage />} />

@@ -79,8 +79,7 @@ public sealed class TmdbSearchService(HttpClient httpClient, IConfiguration conf
                 Name = response.Name,
                 Overview = response.Overview,
                 PosterPath = response.PosterPath,
-                ReleaseDate = response.ReleaseDate,
-                FirstAirDate = response.FirstAirDate,
+                FirstAirDate = response.NextEpisodeToAir?.AirDate,
             });
     }
 
@@ -120,6 +119,42 @@ public sealed class TmdbSearchService(HttpClient httpClient, IConfiguration conf
             Description: result.Overview ?? $"Search result for {title}",
             PosterUrl: ToPosterUrl(result.PosterPath),
             ReleaseYear: ExtractYear(result.ReleaseDate));
+    }
+
+    public async Task<IReadOnlyList<SeasonItem>> GetSeasonsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        // Fetch TV details to get the list of seasons
+        var detailsUrl = AppendApiKey($"tv/{id}?language=en-US");
+        var tvDetails = await _httpClient.GetFromJsonAsync<TmdbTvDetailsResponse>(detailsUrl, cancellationToken);
+
+        if (tvDetails is null)
+        {
+            return Array.Empty<SeasonItem>();
+        }
+
+        // Fetch each season in parallel, skip season 0 (specials)
+        var seasonNumbers = tvDetails.Seasons
+            .Where(s => s.SeasonNumber > 0)
+            .Select(s => s.SeasonNumber)
+            .ToList();
+
+        var seasonTasks = seasonNumbers.Select(async num =>
+        {
+            var url = AppendApiKey($"tv/{id}/season/{num}?language=en-US");
+            var season = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(url, cancellationToken);
+            return season;
+        });
+
+        var seasons = await Task.WhenAll(seasonTasks);
+
+        return seasons
+            .Where(s => s is not null)
+            .Select(s => new SeasonItem(
+                s!.SeasonNumber,
+                s.Name ?? $"Season {s.SeasonNumber}",
+                s.Episodes.Select(e => new SeasonEpisodeItem(e.EpisodeNumber, e.Name ?? $"Episode {e.EpisodeNumber}", e.AirDate)).ToList()))
+            .OrderBy(s => s.SeasonNumber)
+            .ToList();
     }
 
     private static string? ExtractYear(string? date)
