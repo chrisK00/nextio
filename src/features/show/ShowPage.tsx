@@ -21,6 +21,7 @@ export default function ShowPage() {
 
   return (
     <ShowDetailPanel
+      key={show?.id}
       show={show}
       isLoading={loading}
       onBack={() => navigate(-1)}

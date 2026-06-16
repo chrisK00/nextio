@@ -14,13 +14,7 @@ type ShowDetailPanelProps = {
 }
 
 export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, isTracked, onRefetch }: ShowDetailPanelProps) {
-	const [prevShow, setPrevShow] = useState<TvShow | null>(show)
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
-
-	if(show !== prevShow) {
-		setPrevShow(show)
-		setLocalShow(show)
-	}
 
 	const displayShow = localShow ?? show
 
