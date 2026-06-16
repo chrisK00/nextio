@@ -16,6 +16,7 @@ type ShowDetailPanelProps = {
 export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, isTracked, onRefetch }: ShowDetailPanelProps) {
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
 
+	// TODO right now 2x requests are being made to backend + whenever we mark episode as watched it refetches again
 	// Keep localShow in sync with incoming show prop (e.g. after parent refetch)
 	useEffect(() => {
 		setLocalShow(show)

@@ -124,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false }
   }, [token])
 
-  const followShow = useCallback((show: TvShow) => {
+  const followShow = useCallback((show: TvShow,) => {
     if((show.mediaType ?? 'tv') === 'movie') {
       void api.addLibraryMovie(show).then(loadLibrary)
     } else {
@@ -132,8 +132,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadLibrary])
 
-  const unfollowShow = useCallback((showId: string) => {
-    void api.removeLibraryTvShow(showId)
+  const unfollowShow = useCallback((show: TvShow) => {
+    void api.removeLibraryTvShow(show, mediaType)
       .catch(async () => {
         await api.removeLibraryMovie(showId)
       })

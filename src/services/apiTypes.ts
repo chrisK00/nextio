@@ -1,5 +1,3 @@
-import type { Episode, LibraryMovie, LibrarySyncItem, LibraryTvShow, SearchResults, Season, TvEpisodeItem, TvShow } from "./apiTypes";
-
 export type Episode = {
     id: string;
     season: number;

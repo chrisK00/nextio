@@ -13,9 +13,9 @@ export default function ShowPage() {
   const isTracked = show ? watchlist.some((item) => item.id === show.id) || movies.some((movie) => movie.id === show.id) : false
   const handleFollowToggle = (target: TvShow, tracked: boolean) => {
     if(tracked) {
-      unfollowShow(target.id)
+      unfollowShow(target.id, target.mediaType)
     } else {
-      followShow(target)
+      followShow(target, target.mediaType)
     }
   }
 
