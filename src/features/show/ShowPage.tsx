@@ -15,7 +15,7 @@ export default function ShowPage() {
     if(tracked) {
       unfollowShow(target.id, target.mediaType)
     } else {
-      followShow(target, target.mediaType)
+      followShow(target)
     }
   }
 

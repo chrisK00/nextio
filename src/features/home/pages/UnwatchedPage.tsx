@@ -3,7 +3,6 @@ import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
-import { getReleaseCountdown } from '../../show/utils/show'
 
 export default function UnwatchedPage() {
 	const navigate = useNavigate()

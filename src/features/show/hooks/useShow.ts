@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import * as api from '../../../services/api'
-import type { TvShow } from "../../../services/apiTypes"
+import type { TvShow, LibraryTvShowDetails } from "../../../services/apiTypes"
 import type { Season } from "../../../services/apiTypes"
 import { useAppContext } from '../../../state/AppContext'
 
@@ -12,7 +12,9 @@ export default function useShow(id?: string) {
 
   // Keep a ref so fetchShow always reads current watchlist/movies without being a dep
   const contextRef = useRef({ watchlist, movies })
-  contextRef.current = { watchlist, movies }
+  useEffect(() => {
+    contextRef.current = { watchlist, movies }
+  }, [watchlist, movies])
 
   const fetchShow = async (showId: string): Promise<TvShow | null> => {
     const { watchlist: wl, movies: mv } = contextRef.current
@@ -40,7 +42,10 @@ export default function useShow(id?: string) {
     if(!id) return
     let mounted = true
     void (async () => {
-      setLoading(true)
+      // Only show full loading state if we don't have this show's data yet
+      if (!show || show.id !== id) {
+        setLoading(true)
+      }
       setError(null)
       try {
         const details = await fetchShow(id)
@@ -55,7 +60,7 @@ export default function useShow(id?: string) {
     })()
     return () => { mounted = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, watchlist, movies])
+  }, [id])
 
   return {
     show, loading, error, refetch: async () => {
@@ -67,7 +72,7 @@ export default function useShow(id?: string) {
   }
 }
 
-function mapLibraryShowDetails(library: api.LibraryTvShowDetails, tmdbSeasons: Season[]): TvShow {
+function mapLibraryShowDetails(library: LibraryTvShowDetails, tmdbSeasons: Season[]): TvShow {
   const episodes = [...library.episodes].sort((a, b) => a.season - b.season || a.episode - b.episode)
   const watchedMap = new Map(episodes.map((e) => [`${e.season}-${e.episode}`, e.watched]))
   const seasonsMap = new Map<number, Season['episodes']>()

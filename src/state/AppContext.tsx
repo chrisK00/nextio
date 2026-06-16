@@ -22,7 +22,7 @@ type AppContextType = {
   isLoading: boolean
   refresh: () => Promise<void>
   followShow: (show: TvShow) => void
-  unfollowShow: (showId: string) => void
+  unfollowShow: (showId: string, mediaType?: 'tv' | 'movie') => void
   toggleEpisode: (showId: string, season: number, episode: number) => Promise<void>
   toggleSetting: (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => Promise<void>
   // auth
@@ -132,14 +132,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadLibrary])
 
-  const unfollowShow = useCallback((show: TvShow) => {
-    void api.removeLibraryTvShow(show, mediaType)
-      .catch(async () => {
-        await api.removeLibraryMovie(showId)
-      })
-      .finally(() => {
-        void loadLibrary()
-      })
+  const unfollowShow = useCallback((showId: string, mediaType?: 'tv' | 'movie') => {
+    if((mediaType ?? 'tv') === 'movie') {
+      void api.removeLibraryMovie(showId).finally(loadLibrary)
+    } else {
+      void api.removeLibraryTvShow(showId).finally(loadLibrary)
+    }
   }, [loadLibrary])
 
   const toggleEpisode = useCallback(async (showId: string, season: number, episode: number) => {
