@@ -1,4 +1,4 @@
-import type { TvShow } from '../../../services/api'
+import type { TvShow } from "../../../services/apiTypes"
 
 export type WatchlistItem = TvShow & {
     lastUpdatedAt?: string

@@ -1,6 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import type { TvShow, Settings, LibraryTvShow, LibraryMovie, LibraryResponse } from '../services/api'
+import type { Settings } from "../services/apiTypes"
+import type { LibraryResponse } from "../services/apiTypes"
+import type { LibraryMovie } from "../services/apiTypes"
+import type { LibraryTvShow } from "../services/apiTypes"
+import type { TvShow } from "../services/apiTypes"
 import * as api from '../services/api'
 
 type WatchlistItem = TvShow & {

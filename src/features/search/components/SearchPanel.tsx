@@ -1,4 +1,5 @@
-import type { TvShow, SearchResults } from '../../../services/api'
+import type { SearchResults } from "../../../services/apiTypes"
+import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { TvShow } from '../../../services/api'
+import type { TvShow } from "../../../services/apiTypes"
 import styles from '../../../App.module.css'
 import ShowSeasons from './ShowSeasons'
 

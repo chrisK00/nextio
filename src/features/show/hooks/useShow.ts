@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import * as api from '../../../services/api'
-import type { Season, TvShow } from '../../../services/api'
+import type { TvShow } from "../../../services/apiTypes"
+import type { Season } from "../../../services/apiTypes"
 import { useAppContext } from '../../../state/AppContext'
 
 export default function useShow(id?: string) {
@@ -53,7 +54,7 @@ export default function useShow(id?: string) {
       }
     })()
     return () => { mounted = false }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, watchlist, movies])
 
   return {

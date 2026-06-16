@@ -1,4 +1,4 @@
-import type { TvShow } from "./api";
+import type { TvShow } from "./apiTypes";
 
 export const showCatalog: TvShow[] = [
     {

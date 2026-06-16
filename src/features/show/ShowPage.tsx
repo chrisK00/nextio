@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import type { TvShow } from '../../services/api'
+import type { TvShow } from "../../services/apiTypes"
 import ShowDetailPanel from './components/ShowDetailPanel'
 import useShow from './hooks/useShow'
 import { useAppContext } from '../../state/AppContext'

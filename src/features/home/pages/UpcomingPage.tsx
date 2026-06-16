@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import type { TvShow } from '../../../services/api'
+import type { TvShow } from "../../../services/apiTypes"
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import { getReleaseCountdown } from '../../show/utils/show'

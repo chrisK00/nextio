@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as api from '../../../services/api'
-import type { SearchResults } from '../../../services/api'
+import type { SearchResults } from "../../../services/apiTypes"
 
 export default function useSearch(query: string) {
   const [results, setResults] = useState<SearchResults | null>(null)

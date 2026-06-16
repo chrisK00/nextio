@@ -1,91 +1,4 @@
-export type Episode = {
-	id: string
-	season: number
-	episode: number
-	title: string
-	airDate?: string
-	watched: boolean
-}
-
-export type Season = {
-	season: number
-	episodes: Episode[]
-}
-
-export type TvShow = {
-	id: string
-	title: string
-	mediaType?: 'tv' | 'movie'
-	network: string
-	status: string
-	episodesWatched: number
-	episodesTotal: number
-	nextEpisodeTitle: string
-	nextEpisode?: string
-	nextReleaseDate?: string
-	description: string
-	seasons?: Season[]
-	posterUrl?: string
-}
-
-export type SearchResults = {
-	tvShows: TvShow[]
-	movies: TvShow[]
-}
-
-export type TvEpisodeItem = {
-	season: number
-	episode: number
-	watched: boolean
-}
-
-export type LibraryTvShow = {
-	id: string
-	title: string
-	posterUrl?: string
-	network?: string
-	status?: string
-	description?: string
-	nextReleaseDate?: string
-	followedAt: string
-	updatedAt: string
-	lastSyncedAt?: string
-	syncError?: string
-	episodes: TvEpisodeItem[]
-}
-
-export type LibraryMovie = {
-	id: string
-	title: string
-	posterUrl?: string
-	description?: string
-	watchedAt: string
-}
-
-export type LibraryResponse = {
-	tvShows: LibraryTvShow[]
-	movies: LibraryMovie[]
-}
-
-export type LibraryTvShowDetails = {
-	show: LibraryTvShow
-	episodes: TvEpisodeItem[]
-}
-
-export type LibrarySyncItem = {
-	showId: string
-	title: string
-	success: boolean
-	message: string
-	syncedAt: string
-}
-
-export type LibrarySyncResponse = {
-	total: number
-	succeeded: number
-	failed: number
-	items: LibrarySyncItem[]
-}
+import { type Settings, type LibraryResponse, type LibrarySyncResponse, type LibraryTvShowDetails, type SearchResults, type Season, type TvShow } from "./apiTypes"
 
 export const emptySearchResults: SearchResults = {
 	tvShows: [],
@@ -97,12 +10,6 @@ export function normalizeSearchResults(results?: Partial<SearchResults> | null):
 		tvShows: results?.tvShows ?? [],
 		movies: results?.movies ?? [],
 	}
-}
-
-export type Settings = {
-	notificationsEnabled: boolean
-	darkMode: boolean
-	preferredGenres: string[]
 }
 
 function mapSearchItem(result: Record<string, unknown>): TvShow {
@@ -176,19 +83,20 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 type TmdbSeasonEpisode = { episodeNumber: number; name: string; airDate?: string }
 type TmdbSeason = { seasonNumber: number; name: string; episodes: TmdbSeasonEpisode[] }
 
-// TODO cache on backend not frontend? i wonder how much ram this could use
-const seasonsCache = new Map<string, { seasons: Season[]; expiresAt: number }>()
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
+// TODO cache on backend not frontend :D
+let cachedShow: { showId: string; seasons: Season[]; expiresAt: number } | null = null;
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 export async function getShowSeasons(showId: string): Promise<Season[]> {
-	const cached = seasonsCache.get(showId)
-	if(cached && cached.expiresAt > Date.now()) return cached.seasons
+	if(cachedShow && cachedShow.showId === showId && cachedShow.expiresAt > Date.now()) {
+		return cachedShow.seasons;
+	}
 
 	try {
-		const [, rawId] = showId.includes(':') ? showId.split(':', 2) : ['tv', showId]
-		const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/seasons`)
-		if(!res.ok) return []
-		const data = await res.json() as TmdbSeason[]
+		const [, rawId] = showId.includes(':') ? showId.split(':', 2) : ['tv', showId];
+		const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/seasons`);
+		if(!res.ok) return [];
+		const data = await res.json() as TmdbSeason[];
 		const seasons = data.map((s) => ({
 			season: s.seasonNumber,
 			episodes: s.episodes.map((e) => ({
@@ -199,14 +107,15 @@ export async function getShowSeasons(showId: string): Promise<Season[]> {
 				airDate: e.airDate,
 				watched: false,
 			})),
-		}))
-		seasonsCache.set(showId, { seasons, expiresAt: Date.now() + CACHE_TTL_MS })
-		return seasons
+		}));
+
+		cachedShow = { showId, seasons, expiresAt: Date.now() + CACHE_TTL_MS };
+
+		return seasons;
 	} catch {
-		return []
+		return [];
 	}
 }
-
 export async function clearLibraryProgress(showId: string): Promise<void> {
 	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes`, { method: 'DELETE' })
 }

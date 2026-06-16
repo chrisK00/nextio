@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import SearchPanel from './components/SearchPanel'
-import type { TvShow } from '../../services/api'
+import type { TvShow } from "../../services/apiTypes"
 import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
 import styles from '../../App.module.css'

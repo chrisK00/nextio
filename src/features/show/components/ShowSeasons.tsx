@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Season, TvShow } from '../../../services/api'
+import type { TvShow } from "../../../services/apiTypes"
+import type { Season } from "../../../services/apiTypes"
 import SeasonHeader from './SeasonHeader'
 import styles from '../../../App.module.css'
 
