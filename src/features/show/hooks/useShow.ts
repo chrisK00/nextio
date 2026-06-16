@@ -5,7 +5,7 @@ import type { Season } from "../../../services/apiTypes"
 import { useAppContext } from '../../../state/AppContext'
 
 export default function useShow(id?: string) {
-  const { watchlist, movies } = useAppContext()
+  const { watchlist, movies, isLibraryLoaded } = useAppContext()
   const [show, setShow] = useState<TvShow | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -39,7 +39,7 @@ export default function useShow(id?: string) {
   }
 
   useEffect(() => {
-    if(!id) return
+    if(!id || !isLibraryLoaded) return
     let mounted = true
     void (async () => {
       // Only show full loading state if we don't have this show's data yet
@@ -60,7 +60,7 @@ export default function useShow(id?: string) {
     })()
     return () => { mounted = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [id, isLibraryLoaded])
 
   return {
     show, loading, error, refetch: async () => {

@@ -20,6 +20,7 @@ type AppContextType = {
   movies: TvShow[]
   settings: Settings | null
   isLoading: boolean
+  isLibraryLoaded: boolean
   refresh: () => Promise<void>
   followShow: (show: TvShow) => void
   unfollowShow: (showId: string, mediaType?: 'tv' | 'movie') => void
@@ -48,6 +49,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [movies, setMovies] = useState<TvShow[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
+  const [isLibraryLoaded, setIsLibraryLoaded] = useState(false)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
   const [authLoading, setAuthLoading] = useState(false)
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem('username'))
@@ -55,17 +57,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const applyLibrary = useCallback((library: LibraryResponse) => {
     setWatchlist(library.tvShows.map(mapLibraryTvShow))
     setMovies(library.movies.map(mapLibraryMovie))
+    setIsLibraryLoaded(true)
   }, [])
 
   const loadLibrary = useCallback(async () => {
     if(!token) {
       setWatchlist([])
       setMovies([])
+      setIsLibraryLoaded(true)
       return
     }
     const library = await api.getLibrary()
     applyLibrary(library)
   }, [applyLibrary, token])
+
 
   const loadSettings = useCallback(async () => {
     setIsLoadingSettings(true)
@@ -158,6 +163,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     movies,
     settings,
     isLoading: isLoadingSettings,
+    isLibraryLoaded: isLibraryLoaded,
     refresh: loadSettings,
     followShow,
     unfollowShow,
@@ -196,7 +202,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [watchlist, movies, settings, isLoadingSettings, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
+  }), [watchlist, movies, settings, isLoadingSettings, isLibraryLoaded, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
