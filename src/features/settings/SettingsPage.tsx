@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import styles from './SettingsPage.module.css'
 import appStyles from '../../App.module.css'
 import * as api from '../../services/api'
+import type { LibrarySyncResponse, LibrarySyncItem } from '../../services/apiTypes'
 
 export default function SettingsPage() {
   const { settings, toggleSetting, watchlist, movies, refresh } = useAppContext()
   const navigate = useNavigate()
   const [syncLoading, setSyncLoading] = useState(false)
-  const [syncResult, setSyncResult] = useState<api.LibrarySyncResponse | null>(null)
+  const [syncResult, setSyncResult] = useState<LibrarySyncResponse | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
 
   const handleSync = async () => {
@@ -18,7 +19,7 @@ export default function SettingsPage() {
     try {
       const result = await api.syncLibrary()
       setSyncResult(result)
-    } catch (error) {
+    } catch(error) {
       setSyncError(error instanceof Error ? error.message : 'Sync failed')
     } finally {
       setSyncLoading(false)
@@ -169,7 +170,7 @@ export default function SettingsPage() {
             <div>
               <p>{`Total: ${syncResult.total}, Succeeded: ${syncResult.succeeded}, Failed: ${syncResult.failed}`}</p>
               <ul>
-                {syncResult.items.map((item) => (
+                {syncResult.items.map((item: LibrarySyncItem) => (
                   <li key={`${item.showId}-${item.syncedAt}`}>
                     <strong>{item.title}</strong> {item.success ? 'synced' : 'failed'}: {item.message}
                   </li>

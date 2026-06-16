@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import * as api from '../../../services/api'
+import type { Season, TvShow, Episode } from '../../../services/apiTypes'
 
 export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUpdate }: {
-  season: import('../../../services/api').Season
+  season: Season
   showId: string
-  onRefetch?: () => Promise<import('../../../services/api').TvShow | null>
+  onRefetch?: () => Promise<TvShow | null>
   onOptimisticUpdate?: (seasonNum: number, episodeNums: number[], watched: boolean) => void
 }) {
   const [loading, setLoading] = useState(false)
 
-  const allWatched = season.episodes.every((ep) => ep.watched)
+  const allWatched = season.episodes.every((ep: Episode) => ep.watched)
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -25,15 +26,15 @@ export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUp
               const shouldCheck = e.target.checked
               if(shouldCheck) {
                 // mark only unwatched episodes watched
-                const toToggle = season.episodes.filter((ep) => !ep.watched)
+                const toToggle = season.episodes.filter((ep: Episode) => !ep.watched)
                 // optimistic update
-                onOptimisticUpdate?.(season.season, toToggle.map((ep) => ep.episode), true)
-                await Promise.all(toToggle.map((ep) => api.setLibraryEpisodeWatched(showId, season.season, ep.episode, true)))
+                onOptimisticUpdate?.(season.season, toToggle.map((ep: Episode) => ep.episode), true)
+                await Promise.all(toToggle.map((ep: Episode) => api.setLibraryEpisodeWatched(showId, season.season, ep.episode, true)))
               } else {
                 // mark only watched episodes unwatched
-                const toToggle = season.episodes.filter((ep) => ep.watched)
-                onOptimisticUpdate?.(season.season, toToggle.map((ep) => ep.episode), false)
-                await Promise.all(toToggle.map((ep) => api.setLibraryEpisodeWatched(showId, season.season, ep.episode, false)))
+                const toToggle = season.episodes.filter((ep: Episode) => ep.watched)
+                onOptimisticUpdate?.(season.season, toToggle.map((ep: Episode) => ep.episode), false)
+                await Promise.all(toToggle.map((ep: Episode) => api.setLibraryEpisodeWatched(showId, season.season, ep.episode, false)))
               }
               await onRefetch?.()
             } finally {

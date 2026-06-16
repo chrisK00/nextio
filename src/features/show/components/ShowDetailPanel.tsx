@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { TvShow } from "../../../services/apiTypes"
 import styles from '../../../App.module.css'
 import ShowSeasons from './ShowSeasons'
@@ -14,13 +14,13 @@ type ShowDetailPanelProps = {
 }
 
 export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, isTracked, onRefetch }: ShowDetailPanelProps) {
+	const [prevShow, setPrevShow] = useState<TvShow | null>(show)
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
 
-	// TODO right now 2x requests are being made to backend + whenever we mark episode as watched it refetches again
-	// Keep localShow in sync with incoming show prop (e.g. after parent refetch)
-	useEffect(() => {
+	if(show !== prevShow) {
+		setPrevShow(show)
 		setLocalShow(show)
-	}, [show])
+	}
 
 	const displayShow = localShow ?? show
 
@@ -61,7 +61,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 			return recomputeCounts(copy)
 		})
 	}
-	if(isLoading) {
+	if(isLoading && !displayShow) {
 		return (
 			<main className={styles.detailPanel}>
 				<div className={styles.detailHeader}>
@@ -74,7 +74,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 		)
 	}
 
-	if(!show) {
+	if(!show && !isLoading) {
 		return (
 			<main className={styles.detailPanel}>
 				<div className={styles.detailHeader}>
@@ -89,6 +89,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 	return (
 		<main className={styles.detailPanel}>
+			{isLoading && <div className={styles.loadingBar} />}
 			<div className={styles.detailHeader}>
 				<div className={styles.detailHeaderActions}>
 					<button className={styles.secondaryButton} onClick={onBack} type="button">
@@ -96,29 +97,29 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 					</button>
 					<button
 						className={styles.secondaryButton}
-						onClick={() => onFollowToggle(show, isTracked)}
+						onClick={() => show && onFollowToggle(show, isTracked)}
 						type="button"
 					>
 						{isTracked ? 'Unfollow' : 'Add'}
 					</button>
 				</div>
 				<div className={styles.detailHeaderMain}>
-					{show.posterUrl && (
+					{show?.posterUrl && (
 						<div className={styles.detailThumbnail}>
 							<img src={show.posterUrl} alt={`${show.title} poster`} />
 						</div>
 					)}
 					<div>
-						<h2>{show.title}</h2>
+						<h2>{show?.title}</h2>
 						<div className={styles.showMeta}>
-							<span>{show.network}</span>
-							<span>{show.status}</span>
+							<span>{show?.network}</span>
+							<span>{show?.status}</span>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<p className={styles.showDescription}>{show.description}</p>
+			<p className={styles.showDescription}>{show?.description}</p>
 
 			{displayShow?.mediaType !== 'movie' && displayShow?.seasons && displayShow.seasons.length > 0 && (
 				<ShowSeasons
