@@ -6,7 +6,7 @@ applyTo: "*"
 
 ## 1. Project Context & Philosophy
 
-- **Product:** A TV show tracking application (managing watchlists, episode progress, and show details).
+- **Product:** A TV show tracking application (managing watchlists, episode progress, and show details). There are 4 main pages. Unwatched, Upcoming, My Shows and Search. Unwatched shows are those that have aired but the user has not marked as watched meanwhile upcoming is shows that have not yet aired but are planned to release episodes on a specific future date. My shows is a list of all shows the user has added to their watchlist and search is a page to search for new shows to add to the watchlist.
 - **Core Principle:** Mobile-first design. All layouts and user interfaces must be optimized for mobile screens first. Keep code readable and maintainable.
 - **Pragmatic Engineering:** Prioritize clean, readable code and industry best practices. Do not over-engineer; do not introduce complex microarchitectures or redundant state management libraries unless necessary.
 - **Preservation:** Always respect the existing codebase. When writing or refactoring, modify as little as possible to keep existing features intact and avoid introducing breaking changes.
