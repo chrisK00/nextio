@@ -17,13 +17,24 @@ export default function useShows(status: ShowStatus) {
                 case 'watching':
                     return true
                 case 'unwatched':
-                    return show.episodesWatched < show.episodesTotal && show.nextUserEpisode?.title != show.nextAiringEpisode?.title;
+                    return show.nextUserEpisode;
                 case 'upcoming':
-                    return Boolean(show.nextAiringEpisode?.releaseDate)
+                    return Boolean(show.nextAiringEpisode)
             }
         })
 
-        return sortShowsByLastUpdated(filtered, watchlist)
+        // TODO
+        const weirdSorted = sortShowsByLastUpdated(filtered, watchlist);
+        if(status == 'upcoming') {
+            return weirdSorted.sort((a, b) => {
+                const timeA = new Date(a.nextAiringEpisode!.releaseDate!).getTime();
+                const timeB = new Date(b.nextAiringEpisode!.releaseDate!).getTime();
+                return timeA - timeB;
+            });
+        }
+
+        return weirdSorted;
+
     }, [status, watchlist])
 
     return { shows, loading: false }

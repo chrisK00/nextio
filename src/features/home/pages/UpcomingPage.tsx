@@ -9,9 +9,8 @@ function UpcomingItem({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
 	const isToday = countdown === 'Today'
 
 	const nextEpisodeDateString = show.nextAiringEpisode?.releaseDate ? new Date(show.nextAiringEpisode.releaseDate)
-		.toLocaleString([], {
-			dateStyle: 'medium',
-			timeStyle: 'short'
+		.toLocaleDateString([], {
+			dateStyle: 'medium'
 		})
 		: null;
 

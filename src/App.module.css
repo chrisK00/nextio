@@ -201,6 +201,13 @@ input:focus-visible {
 	justify-content: center;
 }
 
+.unwatchedGrid {
+	display: grid;
+	gap: 35px;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 190px));
+	justify-content: center;
+}
+
 .timelineList {
 	list-style: none;
 	margin: 0;
@@ -218,6 +225,10 @@ input:focus-visible {
 		grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
 	}
 	.showGridCompact {
+		grid-template-columns: repeat(auto-fit, minmax(90px, 140px));
+	}
+
+		.unwatchedGrid {
 		grid-template-columns: repeat(auto-fit, minmax(90px, 140px));
 	}
 }
@@ -747,8 +758,8 @@ input:focus-visible {
 }
 
 .upcomingPoster {
-	width: 44px;
-	height: 62px;
+	width: 100px;
+	height: 150px;
 	flex-shrink: 0;
 	border-radius: 8px;
 	overflow: hidden;

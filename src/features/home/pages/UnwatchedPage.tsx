@@ -31,7 +31,7 @@ export default function UnwatchedPage() {
 	return (
 		<main className={styles.mainPanel}>
 			<section className={styles.tabContent}>
-				<div className={styles.showGrid}>
+				<div className={styles.unwatchedGrid}>
 					{shows.map((show) => (
 						<ShowCard
 							key={show.id}
@@ -39,7 +39,7 @@ export default function UnwatchedPage() {
 							onClick={handleShowClick}
 							action={
 								<div className={styles.showCardMeta}>
-									<span className={`${styles.badge} ${styles.badgeNext}`}>▶ S{show.nextUserEpisode?.season} E{show.nextUserEpisode?.episode} {show.nextUserEpisode?.title}</span>
+									<span className={`${styles.badge} ${styles.badgeNext}`}>▶ S{show.nextUserEpisode?.season} E{show.nextUserEpisode?.episode}</span>
 								</div>
 							}
 						/>

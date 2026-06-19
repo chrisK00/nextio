@@ -56,8 +56,8 @@ export default function WatchingPage() {
 	const sortedWatching = sortWatchingShows(shows, watchingSort)
 	const runningShows = sortedWatching.filter(isRunningShow)
 	const unplannedShows = sortedWatching.filter((show) => !isRunningShow(show))
-	const hasUnwatchedShows = sortedWatching.filter((show) => show.nextEpisodeTitle !== 'Up to date')
-	const fullyWatchedShows = sortedWatching.filter((show) => show.nextEpisodeTitle === 'Up to date')
+	const hasUnwatchedShows = sortedWatching.filter((show) => show.nextUserEpisode)
+	const fullyWatchedShows = sortedWatching.filter((show) => !show.nextUserEpisode)
 
 	return (
 		<main className={styles.mainPanel}>

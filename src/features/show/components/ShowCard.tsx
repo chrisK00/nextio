@@ -29,12 +29,16 @@ export default function ShowCard({ show, action, onClick, compact = false }: Sho
                 <div className={`${styles.showCardBody} ${compact ? styles.showCardBodyCompact : ''}`}>
                     <strong className={styles.showCardTitle}>{show.title}</strong>
                 </div>
+                {!compact && (<span>
+                    {show.nextUserEpisode?.title}
+                </span>)}
+
                 {!compact && (
                     <div className={styles.showCardMeta}>
                     </div>
                 )}
                 {!compact && typeof (action) !== 'undefined' ? action : null}
             </article>
-        </button>
+        </button >
     )
 }

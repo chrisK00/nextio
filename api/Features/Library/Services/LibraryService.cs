@@ -70,10 +70,11 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
         var tvShows = tvEntities.Select(async show =>
         {
+            // TODO fix bugg where if for example user watches season 3 e1 but not season 2 e1 we will only check after season 3 e1
             var mostRecentlyWatchedEpisode = show.Episodes
               .Where(e => e.Watched)
-              .OrderBy(e => e.Season)
-              .ThenBy(e => e.Episode)
+              .OrderByDescending(e => e.Season)
+              .ThenByDescending(e => e.Episode)
               .FirstOrDefault();
 
             var nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, cancellationToken);
