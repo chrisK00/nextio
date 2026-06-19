@@ -22,6 +22,8 @@ public sealed record MovieItem(
 public sealed record TvEpisodeItem(
     int Season,
     int Episode,
+    string Title,
+    DateTime? ReleaseDate,
     bool Watched);
 
 public sealed record TvShowItem(
@@ -31,7 +33,8 @@ public sealed record TvShowItem(
     string? Network,
     string? Status,
     string? Description,
-    DateTime? NextReleaseDate,
+    TvEpisodeItem? NextUserEpisode,
+    TvEpisodeItem? NextAiringEpisode,
     DateTime FollowedAt,
     DateTime UpdatedAt,
     DateTime? LastSyncedAt,

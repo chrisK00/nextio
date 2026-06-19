@@ -29,23 +29,54 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             .OrderByDescending(x => x.UpdatedAt)
             .ToListAsync(cancellationToken);
 
-        var tvShows = tvEntities.Select(x => new TvShowItem(
-                x.ShowId,
-                x.Title,
-                x.PosterUrl,
-                x.Network,
-                x.Status,
-                x.Description,
-                x.NextReleaseDate,
-                x.FollowedAt,
-                x.UpdatedAt,
-                x.LastSyncedAt,
-                x.SyncError,
-                x.Episodes
-                    .OrderBy(e => e.Season)
-                    .ThenBy(e => e.Episode)
-                    .Select(e => new TvEpisodeItem(e.Season, e.Episode, e.Watched))
-                    .ToList()))
+        var tvShows = tvEntities.Select(x =>
+        {
+            var nextUserEpisode = x.Episodes
+              .Where(e => !e.Watched)
+              .OrderBy(e => e.Season)
+              .ThenBy(e => e.Episode)
+              .FirstOrDefault();
+
+            var nextAiringEpisode = x.NextReleaseDate.HasValue
+                ? new UserTvShowEpisode
+                {
+                    Season = 0,
+                    Episode = 0,
+                    Watched = false,
+                }
+                : null;
+
+            return new TvShowItem(
+                            x.ShowId,
+                            x.Title,
+                            x.PosterUrl,
+                            x.Network,
+                            x.Status,
+                            x.Description,
+                            new TvEpisodeItem(
+                                nextUserEpisode?.Season ?? 0,
+                                nextUserEpisode?.Episode ?? 0,
+                                "TODO",
+                                DateTime.MinValue,
+                                nextUserEpisode?.Watched ?? false
+                            ),
+                            new TvEpisodeItem(
+                                nextAiringEpisode?.Season ?? 0,
+                                nextAiringEpisode?.Episode ?? 0,
+                                "TODO",
+                                DateTime.MinValue,
+                                false
+                            ),
+                            x.FollowedAt,
+                            x.UpdatedAt,
+                            x.LastSyncedAt,
+                            x.SyncError,
+                            x.Episodes
+                                .OrderBy(e => e.Season)
+                                .ThenBy(e => e.Episode)
+                                .Select(e => new TvEpisodeItem(e.Season, e.Episode, "TODO", DateTime.MinValue, e.Watched))
+                                .ToList());
+        })
             .ToList();
 
         var movies = await _db.UserMovies
@@ -71,7 +102,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         var episodes = show.Episodes
             .OrderBy(e => e.Season)
             .ThenBy(e => e.Episode)
-            .Select(e => new TvEpisodeItem(e.Season, e.Episode, e.Watched))
+            .Select(e => new TvEpisodeItem(e.Season, e.Episode, "TODO", DateTime.MinValue, e.Watched))
             .ToList();
 
         return new LibraryTvShowDetailsResponse(
@@ -82,7 +113,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 show.Network,
                 show.Status,
                 show.Description,
-                show.NextReleaseDate,
+                null,
+                null,
                 show.FollowedAt,
                 show.UpdatedAt,
                 show.LastSyncedAt,
