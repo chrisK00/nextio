@@ -150,6 +150,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadLibrary()
   }, [loadLibrary])
 
+  const refresh = useCallback(async () => {
+    await Promise.all([loadSettings(), loadLibrary()])
+  }, [loadSettings, loadLibrary])
+
   const toggleSetting = useCallback(async (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => {
     if(!settings) return
     const updated = { ...settings, [key]: !settings[key] }
@@ -164,7 +168,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     settings,
     isLoading: isLoadingSettings,
     isLibraryLoaded: isLibraryLoaded,
-    refresh: loadSettings,
+    refresh,
     followShow,
     unfollowShow,
     toggleEpisode,
@@ -202,7 +206,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [watchlist, movies, settings, isLoadingSettings, isLibraryLoaded, token, username, loadSettings, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
+  }), [watchlist, movies, settings, isLoadingSettings, isLibraryLoaded, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

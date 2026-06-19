@@ -19,6 +19,7 @@ export default function SettingsPage() {
     try {
       const result = await api.syncLibrary()
       setSyncResult(result)
+      await refresh()
     } catch(error) {
       setSyncError(error instanceof Error ? error.message : 'Sync failed')
     } finally {

@@ -15,6 +15,7 @@ export default function useShows(status: ShowStatus) {
 
             switch(status) {
                 case 'watching':
+                    // TODO only show shows where we havent watched all released episodes
                     return true
                 case 'unwatched':
                     // show has a next episode to watch (not "Up to date")

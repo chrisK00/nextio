@@ -18,6 +18,15 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 	const displayShow = localShow ?? show
 
+	const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
+	const description = show?.description || '';
+	const nextEpisodeDateString = displayShow?.nextEpisode ? new Date(displayShow?.nextEpisode)
+		.toLocaleString([], {
+			dateStyle: 'medium',
+			timeStyle: 'short'
+		})
+		: null;
+
 	function recomputeCounts(s: TvShow) {
 		const watched = (s.seasons ?? []).reduce((acc, season) => acc + season.episodes.filter((ep) => ep.watched).length, 0)
 		return { ...s, episodesWatched: watched }
@@ -106,14 +115,23 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 					<div>
 						<h2>{show?.title}</h2>
 						<div className={styles.showMeta}>
-							<span>{show?.network}</span>
-							<span>{show?.status}</span>
+							{nextEpisodeDateString && <span>Upcoming Episode: {nextEpisodeDateString}</span>}
+						</div>
+						<div>
+							<span>Status: {show?.status}</span>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<p className={styles.showDescription}>{show?.description}</p>
+			<p className={styles.showDescription}>
+				{isDescriptionExpanded || description.length <= 140 ? description : `${description.slice(0, 140)}... `}
+				{description.length > 140 && (
+					<button onClick={() => setDescriptionExpanded(!isDescriptionExpanded)} style={{ border: 'none', background: 'none', color: '#0070f3', cursor: 'pointer', fontWeight: 'bold' }}>
+						{isDescriptionExpanded ? 'Less' : 'More'}
+					</button>
+				)}
+			</p>
 
 			{displayShow?.mediaType !== 'movie' && displayShow?.seasons && displayShow.seasons.length > 0 && (
 				<ShowSeasons

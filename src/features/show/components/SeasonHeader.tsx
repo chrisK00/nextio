@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../../../services/api'
 import type { Season, TvShow, Episode } from '../../../services/apiTypes'
+import { useAppContext } from '../../../state/AppContext'
 
 export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUpdate }: {
   season: Season
@@ -8,6 +9,7 @@ export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUp
   onRefetch?: () => Promise<TvShow | null>
   onOptimisticUpdate?: (seasonNum: number, episodeNums: number[], watched: boolean) => void
 }) {
+  const { refresh } = useAppContext()
   const [loading, setLoading] = useState(false)
 
   const allWatched = season.episodes.every((ep: Episode) => ep.watched)
@@ -36,6 +38,7 @@ export default function SeasonHeader({ season, showId, onRefetch, onOptimisticUp
                 onOptimisticUpdate?.(season.season, toToggle.map((ep: Episode) => ep.episode), false)
                 await Promise.all(toToggle.map((ep: Episode) => api.setLibraryEpisodeWatched(showId, season.season, ep.episode, false)))
               }
+              await refresh()
               await onRefetch?.()
             } finally {
               setLoading(false)

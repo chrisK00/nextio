@@ -17,6 +17,7 @@ export type TvShow = {
     status: string
     episodesWatched: number
     episodesTotal: number
+    // TODO we also need nextepisode title. this is right now the users next episode to watch.
     nextEpisodeTitle: string
     nextEpisode?: string
     nextReleaseDate?: string

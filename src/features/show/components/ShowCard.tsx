@@ -10,7 +10,6 @@ type ShowCardProps = {
 }
 
 export default function ShowCard({ show, action, onClick, compact = false }: ShowCardProps) {
-
     return (
         <button
             type="button"
@@ -33,7 +32,7 @@ export default function ShowCard({ show, action, onClick, compact = false }: Sho
                 </div>
                 {!compact && (
                     <div className={styles.showCardMeta}>
-                        <span>{show.nextEpisode}</span>
+                        {/* TODO episode title name */}
                     </div>
                 )}
                 {!compact && typeof (action) !== 'undefined' ? action : null}
