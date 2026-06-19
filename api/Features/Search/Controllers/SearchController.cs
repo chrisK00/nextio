@@ -5,9 +5,9 @@ namespace Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class SearchController(TmdbSearchService tmdbSearchService) : ControllerBase
+public sealed class SearchController(TmdbApi tmdbSearchService) : ControllerBase
 {
-    private readonly TmdbSearchService _tmdbSearchService = tmdbSearchService;
+    private readonly TmdbApi _tmdbSearchService = tmdbSearchService;
 
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] string query, CancellationToken cancellationToken)

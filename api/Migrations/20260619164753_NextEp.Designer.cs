@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace nextio.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260614210354_Lib")]
-    partial class Lib
+    [Migration("20260619164753_NextEp")]
+    partial class NextEp
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -66,14 +66,17 @@ namespace nextio.Api.Migrations
                     b.Property<DateTime>("FollowedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsFollowing")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("LastSyncedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Network")
-                        .HasColumnType("TEXT");
+                    b.Property<int>("NumberOfEpisodes")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<string>("NextReleaseDate")
-                        .HasColumnType("TEXT");
+                    b.Property<int>("NumberOfSeasons")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("PosterUrl")
                         .HasColumnType("TEXT");
@@ -112,11 +115,20 @@ namespace nextio.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("AirDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Episode")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("NextEpisodeToAirId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Season")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -128,6 +140,9 @@ namespace nextio.Api.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NextEpisodeToAirId")
+                        .IsUnique();
 
                     b.HasIndex("UserTvShowId", "Season", "Episode")
                         .IsUnique();
@@ -193,6 +208,11 @@ namespace nextio.Api.Migrations
             modelBuilder.Entity("Data.UserTvShowEpisode", b =>
                 {
                     b.HasOne("Data.UserTvShow", null)
+                        .WithOne("NextEpisodeToAir")
+                        .HasForeignKey("Data.UserTvShowEpisode", "NextEpisodeToAirId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Data.UserTvShow", null)
                         .WithMany("Episodes")
                         .HasForeignKey("UserTvShowId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -202,6 +222,8 @@ namespace nextio.Api.Migrations
             modelBuilder.Entity("Data.UserTvShow", b =>
                 {
                     b.Navigation("Episodes");
+
+                    b.Navigation("NextEpisodeToAir");
                 });
 #pragma warning restore 612, 618
         }

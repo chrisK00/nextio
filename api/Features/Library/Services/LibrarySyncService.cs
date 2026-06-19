@@ -1,7 +1,6 @@
 using Data;
 using Features.Search.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Features.Library.Services;
 
@@ -13,11 +12,11 @@ public interface ILibrarySyncService
 
 public sealed class LibrarySyncService(
     ApplicationDbContext db,
-    TmdbSearchService tmdbSearchService,
+    TmdbApi tmdbSearchService,
     ILogger<LibrarySyncService> logger) : ILibrarySyncService
 {
     private readonly ApplicationDbContext _db = db;
-    private readonly TmdbSearchService _tmdbSearchService = tmdbSearchService;
+    private readonly TmdbApi _tmdbSearchService = tmdbSearchService;
     private readonly ILogger<LibrarySyncService> _logger = logger;
 
     public async Task SyncShowAsync(UserTvShow show, CancellationToken cancellationToken = default)
@@ -28,19 +27,33 @@ public sealed class LibrarySyncService(
             if (!int.TryParse(rawId, out var showId))
                 throw new InvalidOperationException($"Invalid TMDb show id: {show.ShowId}");
 
-            var details = await _tmdbSearchService.GetDetailsAsync("tv", showId, cancellationToken);
-            if (details is null)
-                throw new InvalidOperationException("TMDb returned no details.");
+            var details = await _tmdbSearchService.GetDetailsAsync("tv", showId, cancellationToken) ?? throw new InvalidOperationException("TMDb returned no details.");
 
-            show.Title = details.Title;
-            show.PosterUrl = details.PosterUrl;
-            show.Network = details.Network;
+            show.Title = details.Name;
+            show.PosterUrl = details.PosterPath;
             show.Status = details.Status;
-            show.Description = details.Description;
-            show.NextReleaseDate = DateTime.TryParse(details.NextReleaseDate, out var nrd) ? nrd.ToUniversalTime() : null;
+            show.Description = details.Overview;
             show.LastSyncedAt = DateTime.UtcNow;
             show.SyncError = null;
             show.UpdatedAt = DateTime.UtcNow;
+            show.NextEpisodeToAir = details.NextEpisodeToAir is not null ? new UserTvShowNextEpisode
+            {
+                Season = details.NextEpisodeToAir.SeasonNumber,
+                Episode = details.NextEpisodeToAir.EpisodeNumber,
+                Title = details.NextEpisodeToAir.Name,
+                UpdatedAt = DateTime.UtcNow,
+                AirDate = DateTime.Parse(details.NextEpisodeToAir?.AirDate)
+            } : null;
+            show.SeasonsMetadata = details.Seasons.Select(x => new ShowSeasonMetadata
+            {
+                SeasonNumber = x.SeasonNumber,
+                AirDate = x.AirDate,
+                EpisodeCount = x.EpisodeCount,
+                VoteAverage = x.VoteAverage,
+            }).ToList();
+            show.NumberOfEpisodes = details.NumberOfEpisodes;
+            show.NumberOfSeasons = details.NumberOfSeasons;
+
         }
         catch (Exception ex)
         {
@@ -54,6 +67,8 @@ public sealed class LibrarySyncService(
     public async Task<Models.LibrarySyncResponse> SyncAllAsync(CancellationToken cancellationToken = default)
     {
         var shows = await _db.UserTvShows
+            .Include(x => x.Episodes)
+            .Include(x => x.SeasonsMetadata)
             .Where(x => x.IsFollowing)
             .OrderBy(x => x.Title)
             .ToListAsync(cancellationToken);
@@ -67,19 +82,19 @@ public sealed class LibrarySyncService(
             await SyncShowAsync(show, cancellationToken);
             if (show.SyncError is null)
             {
-                items.Add(new Features.Library.Models.LibrarySyncItem(show.ShowId, show.Title, true, "Synced successfully.", show.LastSyncedAt!.Value));
+                items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, true, "Synced successfully.", show.LastSyncedAt!.Value));
                 succeeded++;
             }
             else
             {
-                items.Add(new Features.Library.Models.LibrarySyncItem(show.ShowId, show.Title, false, show.SyncError, show.LastSyncedAt!.Value));
+                items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, false, show.SyncError, show.LastSyncedAt!.Value));
             }
             await Task.Delay(300, cancellationToken);
         }
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        return new Features.Library.Models.LibrarySyncResponse(
+        return new Models.LibrarySyncResponse(
             Total: shows.Count,
             Succeeded: succeeded,
             Failed: shows.Count - succeeded,

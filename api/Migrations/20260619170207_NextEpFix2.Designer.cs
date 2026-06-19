@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace nextio.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260619170207_NextEpFix2")]
+    partial class NextEpFix2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -198,32 +201,6 @@ namespace nextio.Api.Migrations
 
             modelBuilder.Entity("Data.UserTvShow", b =>
                 {
-                    b.OwnsMany("Data.ShowSeasonMetadata", "SeasonsMetadata", b1 =>
-                        {
-                            b1.Property<Guid>("UserTvShowId")
-                                .HasColumnType("TEXT");
-
-                            b1.Property<int>("SeasonNumber")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("INTEGER");
-
-                            b1.Property<DateTime?>("AirDate")
-                                .HasColumnType("TEXT");
-
-                            b1.Property<int>("EpisodeCount")
-                                .HasColumnType("INTEGER");
-
-                            b1.Property<double?>("VoteAverage")
-                                .HasColumnType("REAL");
-
-                            b1.HasKey("UserTvShowId", "SeasonNumber");
-
-                            b1.ToTable("ShowSeasonMetadata");
-
-                            b1.WithOwner()
-                                .HasForeignKey("UserTvShowId");
-                        });
-
                     b.OwnsOne("Data.UserTvShowNextEpisode", "NextEpisodeToAir", b1 =>
                         {
                             b1.Property<Guid>("UserTvShowId")
@@ -253,8 +230,6 @@ namespace nextio.Api.Migrations
                         });
 
                     b.Navigation("NextEpisodeToAir");
-
-                    b.Navigation("SeasonsMetadata");
                 });
 
             modelBuilder.Entity("Data.UserTvShowEpisode", b =>

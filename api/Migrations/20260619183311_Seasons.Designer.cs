@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace nextio.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260619183311_Seasons")]
+    partial class Seasons
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -203,7 +206,7 @@ namespace nextio.Api.Migrations
                             b1.Property<Guid>("UserTvShowId")
                                 .HasColumnType("TEXT");
 
-                            b1.Property<int>("SeasonNumber")
+                            b1.Property<int>("Id")
                                 .ValueGeneratedOnAdd()
                                 .HasColumnType("INTEGER");
 
@@ -213,10 +216,13 @@ namespace nextio.Api.Migrations
                             b1.Property<int>("EpisodeCount")
                                 .HasColumnType("INTEGER");
 
+                            b1.Property<int>("SeasonNumber")
+                                .HasColumnType("INTEGER");
+
                             b1.Property<double?>("VoteAverage")
                                 .HasColumnType("REAL");
 
-                            b1.HasKey("UserTvShowId", "SeasonNumber");
+                            b1.HasKey("UserTvShowId", "Id");
 
                             b1.ToTable("ShowSeasonMetadata");
 

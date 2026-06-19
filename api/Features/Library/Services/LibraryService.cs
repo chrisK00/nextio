@@ -1,5 +1,6 @@
 using Data;
 using Features.Library.Models;
+using Features.Search.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Features.Library.Services;
@@ -16,68 +17,94 @@ public interface ILibraryService
     Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default);
 }
 
-public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService) : ILibraryService
+public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService, TmdbApi tmdbApi) : ILibraryService
 {
     private readonly ApplicationDbContext _db = db;
     private readonly ILibrarySyncService _syncService = syncService;
+
+    private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, CancellationToken cancellationToken = default)
+    {
+        var season = await tmdbApi.GetSeasonInfoAsync(showId, seasonNumber, cancellationToken);
+        if (season == null)
+        {
+            return null;
+        }
+
+        var episode = season.Episodes.FirstOrDefault(x => x.EpisodeNumber == episodeNumber);
+        return new TvEpisodeItem(season.SeasonNumber, episode.EpisodeNumber, episode.Name, DateTime.Parse(episode.AirDate), false);
+    }
+
+    private Task<TvEpisodeItem?> GetNextUserEpisodeAsync(string showId, UserTvShowEpisode? recentlyWatchedEpisode, List<ShowSeasonMetadata> seasonsmetadata, CancellationToken cancellationToken = default)
+    {
+        // Case 1: No history - Start from Season 1, Episode 1
+        if (recentlyWatchedEpisode is null)
+        {
+            return seasonsmetadata.Any(x => x.SeasonNumber == 1 && x.EpisodeCount > 0)
+                ? GetEpisodeAsync(showId, 1, 1, cancellationToken)
+                : Task.FromResult<TvEpisodeItem?>(null);
+        }
+
+        // Case 2: Next episode in the current season
+        if (seasonsmetadata.Any(x => x.SeasonNumber == recentlyWatchedEpisode.Season && x.EpisodeCount >= recentlyWatchedEpisode.Episode + 1))
+        {
+            return GetEpisodeAsync(showId, recentlyWatchedEpisode.Season, recentlyWatchedEpisode.Episode + 1, cancellationToken);
+        }
+
+        // Case 3: First episode of the next season
+        if (seasonsmetadata.Any(x => x.SeasonNumber == recentlyWatchedEpisode.Season + 1 && x.EpisodeCount > 0))
+        {
+            return GetEpisodeAsync(showId, recentlyWatchedEpisode.Season + 1, 1, cancellationToken);
+        }
+
+        return Task.FromResult<TvEpisodeItem?>(null);
+    }
 
     public async Task<LibraryResponse> GetLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var tvEntities = await _db.UserTvShows
             .Include(x => x.Episodes)
+            .Include(x => x.SeasonsMetadata)
             .Where(x => x.UserId == userId && x.IsFollowing)
             .OrderByDescending(x => x.UpdatedAt)
             .ToListAsync(cancellationToken);
 
-        var tvShows = tvEntities.Select(x =>
+        var tvShows = tvEntities.Select(async show =>
         {
-            var nextUserEpisode = x.Episodes
-              .Where(e => !e.Watched)
+            var mostRecentlyWatchedEpisode = show.Episodes
+              .Where(e => e.Watched)
               .OrderBy(e => e.Season)
               .ThenBy(e => e.Episode)
               .FirstOrDefault();
 
-            var nextAiringEpisode = x.NextReleaseDate.HasValue
-                ? new UserTvShowEpisode
-                {
-                    Season = 0,
-                    Episode = 0,
-                    Watched = false,
-                }
-                : null;
+            var nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, cancellationToken);
 
             return new TvShowItem(
-                            x.ShowId,
-                            x.Title,
-                            x.PosterUrl,
-                            x.Network,
-                            x.Status,
-                            x.Description,
+                            show.ShowId,
+                            show.Title,
+                            show.PosterUrl,
+                            show.Status,
+                            show.Description,
+                           nextUserEpisode,
+                            show.NextEpisodeToAir is not null ?
                             new TvEpisodeItem(
-                                nextUserEpisode?.Season ?? 0,
-                                nextUserEpisode?.Episode ?? 0,
-                                "TODO",
-                                DateTime.MinValue,
-                                nextUserEpisode?.Watched ?? false
-                            ),
-                            new TvEpisodeItem(
-                                nextAiringEpisode?.Season ?? 0,
-                                nextAiringEpisode?.Episode ?? 0,
-                                "TODO",
-                                DateTime.MinValue,
+                                show.NextEpisodeToAir?.Season ?? 0,
+                                show.NextEpisodeToAir?.Episode ?? 0,
+                                show.NextEpisodeToAir.Title,
+                                show.NextEpisodeToAir.AirDate,
                                 false
-                            ),
-                            x.FollowedAt,
-                            x.UpdatedAt,
-                            x.LastSyncedAt,
-                            x.SyncError,
-                            x.Episodes
+                            ) : null,
+                            show.FollowedAt,
+                            show.UpdatedAt,
+                            show.LastSyncedAt,
+                            show.SyncError,
+                            show.Episodes
                                 .OrderBy(e => e.Season)
                                 .ThenBy(e => e.Episode)
                                 .Select(e => new TvEpisodeItem(e.Season, e.Episode, "TODO", DateTime.MinValue, e.Watched))
                                 .ToList());
-        })
-            .ToList();
+        });
+
+        var awaitedShows = await Task.WhenAll(tvShows);
 
         var movies = await _db.UserMovies
             .Where(x => x.UserId == userId)
@@ -85,7 +112,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             .Select(x => new MovieItem(x.MovieId, x.Title, x.PosterUrl, x.Description, x.WatchedAt))
             .ToListAsync(cancellationToken);
 
-        return new LibraryResponse(tvShows, movies);
+        return new LibraryResponse(awaitedShows, movies);
     }
 
     public async Task<LibraryTvShowDetailsResponse?> GetTvShowAsync(Guid userId, string id, CancellationToken cancellationToken = default)
@@ -110,7 +137,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 show.ShowId,
                 show.Title,
                 show.PosterUrl,
-                show.Network,
                 show.Status,
                 show.Description,
                 null,
@@ -144,10 +170,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 ShowId = request.Id,
                 Title = request.Title,
                 PosterUrl = request.PosterUrl,
-                Network = request.Network,
                 Status = request.Status,
                 Description = request.Description,
-                NextReleaseDate = request.NextReleaseDate,
                 IsFollowing = true,
                 FollowedAt = now,
                 UpdatedAt = now,
@@ -160,10 +184,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         {
             show.Title = request.Title;
             show.PosterUrl = request.PosterUrl;
-            show.Network = request.Network;
             show.Status = request.Status;
             show.Description = request.Description;
-            show.NextReleaseDate = request.NextReleaseDate;
             show.IsFollowing = true;
             show.UpdatedAt = now;
         }

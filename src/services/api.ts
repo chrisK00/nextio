@@ -17,8 +17,8 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 	const title = String(result.title ?? result.Title ?? result.name ?? result.Name ?? 'Untitled')
 	const id = String(result.id ?? result.Id ?? title)
 	const posterPath = String(result.posterUrl ?? result.PosterUrl ?? result.poster_path ?? result.PosterPath ?? '')
-	const releaseYear = String(result.releaseYear ?? result.ReleaseYear ?? '')
-	const releaseDate = String(result.nextReleaseDate ?? result.NextReleaseDate ?? result.release_date ?? result.ReleaseDate ?? result.first_air_date ?? result.FirstAirDate ?? '')
+	// const releaseYear = String(result.releaseYear ?? result.ReleaseYear ?? '')
+	// const releaseDate = String(result.nextReleaseDate ?? result.NextReleaseDate ?? result.release_date ?? result.ReleaseDate ?? result.first_air_date ?? result.FirstAirDate ?? '')
 
 	return {
 		id: `${mediaType}:${id}`,
@@ -28,9 +28,9 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 		status: 'Released',
 		episodesWatched: 0,
 		episodesTotal: 1,
-		nextEpisodeTitle: mediaType === 'movie' ? 'Movie' : 'TV Series',
-		nextEpisode: releaseYear || releaseDate || undefined,
-		nextReleaseDate: releaseDate || undefined,
+		// nextEpisodeTitle: mediaType === 'movie' ? 'Movie' : 'TV Series',
+		// nextEpisode: releaseYear || releaseDate || undefined,
+		// nextReleaseDate: releaseDate || undefined,
 		description: String(result.description ?? result.Description ?? `Search result for ${title}`),
 		posterUrl: posterPath.startsWith('http') ? posterPath : (posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : undefined),
 	}

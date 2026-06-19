@@ -17,10 +17,8 @@ export type TvShow = {
     status: string
     episodesWatched: number
     episodesTotal: number
-    // TODO we also need nextepisode title. this is right now the users next episode to watch.
-    nextEpisodeTitle: string
-    nextEpisode?: string
-    nextReleaseDate?: string
+    nextUserEpisode?: TvEpisodeItem,
+    nextAiringEpisode?: TvEpisodeItem,
     description: string
     seasons?: Season[]
     posterUrl?: string
@@ -33,6 +31,8 @@ export type SearchResults = {
 export type TvEpisodeItem = {
     season: number
     episode: number
+    title: string
+    releaseDate: string
     watched: boolean
 }
 export type LibraryTvShow = {
@@ -42,7 +42,8 @@ export type LibraryTvShow = {
     network?: string
     status?: string
     description?: string
-    nextReleaseDate?: string
+    nextUserEpisode?: TvEpisodeItem,
+    nextAiringEpisode?: TvEpisodeItem,
     followedAt: string
     updatedAt: string
     lastSyncedAt?: string

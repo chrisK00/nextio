@@ -62,14 +62,8 @@ public sealed class TmdbMultiSearchResult
 
 public sealed class TmdbDetailResponse
 {
-    [JsonPropertyName("media_type")]
-    public string? MediaType { get; init; }
-
     [JsonPropertyName("id")]
     public int Id { get; init; }
-
-    [JsonPropertyName("title")]
-    public string? Title { get; init; }
 
     [JsonPropertyName("name")]
     public string? Name { get; init; }
@@ -78,7 +72,21 @@ public sealed class TmdbDetailResponse
     public string? Overview { get; init; }
 
     [JsonPropertyName("poster_path")]
-    public string? PosterPath { get; init; }
+    public string? PosterPath
+    {
+        get;
+        init
+        {
+            if (string.IsNullOrEmpty(value) || value.StartsWith("https://image.tmdb.org"))
+            {
+                field = value;
+            }
+            else
+            {
+                field = $"https://image.tmdb.org/t/p/w500{value}";
+            }
+        }
+    }
 
     [JsonPropertyName("first_air_date")]
     public string? FirstAirDate { get; init; }
@@ -88,12 +96,57 @@ public sealed class TmdbDetailResponse
 
     [JsonPropertyName("next_episode_to_air")]
     public TmdbNextEpisode? NextEpisodeToAir { get; init; }
+    [JsonPropertyName("in_production")]
+    public bool InProduction { get; init; }
+    [JsonPropertyName("languages")]
+    public IReadOnlyList<string> Languages { get; init; } = [];
+    [JsonPropertyName("last_episode_to_air")]
+    public TmdbNextEpisode? LastEpisodeToAir { get; init; }
+    [JsonPropertyName("number_of_episodes")]
+    public int NumberOfEpisodes { get; init; }
+    [JsonPropertyName("number_of_seasons")]
+    public int NumberOfSeasons { get; init; }
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
+    [JsonPropertyName("vote_average")]
+    public double? VoteAverage { get; init; }
+    [JsonPropertyName("vote_count")]
+    public int? VoteCount { get; init; }
+
+    [JsonPropertyName("seasons")]
+    public TmdbSeason[] Seasons { get => field.Where(x => x.SeasonNumber != 0).ToArray(); init; } = [];
+}
+
+public sealed class TmdbSeason
+{
+    [JsonPropertyName("vote_average")]
+    public double? VoteAverage { get; init; }
+    [JsonPropertyName("season_number")]
+    public int SeasonNumber { get; init; }
+    [JsonPropertyName("episode_count")]
+    public int EpisodeCount { get; init; }
+    [JsonPropertyName("air_date")]
+    public DateTime? AirDate { get; init; }
 }
 
 public sealed class TmdbNextEpisode
 {
     [JsonPropertyName("air_date")]
     public string? AirDate { get; init; }
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+    [JsonPropertyName("episode_number")]
+    public int EpisodeNumber { get; init; }
+    [JsonPropertyName("season_number")]
+    public int SeasonNumber { get; init; }
+    [JsonPropertyName("vote_average")]
+    public double? VoteAverage { get; init; }
+    [JsonPropertyName("vote_count")]
+    public int? VoteCount { get; init; }
+    [JsonPropertyName("runtime")]
+    public int? Runtime { get; init; }
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
 }
 
 // Seasons/episodes models
@@ -132,7 +185,7 @@ public sealed class TmdbTvDetailsResponse
     public int Id { get; init; }
 
     [JsonPropertyName("seasons")]
-    public IReadOnlyList<TmdbTvSeasonInfo> Seasons { get; init; } = Array.Empty<TmdbTvSeasonInfo>();
+    public IReadOnlyList<TmdbTvSeasonInfo> Seasons { get => field.Where(x => x.SeasonNumber != 0).ToArray(); init; } = Array.Empty<TmdbTvSeasonInfo>();
 }
 
 public sealed class TmdbTvSeasonInfo

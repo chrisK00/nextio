@@ -37,7 +37,7 @@ builder.Services.AddScoped<Services.IUserService, Services.UserService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddScoped<ILibrarySyncService, LibrarySyncService>();
 builder.Services.AddHostedService<LibrarySyncWorker>();
-builder.Services.AddHttpClient<TmdbSearchService>(client =>
+builder.Services.AddHttpClient<TmdbApi>(client =>
 {
     client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
 });

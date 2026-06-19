@@ -26,6 +26,17 @@ namespace Data
                 .WithOne()
                 .HasForeignKey(x => x.UserTvShowId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserTvShow>()
+            .OwnsOne(x => x.NextEpisodeToAir);
+
+            modelBuilder.Entity<UserTvShow>()
+                .OwnsMany(x => x.SeasonsMetadata, builder =>
+                {
+                    // Tells EF Core to use the parent's ID + SeasonNumber as the primary key
+                    builder.WithOwner().HasForeignKey("UserTvShowId");
+                    builder.HasKey("UserTvShowId", nameof(ShowSeasonMetadata.SeasonNumber));
+                });
         }
     }
 }

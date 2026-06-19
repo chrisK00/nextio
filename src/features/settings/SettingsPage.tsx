@@ -77,15 +77,18 @@ export default function SettingsPage() {
         let tvCount = 0, movieCount = 0
 
         for(const show of data.tvShows ?? []) {
-          await api.addLibraryTvShow({ id: show.id, title: show.title, mediaType: 'tv', network: '', status: show.status ?? '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '' })
-          for(const ep of show.episodes?.filter((e) => e.watched) ?? []) {
-            await api.setLibraryEpisodeWatched(show.id, ep.season, ep.episode, true)
+          // await api.addLibraryTvShow({ id: show.id, title: show.title, mediaType: 'tv', network: '', status: show.status ?? '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '' })
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          for(const _ep of show.episodes?.filter((e) => e.watched) ?? []) {
+            // await api.setLibraryEpisodeWatched(show.id, ep.season, ep.episode, true)
           }
           tvCount++
         }
 
-        for(const movie of data.movies ?? []) {
-          await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', network: '', status: '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '' })
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for(const _movie of data.movies ?? []) {
+          // TODO
+          // await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', network: '', status: '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '' })
           movieCount++
         }
 

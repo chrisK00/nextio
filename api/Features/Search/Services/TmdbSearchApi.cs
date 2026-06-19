@@ -2,7 +2,7 @@ using Features.Search.Models;
 
 namespace Features.Search.Services;
 
-public sealed class TmdbSearchService(HttpClient httpClient, IConfiguration configuration)
+public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration)
 {
     private readonly HttpClient _httpClient = httpClient;
     private readonly IConfiguration _configuration = configuration;
@@ -49,40 +49,24 @@ public sealed class TmdbSearchService(HttpClient httpClient, IConfiguration conf
         return new SearchResponse(tvShows, movies);
     }
 
-    public async Task<SearchItem?> GetDetailsAsync(string mediaType, int id, CancellationToken cancellationToken = default)
+    public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, CancellationToken cancellationToken = default)
+    {
+        var url = $"tv/61575/season/{season}";
+        var response = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(AppendApiKey(url), cancellationToken);
+
+        return response;
+    }
+
+    public async Task<TmdbDetailResponse?> GetDetailsAsync(string mediaType, int id, CancellationToken cancellationToken = default)
     {
         var endpoint = string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase) ? $"movie/{id}" : $"tv/{id}";
         var url = $"{endpoint}?language=en-US";
         var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse>(AppendApiKey(url), cancellationToken);
-        if (response is null)
-        {
-            return null;
-        }
 
-        return string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase)
-            ? MapMovie(new TmdbMultiSearchResult
-            {
-                MediaType = "movie",
-                Id = response.Id,
-                Title = response.Title,
-                Name = response.Name,
-                Overview = response.Overview,
-                PosterPath = response.PosterPath,
-                ReleaseDate = response.ReleaseDate,
-                FirstAirDate = response.FirstAirDate,
-            })
-            : MapTvShow(new TmdbMultiSearchResult
-            {
-                MediaType = "tv",
-                Id = response.Id,
-                Title = response.Title,
-                Name = response.Name,
-                Overview = response.Overview,
-                PosterPath = response.PosterPath,
-                FirstAirDate = response.NextEpisodeToAir?.AirDate,
-            });
+        return response;
     }
 
+    // TODO
     private static SearchItem MapTvShow(TmdbMultiSearchResult result)
     {
         var title = result.Name ?? "Untitled";

@@ -28,15 +28,12 @@ export default function ShowCard({ show, action, onClick, compact = false }: Sho
                 </div>
                 <div className={`${styles.showCardBody} ${compact ? styles.showCardBodyCompact : ''}`}>
                     <strong className={styles.showCardTitle}>{show.title}</strong>
-                    {!compact && <span className={styles.showCardNetwork}>{show.network}</span>}
                 </div>
                 {!compact && (
                     <div className={styles.showCardMeta}>
-                        {/* TODO episode title name */}
                     </div>
                 )}
                 {!compact && typeof (action) !== 'undefined' ? action : null}
-                {/* Add button removed: add action should live on the show detail page */}
             </article>
         </button>
     )

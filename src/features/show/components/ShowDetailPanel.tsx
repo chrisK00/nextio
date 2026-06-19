@@ -20,7 +20,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 	const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
 	const description = show?.description || '';
-	const nextEpisodeDateString = displayShow?.nextEpisode ? new Date(displayShow?.nextEpisode)
+	const nextEpisodeDateString = displayShow?.nextAiringEpisode?.airDate ? new Date(displayShow?.nextAiringEpisode?.airDate)
 		.toLocaleString([], {
 			dateStyle: 'medium',
 			timeStyle: 'short'

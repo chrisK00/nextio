@@ -30,7 +30,6 @@ public sealed record TvShowItem(
     string Id,
     string Title,
     string? PosterUrl,
-    string? Network,
     string? Status,
     string? Description,
     TvEpisodeItem? NextUserEpisode,

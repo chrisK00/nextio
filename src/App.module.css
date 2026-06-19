@@ -793,16 +793,17 @@ input:focus-visible {
 }
 
 .upcomingCountdownToday {
-	color: #ef4444;
+	color: #ba7bd7;
 }
 
 @media (prefers-color-scheme: dark) {
 	.upcomingCountdown {
-		color: #fbbf24;
+		color: #ba7bd7;
 	}
+
 	.upcomingCountdownToday {
-		color: #f87171;
-	}
+	color: #ba7bd7;
+}
 }
 
 @media (min-width: 860px) {

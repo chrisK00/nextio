@@ -8,7 +8,7 @@ function UpcomingItem({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
 	const countdown = getReleaseCountdown(show)
 	const isToday = countdown === 'Today'
 
-	const nextEpisodeDateString = show.nextEpisode ? new Date(show.nextEpisode)
+	const nextEpisodeDateString = show.nextAiringEpisode?.releaseDate ? new Date(show.nextAiringEpisode.releaseDate)
 		.toLocaleString([], {
 			dateStyle: 'medium',
 			timeStyle: 'short'
@@ -24,11 +24,11 @@ function UpcomingItem({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
 			</div>
 			<div className={styles.upcomingInfo}>
 				<strong className={styles.upcomingTitle}>{show.title}</strong>
-				<span>{show.nextEpisodeTitle}</span>
+				<span>{show.nextAiringEpisode?.title}</span>
 				<span className={styles.upcomingNetwork}>{nextEpisodeDateString}</span>
 			</div>
 			<div className={`${styles.upcomingCountdown} ${isToday ? styles.upcomingCountdownToday : ''}`}>
-				{isToday ? '🔴 Today' : countdown}
+				{isToday ? '🟣 Today' : countdown}
 			</div>
 		</button>
 	)

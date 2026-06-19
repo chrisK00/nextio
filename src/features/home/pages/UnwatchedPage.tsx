@@ -39,7 +39,7 @@ export default function UnwatchedPage() {
 							onClick={handleShowClick}
 							action={
 								<div className={styles.showCardMeta}>
-									<span className={`${styles.badge} ${styles.badgeNext}`}>▶ {show.nextEpisodeTitle}</span>
+									<span className={`${styles.badge} ${styles.badgeNext}`}>▶ S{show.nextUserEpisode?.season} E{show.nextUserEpisode?.episode} {show.nextUserEpisode?.title}</span>
 								</div>
 							}
 						/>

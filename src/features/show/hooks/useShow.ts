@@ -43,7 +43,7 @@ export default function useShow(id?: string) {
     let mounted = true
     void (async () => {
       // Only show full loading state if we don't have this show's data yet
-      if (!show || show.id !== id) {
+      if(!show || show.id !== id) {
         setLoading(true)
       }
       setError(null)
@@ -111,9 +111,8 @@ function mapLibraryShowDetails(library: LibraryTvShowDetails, tmdbSeasons: Seaso
     status: library.show.status ?? 'Tracked',
     episodesWatched: episodes.filter((e) => e.watched).length,
     episodesTotal: Math.max(episodes.length, 1),
-    nextEpisodeTitle: library.show.nextReleaseDate ? 'Next release' : 'Tracked show',
-    nextEpisode: library.show.nextReleaseDate,
-    nextReleaseDate: library.show.nextReleaseDate,
+    nextAiringEpisode: library.show.nextAiringEpisode,
+    nextUserEpisode: library.show.nextUserEpisode,
     description: library.show.description ?? library.show.title,
     posterUrl: library.show.posterUrl,
     seasons,
