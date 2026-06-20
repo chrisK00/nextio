@@ -13,7 +13,6 @@ export type TvShow = {
     id: string
     title: string
     mediaType?: 'tv' | 'movie'
-    network: string
     status: string
     episodesWatched: number
     episodesTotal: number

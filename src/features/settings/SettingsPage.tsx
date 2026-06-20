@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import styles from './SettingsPage.module.css'
 import appStyles from '../../App.module.css'
 import * as api from '../../services/api'
-import type { LibrarySyncResponse, LibrarySyncItem } from '../../services/apiTypes'
+import type { LibrarySyncResponse, LibrarySyncItem, TvShow } from '../../services/apiTypes'
 
 export default function SettingsPage() {
   const { settings, toggleSetting, watchlist, movies, refresh } = useAppContext()
@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const [importResult, setImportResult] = useState<string | null>(null)
 
   type ExportEpisode = { season: number; episode: number; watched: boolean }
-  type ExportShow = { id: string; title: string; status?: string; episodes: ExportEpisode[] }
+  type ExportShow = { id: string; title: string; status?: string; episodes: ExportEpisode[], posterUrl: string }
   type ExportMovie = { id: string; title: string }
   type ExportFile = { tvShows: ExportShow[]; movies: ExportMovie[] }
 
@@ -46,6 +46,7 @@ export default function SettingsPage() {
           id: d!.show.id,
           title: d!.show.title,
           status: d!.show.status,
+          posterUrl: d!.show.posterUrl,
           episodes: d!.episodes.map((e) => ({ season: e.season, episode: e.episode, watched: e.watched })),
         })),
         movies: movies.map((m) => ({ id: m.id, title: m.title })),
@@ -76,24 +77,32 @@ export default function SettingsPage() {
         const data = JSON.parse(text) as ExportFile
         let tvCount = 0, movieCount = 0
 
+        const waitForSyncMessage = '{waiting_sync}'
         for(const show of data.tvShows ?? []) {
-          // await api.addLibraryTvShow({ id: show.id, title: show.title, mediaType: 'tv', network: '', status: show.status ?? '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '' })
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          for(const _ep of show.episodes?.filter((e) => e.watched) ?? []) {
-            // await api.setLibraryEpisodeWatched(show.id, ep.season, ep.episode, true)
+
+          const showToAdd: TvShow = {
+            id: show.id, title: show.title, mediaType: 'tv', status: waitForSyncMessage, description: waitForSyncMessage,
+            episodesTotal: 0, episodesWatched: 0, posterUrl: show.posterUrl, seasons: []
+          }
+
+          await api.addLibraryTvShow(showToAdd)
+          for(const ep of show.episodes?.filter((e) => e.watched) ?? []) {
+            await api.setLibraryEpisodeWatched(show.id, ep.season, ep.episode, true)
           }
           tvCount++
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for(const _movie of data.movies ?? []) {
-          // TODO
-          // await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', network: '', status: '', episodesWatched: 0, episodesTotal: 0, nextEpisodeTitle: '', description: '' })
+        for(const movie of data.movies ?? []) {
+          await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', status: waitForSyncMessage, episodesWatched: 0, episodesTotal: 0, description: waitForSyncMessage })
           movieCount++
         }
 
         await refresh()
-        setImportResult(`Imported ${tvCount} TV show${tvCount !== 1 ? 's' : ''} and ${movieCount} movie${movieCount !== 1 ? 's' : ''}.`)
+        setImportResult(`Imported ${tvCount} TV show${tvCount !== 1 ? 's' : ''} and ${movieCount} movie${movieCount !== 1 ? 's' : ''}. Please wait for sync`)
+
+        setTimeout(async () => {
+          await handleSync()
+        }, 500);
       } catch(e) {
         setImportResult(`Import failed: ${e instanceof Error ? e.message : 'Invalid file'}`)
       } finally {
