@@ -2,7 +2,7 @@ using Features.Search.Models;
 
 namespace Features.Search.Services;
 
-public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration)
+public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration, ILogger<TmdbApi> logger)
 {
     private readonly HttpClient _httpClient = httpClient;
     private readonly IConfiguration _configuration = configuration;
@@ -52,9 +52,18 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration)
     public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, CancellationToken cancellationToken = default)
     {
         var url = $"tv/61575/season/{season}";
-        var response = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(AppendApiKey(url), cancellationToken);
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(AppendApiKey(url), cancellationToken);
 
-        return response;
+            return response;
+
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("Failed to fetch season info for show: {showId}, season: {season}. Error: {error}", showId, season, ex.Message);
+            return null;
+        }
     }
 
     public async Task<TmdbDetailResponse?> GetDetailsAsync(string mediaType, int id, CancellationToken cancellationToken = default)
