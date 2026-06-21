@@ -16,14 +16,14 @@ public sealed class SearchController(TmdbApi tmdbSearchService) : ControllerBase
         return Ok(response);
     }
 
-    [HttpGet("{mediaType}/{id:string}")]
+    [HttpGet("{mediaType}/{id}")]
     public async Task<IActionResult> Details(string mediaType, string id, CancellationToken cancellationToken)
     {
         var response = await _tmdbSearchService.GetDetailsAsync(mediaType, id, cancellationToken);
         return response is null ? NotFound() : Ok(response);
     }
 
-    [HttpGet("tv/{id:string}/seasons")]
+    [HttpGet("tv/{id}/seasons")]
     public async Task<IActionResult> Seasons(string id, CancellationToken cancellationToken)
     {
         var seasons = await _tmdbSearchService.GetSeasonsAsync(id, cancellationToken);
