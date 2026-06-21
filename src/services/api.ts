@@ -24,7 +24,6 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 		id: `${mediaType}:${id}`,
 		title,
 		mediaType,
-		network: mediaType === 'movie' ? 'Movie' : 'TV',
 		status: 'Released',
 		episodesWatched: 0,
 		episodesTotal: 1,

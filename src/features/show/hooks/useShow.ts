@@ -107,7 +107,6 @@ function mapLibraryShowDetails(library: LibraryTvShowDetails, tmdbSeasons: Seaso
     id: library.show.id,
     title: library.show.title,
     mediaType: 'tv',
-    network: library.show.network ?? 'TV',
     status: library.show.status ?? 'Tracked',
     episodesWatched: episodes.filter((e) => e.watched).length,
     episodesTotal: Math.max(episodes.length, 1),
