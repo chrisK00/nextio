@@ -10,11 +10,10 @@ public sealed record SearchItem(
     string Id,
     string Title,
     string MediaType,
-    string Network,
     string Status,
     int EpisodesWatched,
     int EpisodesTotal,
-    string NextEpisodeTitle,
+    string? NextEpisodeTitle,
     string? NextEpisode,
     string? NextReleaseDate,
     string Description,
@@ -65,8 +64,12 @@ public sealed class TmdbDetailResponse
     [JsonPropertyName("id")]
     public int Id { get; init; }
 
+
+    [JsonPropertyName("title")]
+    public string? TmdbMovieTitle { get; init; }
+
     [JsonPropertyName("name")]
-    public string? Name { get; init; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("overview")]
     public string? Overview { get; init; }
@@ -115,6 +118,7 @@ public sealed class TmdbDetailResponse
 
     [JsonPropertyName("seasons")]
     public TmdbSeason[] Seasons { get => field.Where(x => x.SeasonNumber != 0).ToArray(); init; } = [];
+    public string MediaType { get; set; }
 }
 
 public sealed class TmdbSeason

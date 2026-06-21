@@ -17,7 +17,8 @@ export default function useShows(status: ShowStatus) {
                 case 'watching':
                     return true
                 case 'unwatched':
-                    return show.nextUserEpisode;
+                    return show.nextUserEpisode &&
+                        (show.nextUserEpisode.episode != show.nextAiringEpisode?.episode && show.nextUserEpisode.season != show.nextAiringEpisode?.season);
                 case 'upcoming':
                     return Boolean(show.nextAiringEpisode)
             }

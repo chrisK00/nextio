@@ -23,6 +23,7 @@ function UpcomingItem({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
 			</div>
 			<div className={styles.upcomingInfo}>
 				<strong className={styles.upcomingTitle}>{show.title}</strong>
+				<strong>S{show.nextAiringEpisode?.season} E{show.nextAiringEpisode?.episode}</strong>
 				<span>{show.nextAiringEpisode?.title}</span>
 				<span className={styles.upcomingNetwork}>{nextEpisodeDateString}</span>
 			</div>

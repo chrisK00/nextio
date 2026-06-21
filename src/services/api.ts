@@ -13,7 +13,7 @@ export function normalizeSearchResults(results?: Partial<SearchResults> | null):
 }
 
 function mapSearchItem(result: Record<string, unknown>): TvShow {
-	const mediaType = String(result.mediaType ?? result.MediaType ?? result['media_type'] ?? 'tv') as 'tv' | 'movie'
+	const mediaType = String(result.mediaType ?? result.MediaType ?? result['mediaType'] ?? 'tv') as 'tv' | 'movie'
 	const title = String(result.title ?? result.Title ?? result.name ?? result.Name ?? 'Untitled')
 	const id = String(result.id ?? result.Id ?? title)
 	const posterPath = String(result.posterUrl ?? result.PosterUrl ?? result.poster_path ?? result.PosterPath ?? '')

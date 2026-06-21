@@ -741,7 +741,7 @@ input:focus-visible {
 	display: flex;
 	align-items: center;
 	gap: 14px;
-	width: 100%;
+	width: 90%;
 	box-sizing: border-box;
 	padding: 12px 14px;
 	border-radius: 16px;
@@ -758,12 +758,21 @@ input:focus-visible {
 }
 
 .upcomingPoster {
-	width: 100px;
-	height: 150px;
+	width: 90px;
+	height: 130px;
 	flex-shrink: 0;
 	border-radius: 8px;
 	overflow: hidden;
 	background: var(--border);
+}
+
+.ghostButton {
+	background-color: #1a191a;
+	color:#696869;
+	border: 1px solid transparent;
+	border-radius: 999px;
+	cursor: pointer;
+	font: inherit;
 }
 
 .upcomingPosterPlaceholder {

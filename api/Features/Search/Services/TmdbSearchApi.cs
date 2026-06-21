@@ -78,6 +78,8 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         {
             var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse>(AppendApiKey(url), cancellationToken);
 
+            response?.Name = !string.IsNullOrWhiteSpace(response.Name) ? response.Name : response.TmdbMovieTitle;
+            response?.MediaType = mediaType.ToLower();
             return response;
         }
         catch (Exception)
@@ -96,13 +98,12 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             Id: $"{result.Id}",
             Title: title,
             MediaType: "tv",
-            Network: "TMDb",
-            Status: "Released",
+            Status: "TODO",
             EpisodesWatched: 0,
             EpisodesTotal: 1,
-            NextEpisodeTitle: "TV Series",
-            NextEpisode: result.FirstAirDate,
-            NextReleaseDate: result.FirstAirDate,
+            NextEpisodeTitle: null,
+            NextEpisode: null,
+            NextReleaseDate: null,
             Description: result.Overview ?? $"Search result for {title}",
             PosterUrl: ToPosterUrl(result.PosterPath),
             ReleaseYear: ExtractYear(result.FirstAirDate));
@@ -115,13 +116,12 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             Id: $"{result.Id}",
             Title: title,
             MediaType: "movie",
-            Network: "TMDb",
-            Status: "Released",
+            Status: "TODO",
             EpisodesWatched: 0,
             EpisodesTotal: 1,
-            NextEpisodeTitle: "Movie",
-            NextEpisode: result.ReleaseDate,
-            NextReleaseDate: result.ReleaseDate,
+            null,
+            null,
+            null,
             Description: result.Overview ?? $"Search result for {title}",
             PosterUrl: ToPosterUrl(result.PosterPath),
             ReleaseYear: ExtractYear(result.ReleaseDate));
@@ -131,11 +131,21 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
     {
         var parsedShowId = TmdbShowIdExtractor.Extract(showId);
         // Fetch TV details to get the list of seasons
-        var detailsUrl = AppendApiKey($"tv/{parsedShowId}?language=en-US");
-        var tvDetails = await _httpClient.GetFromJsonAsync<TmdbTvDetailsResponse>(detailsUrl, cancellationToken);
+        var detailsUrl = $"tv/{parsedShowId}?language=en-US";
 
-        if (tvDetails is null)
+        TmdbTvDetailsResponse? tvDetails = null;
+        try
         {
+            tvDetails = await _httpClient.GetFromJsonAsync<TmdbTvDetailsResponse>(AppendApiKey(detailsUrl), cancellationToken);
+
+            if (tvDetails is null)
+            {
+                return Array.Empty<SeasonItem>();
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError("Failed to fetch seasons for showid: {showId}. Url: {url}", parsedShowId, detailsUrl);
             return Array.Empty<SeasonItem>();
         }
 

@@ -17,7 +17,8 @@ public sealed record MovieItem(
     string Title,
     string? PosterUrl,
     string? Description,
-    DateTime WatchedAt);
+    DateTime WatchedAt,
+    string MediaType = "movie");
 
 public sealed record TvEpisodeItem(
     int Season,
@@ -32,13 +33,15 @@ public sealed record TvShowItem(
     string? PosterUrl,
     string? Status,
     string? Description,
+
     TvEpisodeItem? NextUserEpisode,
     TvEpisodeItem? NextAiringEpisode,
     DateTime FollowedAt,
     DateTime UpdatedAt,
     DateTime? LastSyncedAt,
     string? SyncError,
-    IReadOnlyList<TvEpisodeItem> Episodes);
+    IReadOnlyList<TvEpisodeItem> Episodes,
+    string MediaType = "tv");
 
 public sealed record LibraryResponse(
     IReadOnlyList<TvShowItem> TvShows,

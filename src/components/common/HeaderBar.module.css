@@ -1,10 +1,21 @@
 
 .eyebrow {
-	margin: 0 0 10px;
 	text-transform: uppercase;
-	letter-spacing: 0.24em;
-	font-size: 12px;
+	letter-spacing: 0.15em;
+	font-size: 14px;
 	color: var(--accent);
+}
+
+.flexCenter{
+	display:flex;
+	justify-content: center;
+}
+
+.signedInUserContainer{
+	margin-left: 45%;
+	margin-bottom: 5px;
+	display:flex;
+	justify-content: end;
 }
 
 .headerTitle {

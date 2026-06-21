@@ -15,11 +15,11 @@ type ShowDetailPanelProps = {
 
 export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, isTracked, onRefetch }: ShowDetailPanelProps) {
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
-
 	const displayShow = localShow ?? show
 
 	const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
 	const description = show?.description || '';
+
 	const nextEpisodeDateString = displayShow?.nextAiringEpisode?.releaseDate ? new Date(displayShow?.nextAiringEpisode?.releaseDate)
 		.toLocaleString([], {
 			dateStyle: 'medium',
@@ -120,6 +120,9 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 						<div>
 							<span>Status: {show?.status}</span>
 						</div>
+						{/* TODO <div>
+							<span>{show?.releaseDate}</span>
+						</div> */}
 					</div>
 				</div>
 			</div>

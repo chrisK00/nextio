@@ -12,7 +12,23 @@ export default function HeaderBar() {
 	return (
 		<header className={styles.appBar}>
 			<div className={styles.headerTitle}>
-				<p className={styles.eyebrow}>TV Show Tracker</p>
+				{isAuthenticated ? (
+					<>
+						<div className={styles.flexCenter}>
+							<p className={styles.eyebrow}>nextio</p>
+							<div className={styles.signedInUserContainer}>
+								<span className={styles.username}>{username}</span>
+								<button className={appStyles.ghostButton} onClick={() => { logout(); navigate('/') }} type="button">Logout</button>
+							</div>
+						</div>
+					</>
+				) : (
+					<>
+						<p className={styles.eyebrow}>nextio</p>
+						<button className={appStyles.ghostButton} onClick={() => navigate('/login')} type="button">Login</button>
+						<button className={appStyles.ghostButton} onClick={() => navigate('/register')} type="button">Sign up</button>
+					</>
+				)}
 			</div>
 
 			<div className={styles.headerActions}>
@@ -28,17 +44,6 @@ export default function HeaderBar() {
 					Settings
 				</button>
 
-				{isAuthenticated ? (
-					<>
-						<span className={styles.username}>{username}</span>
-						<button className={appStyles.ghostButton} onClick={() => { logout(); navigate('/') }} type="button">Logout</button>
-					</>
-				) : (
-					<>
-						<button className={appStyles.ghostButton} onClick={() => navigate('/login')} type="button">Login</button>
-						<button className={appStyles.ghostButton} onClick={() => navigate('/register')} type="button">Sign up</button>
-					</>
-				)}
 			</div>
 		</header>
 	)
