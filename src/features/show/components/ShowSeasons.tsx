@@ -37,6 +37,9 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode }: {
         >
             <span className={styles.episodeNumber}>E{ep.episode}</span>
             <span className={styles.episodeTitle}>{loading ? 'Updating…' : ep.title}</span>
+            <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.4)' }}>
+                {ep?.airDate}
+            </span>
         </button>
     )
 }
@@ -45,8 +48,17 @@ export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetc
     return (
         <div className={styles.seasonsContainer}>
             {seasons.map((season) => (
-                <section key={season.season} className={styles.seasonSection}>
-                    <SeasonHeader season={season} showId={showId} onRefetch={onRefetch} onOptimisticUpdate={onOptimisticUpdate} />
+                <details key={season.season} open={!season.episodes.every(ep => ep.watched)} className={styles.seasonSection}>
+
+                    <summary style={{ cursor: 'pointer', listStyle: 'none' }}>
+                        <SeasonHeader
+                            season={season}
+                            showId={showId}
+                            onRefetch={onRefetch}
+                            onOptimisticUpdate={onOptimisticUpdate}
+                        />
+                    </summary>
+
                     <div className={styles.episodeGrid}>
                         {season.episodes.map((ep) => (
                             <EpisodeButton
@@ -58,7 +70,7 @@ export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetc
                             />
                         ))}
                     </div>
-                </section>
+                </details>
             ))}
         </div>
     )
