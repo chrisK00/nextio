@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
 namespace Features.Library.Services;
 
 public sealed class LibrarySyncWorker(

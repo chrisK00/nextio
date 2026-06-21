@@ -10,6 +10,8 @@ public interface ILibrarySyncService
     Task SyncShowAsync(UserTvShow show, CancellationToken cancellationToken = default);
 }
 
+
+
 public sealed class LibrarySyncService(
     ApplicationDbContext db,
     TmdbApi tmdbSearchService,
@@ -23,11 +25,7 @@ public sealed class LibrarySyncService(
     {
         try
         {
-            var rawId = show.ShowId.Contains(':') ? show.ShowId.Split(':', 2)[1] : show.ShowId;
-            if (!int.TryParse(rawId, out var showId))
-                throw new InvalidOperationException($"Invalid TMDb show id: {show.ShowId}");
-
-            var details = await _tmdbSearchService.GetDetailsAsync("tv", showId, cancellationToken) ?? throw new InvalidOperationException("TMDb returned no details.");
+            var details = await _tmdbSearchService.GetDetailsAsync("tv", show.ShowId, cancellationToken) ?? throw new InvalidOperationException("TMDb returned no details.");
 
             show.Title = details.Name;
             show.PosterUrl = details.PosterPath;

@@ -1,4 +1,5 @@
 using Features.Search.Models;
+using nextio.Api.Features.Search.Services;
 
 namespace Features.Search.Services;
 
@@ -51,7 +52,8 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
 
     public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, CancellationToken cancellationToken = default)
     {
-        var url = $"tv/{showId}/season/{season}";
+        var parsedShowId = TmdbShowIdExtractor.Extract(showId);
+        var url = $"tv/{parsedShowId}/season/{season}";
         try
         {
             var response = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(AppendApiKey(url), cancellationToken);
@@ -61,14 +63,15 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         }
         catch (Exception ex)
         {
-            logger.LogError("Failed to fetch season info for show: {showId}, season: {season}. Url: {}. Error: {error}", showId, season, url, ex.Message);
+            logger.LogError("Failed to fetch season info for show: {showId}, season: {season}. Url: {url}. Error: {error}", parsedShowId, season, url, ex.Message);
             return null;
         }
     }
 
-    public async Task<TmdbDetailResponse?> GetDetailsAsync(string mediaType, int id, CancellationToken cancellationToken = default)
+    public async Task<TmdbDetailResponse?> GetDetailsAsync(string mediaType, string showId, CancellationToken cancellationToken = default)
     {
-        var endpoint = string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase) ? $"movie/{id}" : $"tv/{id}";
+        var parsedShowId = TmdbShowIdExtractor.Extract(showId);
+        var endpoint = string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase) ? $"movie/{parsedShowId}" : $"tv/{parsedShowId}";
         var url = $"{endpoint}?language=en-US";
 
         try
@@ -79,7 +82,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         }
         catch (Exception)
         {
-            logger.LogError("Failed to fetch details for showid: {showId}. Url: {url}", id, endpoint);
+            logger.LogError("Failed to fetch details for showid: {showId}. Url: {url}", parsedShowId, endpoint);
             throw;
         }
 
@@ -124,10 +127,11 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             ReleaseYear: ExtractYear(result.ReleaseDate));
     }
 
-    public async Task<IReadOnlyList<SeasonItem>> GetSeasonsAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SeasonItem>> GetSeasonsAsync(string showId, CancellationToken cancellationToken = default)
     {
+        var parsedShowId = TmdbShowIdExtractor.Extract(showId);
         // Fetch TV details to get the list of seasons
-        var detailsUrl = AppendApiKey($"tv/{id}?language=en-US");
+        var detailsUrl = AppendApiKey($"tv/{parsedShowId}?language=en-US");
         var tvDetails = await _httpClient.GetFromJsonAsync<TmdbTvDetailsResponse>(detailsUrl, cancellationToken);
 
         if (tvDetails is null)
@@ -143,7 +147,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
 
         var seasonTasks = seasonNumbers.Select(async num =>
         {
-            var url = AppendApiKey($"tv/{id}/season/{num}?language=en-US");
+            var url = AppendApiKey($"tv/{parsedShowId}/season/{num}?language=en-US");
             var season = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(url, cancellationToken);
             return season;
         });
