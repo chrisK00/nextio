@@ -85,7 +85,10 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseHttpsRedirection();
 
-app.UseCors();
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
