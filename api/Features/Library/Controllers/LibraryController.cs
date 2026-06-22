@@ -3,8 +3,9 @@ using Features.Library.Models;
 using Features.Library.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using nextio.Api.Extensions;
 
-namespace Controllers;
+namespace nextio.Api.Features.Library.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -13,14 +14,24 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
 {
     private readonly ILibraryService _libraryService = libraryService;
 
-    [HttpGet]
-    public async Task<IActionResult> GetLibrary(CancellationToken cancellationToken)
+    [HttpGet("{mediaType}")]
+    public async Task<IActionResult> GetLibrary(string mediaType, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-        var response = await _libraryService.GetLibraryAsync(userId, cancellationToken);
-        return Ok(response);
+
+        if (mediaType == ShowMediaType.Movie)
+        {
+            var response = await _libraryService.GetMovieLibraryAsync(userId, cancellationToken);
+            return Ok(response);
+        }
+        else
+        {
+            var response = await _libraryService.GetTvShowLibraryAsync(userId, cancellationToken);
+            return Ok(response);
+        }
     }
 
+    // TODO copy this so that we can fetch movies instead of fetching whole library on showdetails page
     [HttpGet("tv/{id}")]
     public async Task<IActionResult> GetTvShow(string id, CancellationToken cancellationToken)
     {

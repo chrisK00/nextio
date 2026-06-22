@@ -7,7 +7,8 @@ namespace Features.Library.Services;
 
 public interface ILibraryService
 {
-    Task<LibraryResponse> GetLibraryAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<LibraryResponse<TvShowItem>> GetTvShowLibraryAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<LibraryResponse<MovieItem>> GetMovieLibraryAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<LibraryTvShowDetailsResponse?> GetTvShowAsync(Guid userId, string id, CancellationToken cancellationToken = default);
     Task UpsertTvShowAsync(Guid userId, UpsertTrackedShowRequest request, CancellationToken cancellationToken = default);
     Task UpsertMovieAsync(Guid userId, UpsertTrackedShowRequest request, CancellationToken cancellationToken = default);
@@ -59,9 +60,10 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         return Task.FromResult<TvEpisodeItem?>(null);
     }
 
-    public async Task<LibraryResponse> GetLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<LibraryResponse<TvShowItem>> GetTvShowLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var tvEntities = await _db.UserTvShows
+            .AsNoTracking()
             .Include(x => x.Episodes)
             .Include(x => x.SeasonsMetadata)
             .Where(x => x.UserId == userId && x.IsFollowing)
@@ -72,10 +74,10 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         {
             // TODO fix bugg where if for example user watches season 3 e1 but not season 2 e1 we will only check after season 3 e1
             var mostRecentlyWatchedEpisode = show.Episodes
-              .Where(e => e.Watched)
-              .OrderByDescending(e => e.Season)
-              .ThenByDescending(e => e.Episode)
-              .FirstOrDefault();
+                .Where(e => e.Watched)
+                .OrderByDescending(e => e.Season)
+                .ThenByDescending(e => e.Episode)
+                .FirstOrDefault();
 
             var nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, cancellationToken);
 
@@ -85,7 +87,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                             show.PosterUrl,
                             show.Status,
                             show.Description,
-                           nextUserEpisode,
+                            nextUserEpisode,
                             show.NextEpisodeToAir is not null ?
                             new TvEpisodeItem(
                                 show.NextEpisodeToAir?.Season ?? 0,
@@ -101,19 +103,26 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                             show.Episodes
                                 .OrderBy(e => e.Season)
                                 .ThenBy(e => e.Episode)
-                                .Select(e => new TvEpisodeItem(e.Season, e.Episode, "TODO", DateTime.MinValue, e.Watched))
+                                .Select(e => new TvEpisodeItem(e.Season, e.Episode, e.Title ?? "TODO", DateTime.MinValue, e.Watched))
                                 .ToList());
         });
 
         var awaitedShows = await Task.WhenAll(tvShows);
 
-        var movies = await _db.UserMovies
-            .Where(x => x.UserId == userId)
-            .OrderByDescending(x => x.WatchedAt)
-            .Select(x => new MovieItem(x.MovieId, x.Title, x.PosterUrl, x.Description, x.WatchedAt))
-            .ToListAsync(cancellationToken);
 
-        return new LibraryResponse(awaitedShows, movies);
+        return new LibraryResponse<TvShowItem>(awaitedShows, awaitedShows.Length);
+    }
+
+    public async Task<LibraryResponse<MovieItem>> GetMovieLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var movies = await _db.UserMovies
+        .AsNoTracking()
+         .Where(x => x.UserId == userId)
+         .OrderByDescending(x => x.WatchedAt)
+         .Select(x => new MovieItem(x.MovieId, x.Title, x.PosterUrl, x.Description, x.WatchedAt))
+         .ToListAsync(cancellationToken);
+
+        return new LibraryResponse<MovieItem>(movies, movies.Count);
     }
 
     public async Task<LibraryTvShowDetailsResponse?> GetTvShowAsync(Guid userId, string id, CancellationToken cancellationToken = default)

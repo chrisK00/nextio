@@ -19,8 +19,6 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 	const posterPath = String(result.posterUrl ?? result.PosterUrl ?? result.poster_path ?? result.PosterPath ?? '')
 	const releaseDate = String(result.releaseDate);
 	const status = String(result.status);
-	// const releaseYear = String(result.releaseYear ?? result.ReleaseYear ?? '')
-	// const releaseDate = String(result.nextReleaseDate ?? result.NextReleaseDate ?? result.release_date ?? result.ReleaseDate ?? result.first_air_date ?? result.FirstAirDate ?? '')
 
 	return {
 		id: `${mediaType}:${id}`,
@@ -30,9 +28,6 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 		episodesWatched: 0,
 		episodesTotal: 1,
 		releaseDate: releaseDate,
-		// nextEpisodeTitle: mediaType === 'movie' ? 'Movie' : 'TV Series',
-		// nextEpisode: releaseYear || releaseDate || undefined,
-		// nextReleaseDate: releaseDate || undefined,
 		description: String(result.description ?? result.Description ?? `Search result for ${title}`),
 		posterUrl: posterPath.startsWith('http') ? posterPath : (posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : undefined),
 	}
@@ -138,13 +133,13 @@ export async function getAppSettings(): Promise<Settings> {
 	})
 }
 
-export async function getLibrary(): Promise<LibraryResponse> {
+export async function getLibrary<T>(mediaType: string): Promise<LibraryResponse<T>> {
 	try {
-		const res = await fetchWithAuth('/library')
-		if(!res.ok) return { tvShows: [], movies: [] }
+		const res = await fetchWithAuth(`/library/${mediaType}`)
+		if(!res.ok) return { items: [], length: 0 }
 		return normalizeLibrary(await res.json())
 	} catch {
-		return { tvShows: [], movies: [] }
+		return { items: [], length: 0 }
 	}
 }
 
@@ -158,11 +153,11 @@ export async function getLibraryTvShow(id: string): Promise<LibraryTvShowDetails
 	}
 }
 
-function normalizeLibrary(data: unknown): LibraryResponse {
-	const payload = data as Partial<LibraryResponse> | null
+function normalizeLibrary<T>(data: unknown): LibraryResponse<T> {
+	const payload = data as Partial<LibraryResponse<T>> | null
 	return {
-		tvShows: Array.isArray(payload?.tvShows) ? payload!.tvShows : [],
-		movies: Array.isArray(payload?.movies) ? payload!.movies : [],
+		items: Array.isArray(payload?.items) ? payload!.items : [],
+		length: Number.isInteger(payload?.length) ? payload!.length! : 0,
 	}
 }
 

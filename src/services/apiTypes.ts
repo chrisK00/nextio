@@ -57,10 +57,17 @@ export type LibraryMovie = {
     description?: string
     watchedAt: string
 }
-export type LibraryResponse = {
-    tvShows: LibraryTvShow[]
-    movies: LibraryMovie[]
+
+export const ShowMediaType = {
+    Movie: 'movie',
+    Tv: 'tv',
+} as const;
+
+export type LibraryResponse<T> = {
+    items: T[]
+    length: number
 }
+
 export type LibraryTvShowDetails = {
     show: LibraryTvShow
     episodes: TvEpisodeItem[]

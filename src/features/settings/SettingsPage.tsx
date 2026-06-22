@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import styles from './SettingsPage.module.css'
 import appStyles from '../../App.module.css'
 import * as api from '../../services/api'
-import type { LibrarySyncResponse, LibrarySyncItem, TvShow } from '../../services/apiTypes'
+import type { LibrarySyncResponse, LibrarySyncItem, TvShow, LibraryMovie } from '../../services/apiTypes'
+import { ShowMediaType } from '../../services/apiTypes'
 
 export default function SettingsPage() {
-  const { settings, toggleSetting, watchlist, movies, refresh } = useAppContext()
+  const { settings, toggleSetting, tvShows, refresh } = useAppContext()
   const navigate = useNavigate()
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncResult, setSyncResult] = useState<LibrarySyncResponse | null>(null)
@@ -39,7 +40,10 @@ export default function SettingsPage() {
   const handleExport = async () => {
     setExportLoading(true)
     try {
-      const tvDetails = await Promise.all(watchlist.map((s) => api.getLibraryTvShow(s.id)))
+      const [tvDetails, movieLibrary] = await Promise.all([
+        Promise.all(tvShows.map((s) => api.getLibraryTvShow(s.id))),
+        api.getLibrary<LibraryMovie>(ShowMediaType.Movie),
+      ])
       const data = {
         exportedAt: new Date().toISOString(),
         tvShows: tvDetails.filter(Boolean).map((d) => ({
@@ -49,7 +53,9 @@ export default function SettingsPage() {
           posterUrl: d!.show.posterUrl,
           episodes: d!.episodes.map((e) => ({ season: e.season, episode: e.episode, watched: e.watched })),
         })),
-        movies: movies.map((m) => ({ id: m.id, title: m.title })),
+        totalShows: tvDetails.length,
+        totalMovies: movieLibrary.items.length,
+        movies: movieLibrary.items.map((m) => ({ id: m.id, title: m.title })),
       }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -152,7 +158,6 @@ export default function SettingsPage() {
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
             <strong>Export library</strong>
-            <p>Download your TV shows and movies as a JSON file.</p>
           </div>
           <button className={appStyles.secondaryButton} onClick={() => void handleExport()} type="button" disabled={exportLoading}>
             {exportLoading ? 'Exporting…' : 'Export JSON'}

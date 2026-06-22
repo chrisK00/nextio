@@ -1,8 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import type { Settings } from "../services/apiTypes"
+import { ShowMediaType, type Settings } from "../services/apiTypes"
 import type { LibraryResponse } from "../services/apiTypes"
-import type { LibraryMovie } from "../services/apiTypes"
 import type { LibraryTvShow } from "../services/apiTypes"
 import type { TvShow } from "../services/apiTypes"
 import * as api from '../services/api'
@@ -14,19 +13,15 @@ type WatchlistItem = TvShow & {
 }
 
 type AppContextType = {
-  // lightweight user-owned data
-  watchlist: WatchlistItem[]
   tvShows: WatchlistItem[]
-  movies: TvShow[]
   settings: Settings | null
   isLoading: boolean
   isLibraryLoaded: boolean
   refresh: () => Promise<void>
-  followShow: (show: TvShow) => void
-  unfollowShow: (showId: string, mediaType?: 'tv' | 'movie') => void
+  followShow: (show: TvShow) => Promise<void>
+  unfollowShow: (showId: string, mediaType?: 'tv' | 'movie') => Promise<void>
   toggleEpisode: (showId: string, season: number, episode: number) => Promise<void>
   toggleSetting: (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => Promise<void>
-  // auth
   isAuthenticated: boolean
   authLoading: boolean
   username: string | null
@@ -45,8 +40,7 @@ export function useAppContext() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   // client-side only state: lightweight watchlist metadata and UI settings
-  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([])
-  const [movies, setMovies] = useState<TvShow[]>([])
+  const [tvShows, setWatchlist] = useState<WatchlistItem[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [isLibraryLoaded, setIsLibraryLoaded] = useState(false)
@@ -54,20 +48,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [authLoading, setAuthLoading] = useState(false)
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem('username'))
 
-  const applyLibrary = useCallback((library: LibraryResponse) => {
-    setWatchlist(library.tvShows.map(mapLibraryTvShow))
-    setMovies(library.movies.map(mapLibraryMovie))
+  const applyLibrary = useCallback((library: LibraryResponse<LibraryTvShow>) => {
+    setWatchlist(library.items.map(mapLibraryTvShow))
     setIsLibraryLoaded(true)
   }, [])
 
   const loadLibrary = useCallback(async () => {
     if(!token) {
       setWatchlist([])
-      setMovies([])
       setIsLibraryLoaded(true)
       return
     }
-    const library = await api.getLibrary()
+    const library = await api.getLibrary<LibraryTvShow>(ShowMediaType.Tv)
     applyLibrary(library)
   }, [applyLibrary, token])
 
@@ -129,19 +121,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false }
   }, [token])
 
-  const followShow = useCallback((show: TvShow,) => {
+  const followShow = useCallback(async (show: TvShow) => {
     if((show.mediaType ?? 'tv') === 'movie') {
-      void api.addLibraryMovie(show).then(loadLibrary)
+      await api.addLibraryMovie(show)
     } else {
-      void api.addLibraryTvShow(show).then(loadLibrary)
+      await api.addLibraryTvShow(show)
+      await loadLibrary()
     }
   }, [loadLibrary])
 
-  const unfollowShow = useCallback((showId: string, mediaType?: 'tv' | 'movie') => {
+  const unfollowShow = useCallback(async (showId: string, mediaType?: 'tv' | 'movie') => {
     if((mediaType ?? 'tv') === 'movie') {
-      void api.removeLibraryMovie(showId).finally(loadLibrary)
+      await api.removeLibraryMovie(showId)
     } else {
-      void api.removeLibraryTvShow(showId).finally(loadLibrary)
+      await api.removeLibraryTvShow(showId)
+      await loadLibrary()
     }
   }, [loadLibrary])
 
@@ -162,9 +156,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [settings])
 
   const value: AppContextType = useMemo(() => ({
-    watchlist,
-    tvShows: watchlist.filter((item) => item.mediaType !== 'movie'),
-    movies,
+    tvShows,
     settings,
     isLoading: isLoadingSettings,
     isLibraryLoaded: isLibraryLoaded,
@@ -173,7 +165,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     unfollowShow,
     toggleEpisode,
     toggleSetting,
-    // auth
     isAuthenticated: !!token,
     authLoading: authLoading,
     username,
@@ -206,7 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [watchlist, movies, settings, isLoadingSettings, isLibraryLoaded, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
+  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
@@ -226,19 +217,6 @@ function mapLibraryTvShow(item: LibraryTvShow): WatchlistItem {
     lastUpdatedAt: item.updatedAt,
     lastSyncedAt: item.lastSyncedAt,
     syncError: item.syncError,
-  }
-}
-
-function mapLibraryMovie(item: LibraryMovie): TvShow {
-  return {
-    id: item.id,
-    title: item.title,
-    mediaType: 'movie',
-    status: 'Watched',
-    episodesWatched: 1,
-    episodesTotal: 1,
-    description: item.description ?? item.title,
-    posterUrl: item.posterUrl,
   }
 }
 

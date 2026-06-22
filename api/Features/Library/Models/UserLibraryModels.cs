@@ -43,9 +43,10 @@ public sealed record TvShowItem(
     IReadOnlyList<TvEpisodeItem> Episodes,
     string MediaType = "tv");
 
-public sealed record LibraryResponse(
-    IReadOnlyList<TvShowItem> TvShows,
-    IReadOnlyList<MovieItem> Movies);
+public sealed record LibraryResponse<T>(
+    IReadOnlyList<T> Items,
+    int Length
+    );
 
 public sealed record LibraryTvShowDetailsResponse(
     TvShowItem Show,

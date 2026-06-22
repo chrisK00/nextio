@@ -1,41 +1,55 @@
 import { useEffect, useState, useRef } from 'react'
 import * as api from '../../../services/api'
-import type { TvShow, LibraryTvShowDetails } from "../../../services/apiTypes"
+import type { TvShow, LibraryTvShowDetails, LibraryMovie } from "../../../services/apiTypes"
 import type { Season } from "../../../services/apiTypes"
 import { useAppContext } from '../../../state/AppContext'
 
 export default function useShow(id?: string) {
-  const { watchlist, movies, isLibraryLoaded } = useAppContext()
+  const { tvShows, isLibraryLoaded } = useAppContext()
   const [show, setShow] = useState<TvShow | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [isTrackedMovie, setIsTrackedMovie] = useState(false)
 
-  // Keep a ref so fetchShow always reads current watchlist/movies without being a dep
-  const contextRef = useRef({ watchlist, movies })
+  // TODO what is Keep a ref so fetchShow always reads current watchlist without being a dep
+  const watchlistRef = useRef(tvShows)
   useEffect(() => {
-    contextRef.current = { watchlist, movies }
-  }, [watchlist, movies])
+    watchlistRef.current = tvShows
+  }, [tvShows])
 
   const fetchShow = async (showId: string): Promise<TvShow | null> => {
-    const { watchlist: wl, movies: mv } = contextRef.current
-    const tracked = wl.find((item) => item.id === showId) || mv.find((movie) => movie.id === showId)
-    const isTrackedTv = tracked?.mediaType === 'tv'
+    const isMovie = showId.startsWith('movie:')
 
-    if(isTrackedTv) {
-      const [library, tmdbSeasons] = await Promise.all([
-        api.getLibraryTvShow(showId),
+    if(isMovie) {
+      const [details, movieLibrary] = await Promise.all([
+        api.getShowDetails(showId),
+        api.getLibrary<LibraryMovie>('movie'),
+      ])
+      if(!details) return null
+
+      const isTracked = movieLibrary.items.some((item) => item.id === showId)
+      setIsTrackedMovie(isTracked)
+      return { ...details, seasons: undefined }
+    } else {
+      const tracked = watchlistRef.current.find((item) => item.id === showId)
+      const isTrackedTv = tracked?.mediaType === 'tv'
+
+      if(isTrackedTv) {
+        const [library, tmdbSeasons] = await Promise.all([
+          api.getLibraryTvShow(showId),
+          api.getShowSeasons(showId),
+        ])
+        if(!library) return api.getShowDetails(showId)
+        return mapLibraryShowDetails(library, tmdbSeasons)
+      }
+
+      const [details, seasons] = await Promise.all([
+        api.getShowDetails(showId),
         api.getShowSeasons(showId),
       ])
-      if(!library) return api.getShowDetails(showId)
-      return mapLibraryShowDetails(library, tmdbSeasons)
+      if(!details) return null
+      return { ...details, seasons: seasons.length > 0 ? seasons : undefined }
     }
-
-    const [details, seasons] = await Promise.all([
-      api.getShowDetails(showId),
-      (tracked?.mediaType !== 'movie') ? api.getShowSeasons(showId) : Promise.resolve([]),
-    ])
-    if(!details) return null
-    return { ...details, seasons: seasons.length > 0 ? seasons : undefined }
   }
 
   useEffect(() => {
@@ -62,8 +76,22 @@ export default function useShow(id?: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isLibraryLoaded])
 
+  const isMovie = id?.startsWith('movie:')
+  const isTracked = isMovie
+    ? isTrackedMovie
+    : (show ? tvShows.some((item) => item.id === show.id) : false)
+
   return {
-    show, loading, error, refetch: async () => {
+    show,
+    loading,
+    error,
+    isTracked,
+    setIsTracked: (tracked: boolean) => {
+      if(isMovie) {
+        setIsTrackedMovie(tracked)
+      }
+    },
+    refetch: async () => {
       if(!id) return null
       const details = await fetchShow(id)
       setShow(details)

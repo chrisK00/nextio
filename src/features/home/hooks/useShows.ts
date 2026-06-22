@@ -5,10 +5,10 @@ import { sortShowsByLastUpdated } from '../../show/utils/show'
 type ShowStatus = 'unwatched' | 'upcoming' | 'watching'
 
 export default function useShows(status: ShowStatus) {
-    const { watchlist } = useAppContext()
+    const { tvShows } = useAppContext()
 
     const shows = useMemo(() => {
-        const filtered = watchlist.filter((show) => {
+        const filtered = tvShows.filter((show) => {
             if(show.mediaType === 'movie') {
                 return false
             }
@@ -25,7 +25,7 @@ export default function useShows(status: ShowStatus) {
         })
 
         // TODO
-        const weirdSorted = sortShowsByLastUpdated(filtered, watchlist);
+        const weirdSorted = sortShowsByLastUpdated(filtered, tvShows);
         if(status == 'upcoming') {
             return weirdSorted.sort((a, b) => {
                 const timeA = new Date(a.nextAiringEpisode!.releaseDate!).getTime();
@@ -36,7 +36,7 @@ export default function useShows(status: ShowStatus) {
 
         return weirdSorted;
 
-    }, [status, watchlist])
+    }, [status, tvShows])
 
     return { shows, loading: false }
 }

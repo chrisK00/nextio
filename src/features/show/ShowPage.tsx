@@ -8,15 +8,17 @@ export default function ShowPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const decoded = id ? decodeURIComponent(id) : undefined
-  const { show, loading, refetch } = useShow(decoded)
-  const { watchlist, movies, toggleEpisode, followShow, unfollowShow } = useAppContext()
-  const isTracked = show ? watchlist.some((item) => item.id === show.id) || movies.some((movie) => movie.id === show.id) : false
-  const handleFollowToggle = (target: TvShow, tracked: boolean) => {
+  const { show, loading, isTracked, setIsTracked, refetch } = useShow(decoded)
+  const { toggleEpisode, followShow, unfollowShow } = useAppContext()
+  const handleFollowToggle = async (target: TvShow, tracked: boolean) => {
     if(tracked) {
-      unfollowShow(target.id, target.mediaType)
+      await unfollowShow(target.id, target.mediaType)
+      setIsTracked(false)
     } else {
-      followShow(target)
+      await followShow(target)
+      setIsTracked(true)
     }
+    await refetch()
   }
 
   return (
