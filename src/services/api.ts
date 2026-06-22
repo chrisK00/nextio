@@ -117,14 +117,6 @@ export async function clearLibraryProgress(showId: string): Promise<void> {
 	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes`, { method: 'DELETE' })
 }
 
-export async function toggleEpisodeWatched(_showId: string, _season: number, _episode: number): Promise<void> {
-	// TODO: Implement episode watched toggle when backend API is ready
-	void _showId
-	void _season
-	void _episode
-	return Promise.resolve()
-}
-
 export async function getAppSettings(): Promise<Settings> {
 	return Promise.resolve({
 		notificationsEnabled: true,
