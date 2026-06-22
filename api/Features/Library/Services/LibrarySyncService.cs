@@ -28,9 +28,9 @@ public sealed class LibrarySyncService(
             var details = await _tmdbSearchService.GetDetailsAsync("tv", show.ShowId, cancellationToken) ?? throw new InvalidOperationException("TMDb returned no details.");
 
             show.Title = details.Name;
-            show.PosterUrl = details.PosterPath;
+            show.PosterUrl = details.PosterUrl;
             show.Status = details.Status;
-            show.Description = details.Overview;
+            show.Description = details.Description;
             show.LastSyncedAt = DateTime.UtcNow;
             show.SyncError = null;
             show.UpdatedAt = DateTime.UtcNow;

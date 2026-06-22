@@ -21,6 +21,7 @@ export type TvShow = {
     description: string
     seasons?: Season[]
     posterUrl?: string
+    releaseDate?: string
 }
 
 export type SearchResults = {

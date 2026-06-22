@@ -68,7 +68,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         }
     }
 
-    public async Task<TmdbDetailResponse?> GetDetailsAsync(string mediaType, string showId, CancellationToken cancellationToken = default)
+    public async Task<SearchDetailResponse?> GetDetailsAsync(string mediaType, string showId, CancellationToken cancellationToken = default)
     {
         var parsedShowId = TmdbShowIdExtractor.Extract(showId);
         var endpoint = string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase) ? $"movie/{parsedShowId}" : $"tv/{parsedShowId}";
@@ -76,11 +76,31 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
 
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse>(AppendApiKey(url), cancellationToken);
+            var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse?>(AppendApiKey(url), cancellationToken);
+            if (response == null)
+            {
+                return null;
+            }
 
-            response?.Name = !string.IsNullOrWhiteSpace(response.Name) ? response.Name : response.TmdbMovieTitle;
-            response?.MediaType = mediaType.ToLower();
-            return response;
+            return new SearchDetailResponse
+            {
+                Id = response.Id,
+                Description = response.Description,
+                InProduction = response.InProduction,
+                Languages = response.Languages,
+                LastEpisodeToAir = response.LastEpisodeToAir,
+                MediaType = mediaType.ToLower(),
+                Name = !string.IsNullOrWhiteSpace(response.Name) ? response.Name : response.TmdbMovieTitle,
+                ReleaseDate = response.ReleaseDate ?? response.FirstAirDate,
+                NextEpisodeToAir = response.NextEpisodeToAir,
+                NumberOfEpisodes = response.NumberOfEpisodes,
+                NumberOfSeasons = response.NumberOfSeasons,
+                PosterUrl = response.PosterPath,
+                Seasons = response.Seasons,
+                Status = response.Status,
+                VoteAverage = response.VoteAverage,
+                VoteCount = response.VoteCount,
+            };
         }
         catch (Exception)
         {

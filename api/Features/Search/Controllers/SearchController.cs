@@ -1,3 +1,4 @@
+using Features.Search.Models;
 using Features.Search.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,7 +18,7 @@ public sealed class SearchController(TmdbApi tmdbSearchService) : ControllerBase
     }
 
     [HttpGet("{mediaType}/{id}")]
-    public async Task<IActionResult> Details(string mediaType, string id, CancellationToken cancellationToken)
+    public async Task<ActionResult<SearchDetailResponse>> Details(string mediaType, string id, CancellationToken cancellationToken)
     {
         var response = await _tmdbSearchService.GetDetailsAsync(mediaType, id, cancellationToken);
         return response is null ? NotFound() : Ok(response);

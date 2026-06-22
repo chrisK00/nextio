@@ -120,9 +120,9 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 						<div>
 							<span>Status: {show?.status}</span>
 						</div>
-						{/* TODO <div>
-							<span>{show?.releaseDate}</span>
-						</div> */}
+						<div>
+							<span>({show?.releaseDate ? new Date(show!.releaseDate!).getFullYear() : null})</span>
+						</div>
 					</div>
 				</div>
 			</div>

@@ -64,7 +64,6 @@ public sealed class TmdbDetailResponse
     [JsonPropertyName("id")]
     public int Id { get; init; }
 
-
     [JsonPropertyName("title")]
     public string? TmdbMovieTitle { get; init; }
 
@@ -72,7 +71,7 @@ public sealed class TmdbDetailResponse
     public string? Name { get; set; }
 
     [JsonPropertyName("overview")]
-    public string? Overview { get; init; }
+    public string? Description { get; init; }
 
     [JsonPropertyName("poster_path")]
     public string? PosterPath
@@ -95,7 +94,7 @@ public sealed class TmdbDetailResponse
     public string? FirstAirDate { get; init; }
 
     [JsonPropertyName("release_date")]
-    public string? ReleaseDate { get; init; }
+    public string? ReleaseDate { get; set; }
 
     [JsonPropertyName("next_episode_to_air")]
     public TmdbNextEpisode? NextEpisodeToAir { get; init; }
@@ -118,7 +117,6 @@ public sealed class TmdbDetailResponse
 
     [JsonPropertyName("seasons")]
     public TmdbSeason[] Seasons { get => field.Where(x => x.SeasonNumber != 0).ToArray(); init; } = [];
-    public string MediaType { get; set; }
 }
 
 public sealed class TmdbSeason

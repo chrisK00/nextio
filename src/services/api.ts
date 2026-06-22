@@ -17,6 +17,8 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 	const title = String(result.title ?? result.Title ?? result.name ?? result.Name ?? 'Untitled')
 	const id = String(result.id ?? result.Id ?? title)
 	const posterPath = String(result.posterUrl ?? result.PosterUrl ?? result.poster_path ?? result.PosterPath ?? '')
+	const releaseDate = String(result.releaseDate);
+	const status = String(result.status);
 	// const releaseYear = String(result.releaseYear ?? result.ReleaseYear ?? '')
 	// const releaseDate = String(result.nextReleaseDate ?? result.NextReleaseDate ?? result.release_date ?? result.ReleaseDate ?? result.first_air_date ?? result.FirstAirDate ?? '')
 
@@ -24,9 +26,10 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 		id: `${mediaType}:${id}`,
 		title,
 		mediaType,
-		status: 'Released',
+		status: status,
 		episodesWatched: 0,
 		episodesTotal: 1,
+		releaseDate: releaseDate,
 		// nextEpisodeTitle: mediaType === 'movie' ? 'Movie' : 'TV Series',
 		// nextEpisode: releaseYear || releaseDate || undefined,
 		// nextReleaseDate: releaseDate || undefined,
