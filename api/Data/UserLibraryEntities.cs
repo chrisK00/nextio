@@ -3,7 +3,6 @@ namespace Data;
 // TODO normalize to have a tvshow in order to avoid duplication of data and requests etc
 public sealed class UserTvShow
 {
-    // TODO lägg till hur många avsn som användaren sett så o så kan vi ha nästa avsnittet som användaren ska se? glöm inte uppdatera potentiellt vid sync service
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
     public string ShowId { get; set; } = null!;

@@ -59,8 +59,7 @@ export default function WatchingPage() {
 	const hasUnwatchedShows = sortedWatching.filter((show) => show.nextUserEpisode)
 	const fullyWatchedShows = sortedWatching.filter((show) => !show.nextUserEpisode)
 
-	// TODO use compact cards. 3 cards next to each other basically
-	// also uppgradera filters till att visa en lista i taget så inte behöver scrolla i oändlighet
+	// TODO also uppgradera filters till att visa en lista i taget så inte behöver scrolla i oändlighet
 	return (
 		<main className={styles.mainPanel}>
 			<section className={styles.tabContent}>

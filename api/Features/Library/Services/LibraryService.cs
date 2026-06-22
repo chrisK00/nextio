@@ -140,7 +140,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         var episodes = show.Episodes
             .OrderBy(e => e.Season)
             .ThenBy(e => e.Episode)
-            .Select(e => new TvEpisodeItem(e.Season, e.Episode, "TODO", DateTime.MinValue, e.Watched))
+            .Select(e => new TvEpisodeItem(e.Season, e.Episode, e.Title ?? "_", DateTime.MinValue, e.Watched))
             .ToList();
 
         return new LibraryTvShowDetailsResponse(
