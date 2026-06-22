@@ -170,6 +170,7 @@ export async function addLibraryTvShow(show: TvShow): Promise<void> {
 			title: show.title,
 			posterUrl: show.posterUrl,
 			mediaType: show.mediaType ?? 'tv',
+			releaseDate: show.releaseDate,
 		}),
 	})
 }
@@ -184,6 +185,7 @@ export async function addLibraryMovie(movie: TvShow): Promise<void> {
 			posterUrl: movie.posterUrl,
 			description: movie.description,
 			mediaType: movie.mediaType ?? 'movie',
+			releaseDate: movie.releaseDate,
 		}),
 	})
 }

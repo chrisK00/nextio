@@ -11,6 +11,7 @@ public sealed class UserTvShow
     public string? PosterUrl { get; set; }
     public string? Status { get; set; }
     public string? Description { get; set; }
+    public string? ReleaseDate { get; set; }
     public DateTime? LastSyncedAt { get; set; }
     public string? SyncError { get; set; }
     public DateTime FollowedAt { get; set; }
@@ -39,6 +40,7 @@ public sealed class UserMovie
     public string Title { get; set; } = null!;
     public string? PosterUrl { get; set; }
     public string? Description { get; set; }
+    public string? ReleaseDate { get; set; }
     public DateTime WatchedAt { get; set; }
 }
 

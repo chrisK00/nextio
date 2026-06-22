@@ -31,6 +31,7 @@ public sealed class LibrarySyncService(
             show.PosterUrl = details.PosterUrl;
             show.Status = details.Status;
             show.Description = details.Description;
+            show.ReleaseDate = details.ReleaseDate;
             show.LastSyncedAt = DateTime.UtcNow;
             show.SyncError = null;
             show.UpdatedAt = DateTime.UtcNow;

@@ -41,7 +41,7 @@ export default function SearchPanel({ searchQuery, searchResults, onQueryChange,
             <h2 className={styles.searchSectionTitle}>TV Shows</h2>
             <div className={styles.showGrid}>
               {tvShows.map((show) => (
-                <ShowCard key={show.id} show={show} onClick={onShowClick} />
+                <ShowCard key={show.id} show={show} onClick={onShowClick} showReleaseDate />
               ))}
             </div>
           </div>
@@ -52,7 +52,7 @@ export default function SearchPanel({ searchQuery, searchResults, onQueryChange,
             <h2 className={styles.searchSectionTitle}>Movies</h2>
             <div className={styles.showGrid}>
               {movies.map((show) => (
-                <ShowCard key={show.id} show={show} onClick={onShowClick} />
+                <ShowCard key={show.id} show={show} onClick={onShowClick} showReleaseDate />
               ))}
             </div>
           </div>

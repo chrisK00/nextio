@@ -8,6 +8,7 @@ public sealed record UpsertTrackedShowRequest(
     string? Status,
     string? Description,
     DateTime? NextReleaseDate,
+    string? ReleaseDate,
     string MediaType);
 
 public sealed record UpdateEpisodeRequest(int Season, int Episode, bool? Watched);
@@ -18,6 +19,7 @@ public sealed record MovieItem(
     string? PosterUrl,
     string? Description,
     DateTime WatchedAt,
+    string? ReleaseDate,
     string MediaType = "movie");
 
 public sealed record TvEpisodeItem(
@@ -33,6 +35,7 @@ public sealed record TvShowItem(
     string? PosterUrl,
     string? Status,
     string? Description,
+    string? ReleaseDate,
 
     TvEpisodeItem? NextUserEpisode,
     TvEpisodeItem? NextAiringEpisode,

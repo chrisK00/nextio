@@ -89,7 +89,7 @@ export default function WatchingPage() {
 							{runningShows.length > 0 && (
 								<section>
 									<h2>Running TV Shows</h2>
-									<div className={styles.showGridCompact}>
+									<div className={styles.showGrid}>
 										{runningShows.map((show) => (
 											<ShowCard
 												key={show.id}
@@ -104,7 +104,7 @@ export default function WatchingPage() {
 							{unplannedShows.length > 0 && (
 								<section>
 									<h2>Unplanned TV Shows</h2>
-									<div className={styles.showGridCompact}>
+									<div className={styles.showGrid}>
 										{unplannedShows.map((show) => (
 											<ShowCard
 												key={show.id}
@@ -122,7 +122,7 @@ export default function WatchingPage() {
 							{hasUnwatchedShows.length > 0 && (
 								<section>
 									<h2>Has unwatched episodes</h2>
-									<div className={styles.showGridCompact}>
+									<div className={styles.showGrid}>
 										{hasUnwatchedShows.map((show) => (
 											<ShowCard
 												key={show.id}
@@ -138,7 +138,7 @@ export default function WatchingPage() {
 							{fullyWatchedShows.length > 0 && (
 								<section>
 									<h2>Fully watched</h2>
-									<div className={styles.showGridCompact}>
+									<div className={styles.showGrid}>
 										{fullyWatchedShows.map((show) => (
 											<ShowCard
 												key={show.id}

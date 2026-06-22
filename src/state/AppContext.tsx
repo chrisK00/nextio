@@ -213,6 +213,7 @@ function mapLibraryTvShow(item: LibraryTvShow): WatchlistItem {
     nextAiringEpisode: item.nextAiringEpisode,
     nextUserEpisode: item.nextUserEpisode,
     description: item.description ?? item.title,
+    releaseDate: item.releaseDate,
     mediaType: 'tv',
     lastUpdatedAt: item.updatedAt,
     lastSyncedAt: item.lastSyncedAt,

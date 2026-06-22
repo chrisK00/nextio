@@ -42,6 +42,7 @@ export type LibraryTvShow = {
     network?: string
     status?: string
     description?: string
+    releaseDate?: string
     nextUserEpisode?: TvEpisodeItem,
     nextAiringEpisode?: TvEpisodeItem,
     followedAt: string
@@ -56,6 +57,7 @@ export type LibraryMovie = {
     posterUrl?: string
     description?: string
     watchedAt: string
+    releaseDate?: string
 }
 
 export const ShowMediaType = {

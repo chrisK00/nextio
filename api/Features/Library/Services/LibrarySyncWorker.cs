@@ -9,7 +9,7 @@ public sealed class LibrarySyncWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
+        using var timer = new PeriodicTimer(TimeSpan.FromHours(8));
         do
         {
             await RunSyncAsync(stoppingToken);

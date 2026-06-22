@@ -142,6 +142,7 @@ function mapLibraryShowDetails(library: LibraryTvShowDetails, tmdbSeasons: Seaso
     nextUserEpisode: library.show.nextUserEpisode,
     description: library.show.description ?? library.show.title,
     posterUrl: library.show.posterUrl,
+    releaseDate: library.show.releaseDate,
     seasons,
   }
 }

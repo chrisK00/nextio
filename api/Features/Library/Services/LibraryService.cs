@@ -87,6 +87,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                             show.PosterUrl,
                             show.Status,
                             show.Description,
+                            show.ReleaseDate,
                             nextUserEpisode,
                             show.NextEpisodeToAir is not null ?
                             new TvEpisodeItem(
@@ -119,7 +120,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         .AsNoTracking()
          .Where(x => x.UserId == userId)
          .OrderByDescending(x => x.WatchedAt)
-         .Select(x => new MovieItem(x.MovieId, x.Title, x.PosterUrl, x.Description, x.WatchedAt))
+         .Select(x => new MovieItem(x.MovieId, x.Title, x.PosterUrl, x.Description, x.WatchedAt, x.ReleaseDate))
          .ToListAsync(cancellationToken);
 
         return new LibraryResponse<MovieItem>(movies, movies.Count);
@@ -149,6 +150,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 show.PosterUrl,
                 show.Status,
                 show.Description,
+                show.ReleaseDate,
                 null,
                 null,
                 show.FollowedAt,
@@ -222,6 +224,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 Title = request.Title,
                 PosterUrl = request.PosterUrl,
                 Description = request.Description,
+                ReleaseDate = request.ReleaseDate,
                 WatchedAt = now,
             };
             _db.UserMovies.Add(movie);
@@ -231,6 +234,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             movie.Title = request.Title;
             movie.PosterUrl = request.PosterUrl;
             movie.Description = request.Description;
+            movie.ReleaseDate = request.ReleaseDate;
             movie.WatchedAt = now;
         }
 

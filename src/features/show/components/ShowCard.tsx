@@ -7,9 +7,11 @@ type ShowCardProps = {
     action?: ReactNode
     onClick?: (show: TvShow) => void
     compact?: boolean
+    showReleaseDate?: boolean
 }
 
-export default function ShowCard({ show, action, onClick, compact = false }: ShowCardProps) {
+export default function ShowCard({ show, action, onClick, compact = false, showReleaseDate = false }: ShowCardProps) {
+    const releaseDateString = show.releaseDate ? new Date(show.releaseDate).getFullYear() : null;
     return (
         <button
             type="button"
@@ -27,16 +29,12 @@ export default function ShowCard({ show, action, onClick, compact = false }: Sho
                     )}
                 </div>
                 <div className={`${styles.showCardBody} ${compact ? styles.showCardBodyCompact : ''}`}>
-                    <strong className={styles.showCardTitle}>{show.title}</strong>
+                    <strong className={styles.showCardTitle}>{show.title} {showReleaseDate && releaseDateString ? `(${releaseDateString})` : null} </strong>
                 </div>
                 {!compact && (<span>
                     {show.nextUserEpisode?.title}
                 </span>)}
 
-                {!compact && (
-                    <div className={styles.showCardMeta}>
-                    </div>
-                )}
                 {!compact && typeof (action) !== 'undefined' ? action : null}
             </article>
         </button >

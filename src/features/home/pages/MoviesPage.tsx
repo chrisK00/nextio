@@ -29,7 +29,7 @@ export default function MoviesPage() {
           nextUserEpisode: undefined,
           nextAiringEpisode: undefined,
           seasons: undefined,
-          releaseDate: undefined,
+          releaseDate: x.releaseDate,
           lastUpdatedAt: undefined
           // status: x.status
           // releaseDate: x.releaseDate

@@ -126,7 +126,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             NextReleaseDate: null,
             Description: result.Overview ?? $"Search result for {title}",
             PosterUrl: ToPosterUrl(result.PosterPath),
-            ReleaseYear: ExtractYear(result.FirstAirDate));
+            ReleaseDate: result.FirstAirDate ?? result.ReleaseDate);
     }
 
     private static SearchItem MapMovie(TmdbMultiSearchResult result)
@@ -144,7 +144,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             null,
             Description: result.Overview ?? $"Search result for {title}",
             PosterUrl: ToPosterUrl(result.PosterPath),
-            ReleaseYear: ExtractYear(result.ReleaseDate));
+            ReleaseDate: result.ReleaseDate ?? result.FirstAirDate);
     }
 
     public async Task<IReadOnlyList<SeasonItem>> GetSeasonsAsync(string showId, CancellationToken cancellationToken = default)

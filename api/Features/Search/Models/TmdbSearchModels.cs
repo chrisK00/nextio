@@ -18,7 +18,7 @@ public sealed record SearchItem(
     string? NextReleaseDate,
     string Description,
     string? PosterUrl,
-    string? ReleaseYear);
+    string? ReleaseDate);
 
 public sealed class TmdbMultiSearchResponse
 {

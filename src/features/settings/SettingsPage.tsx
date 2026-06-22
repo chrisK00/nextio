@@ -32,9 +32,9 @@ export default function SettingsPage() {
   const [importLoading, setImportLoading] = useState(false)
   const [importResult, setImportResult] = useState<string | null>(null)
 
-  type ExportEpisode = { season: number; episode: number; watched: boolean }
+  type ExportEpisode = { season: number; episode: number; watched: boolean; }
   type ExportShow = { id: string; title: string; status?: string; episodes: ExportEpisode[], posterUrl: string }
-  type ExportMovie = { id: string; title: string }
+  type ExportMovie = { id: string; title: string; posterUrl?: string, watchedAt?: string, releaseDate?: string }
   type ExportFile = { tvShows: ExportShow[]; movies: ExportMovie[] }
 
   const handleExport = async () => {
@@ -55,7 +55,7 @@ export default function SettingsPage() {
         })),
         totalShows: tvDetails.length,
         totalMovies: movieLibrary.items.length,
-        movies: movieLibrary.items.map((m) => ({ id: m.id, title: m.title })),
+        movies: movieLibrary.items.map((m) => ({ id: m.id, title: m.title, posterUrl: m.posterUrl, watchedAt: m.watchedAt, releaseDate: m.releaseDate })),
       }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -83,7 +83,7 @@ export default function SettingsPage() {
         const data = JSON.parse(text) as ExportFile
         let tvCount = 0, movieCount = 0
 
-        const waitForSyncMessage = '{waiting_sync}'
+        const waitForSyncMessage = '(NA)'
         for(const show of data.tvShows ?? []) {
 
           const showToAdd: TvShow = {
@@ -98,8 +98,9 @@ export default function SettingsPage() {
           tvCount++
         }
 
+        // TODO lite broken eftersom vi inte har synk i backend
         for(const movie of data.movies ?? []) {
-          await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', status: waitForSyncMessage, episodesWatched: 0, episodesTotal: 0, description: waitForSyncMessage })
+          await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', posterUrl: movie.posterUrl, releaseDate: movie.releaseDate, status: waitForSyncMessage, episodesWatched: 0, episodesTotal: 0, description: waitForSyncMessage })
           movieCount++
         }
 
