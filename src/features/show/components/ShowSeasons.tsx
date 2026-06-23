@@ -68,11 +68,17 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
     }, [])
 
     const cancelLongPress = useCallback(() => {
-        if(longPressTimer.current) clearTimeout(longPressTimer.current)
+        if(longPressTimer.current) {
+            clearTimeout(longPressTimer.current)
+            longPressTimer.current = null
+        }
     }, [])
 
     const handleClick = async () => {
-        if(didLongPress.current) return   // long-press consumed the interaction
+        if(didLongPress.current) {
+            didLongPress.current = false // Reset token
+            return   // long-press consumed the interaction
+        }
         if(!isTracked || loading) return
         setLoading(true)
         try {
@@ -88,16 +94,22 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
             <button
                 type="button"
                 className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
+                style={{
+                    WebkitTouchCallout: 'none', // Prevents iOS context menu
+                    WebkitUserSelect: 'none',   // Prevents Android long-press selection
+                    userSelect: 'none'
+                }}
                 onClick={handleClick}
                 onMouseDown={startLongPress}
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
-                onTouchStart={startLongPress}
-                onTouchEnd={(e) => {
+                onTouchStart={(e) => {
+                    // Prevent default behavior to block Android's native text selection / loupe magnifying glass
+                    if(e.cancelable) e.preventDefault()
+                    startLongPress()
+                }}
+                onTouchEnd={() => {
                     cancelLongPress()
-                    if(didLongPress.current) {
-                        e.preventDefault() // Blocks browser ghost clicks that trigger component cleanup
-                    }
                 }}
                 onTouchCancel={cancelLongPress}
                 title={`${ep.title} — hold to see description`}
