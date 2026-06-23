@@ -36,7 +36,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 	const handleToggleEpisode = async (showId: string, seasonNum: number, episodeNum: number) => {
 		// Guard: episodes cannot be marked on a show the user isn't following.
-		if (!isTracked) return
+		if(!isTracked) return
 
 		setLocalShow((prev) => {
 			if(!prev) return prev
@@ -82,7 +82,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 		)
 	}
 
-	if(!show && !isLoading) {
+	if(!displayShow && !isLoading) {
 		return (
 			<main className={styles.detailPanel}>
 				<div className={styles.detailHeader}>
