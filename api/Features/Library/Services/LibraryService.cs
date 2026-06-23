@@ -21,7 +21,7 @@ public interface ILibraryService
     Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default);
 }
 
-public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService, TmdbApi tmdbApi, IMemoryCache cache) : ILibraryService
+public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService, TmdbApi tmdbApi, IMemoryCache cache, ILogger<LibraryService> logger) : ILibraryService
 {
     private readonly ApplicationDbContext _db = db;
     private readonly ILibrarySyncService _syncService = syncService;
@@ -42,7 +42,9 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
         var item = new TvEpisodeItem(season.SeasonNumber, episode.EpisodeNumber, episode.Name,
             DateTime.TryParse(episode.AirDate, out var dt) ? dt : null, false);
-        _cache.Set(cacheKey, item, EpisodeCacheTtl);
+        _cache.Set(cacheKey, item, new MemoryCacheEntryOptions()
+        .SetAbsoluteExpiration(EpisodeCacheTtl)
+        .SetSize(1));
         return item;
     }
 
@@ -90,7 +92,17 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 .ThenByDescending(e => e.Episode)
                 .FirstOrDefault();
 
-            var nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, cancellationToken);
+            TvEpisodeItem? nextUserEpisode = null;
+            try
+            {
+
+                nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError("Failed getting next user episode for {showid}. {message}", show.ShowId, ex.Message);
+                throw;
+            }
 
             return new TvShowItem(
                             show.ShowId,
@@ -120,7 +132,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         });
 
         var awaitedShows = await Task.WhenAll(tvShows);
-
 
         return new LibraryResponse<TvShowItem>(awaitedShows, awaitedShows.Length);
     }

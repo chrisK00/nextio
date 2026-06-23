@@ -18,7 +18,10 @@ var dbPath = Path.Combine(builder.Environment.ContentRootPath, "nextio.db");
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddMemoryCache(opt => opt.SizeLimit = 1024 * 1024 * 100); // 100 MB cache size limit 
+builder.Services.AddMemoryCache(opt =>
+{
+    opt.SizeLimit = 20000;
+});
 
 // CORS for local development (vite dev server)
 builder.Services.AddCors(options =>
@@ -35,6 +38,7 @@ builder.Services.AddDbContext<Data.ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? $"Data Source={dbPath}");
 });
 
+builder.Services.AddProblemDetails();
 builder.Services.AddScoped<IPasswordHasher<Models.User>, PasswordHasher<Models.User>>();
 builder.Services.AddScoped<Services.IUserService, Services.UserService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
@@ -70,6 +74,20 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+{
+    var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    app.Logger.LogError(exception, "Unhandled exception: {Message}", exception?.Message);
+
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    await context.Response.WriteAsJsonAsync(new
+    {
+        Status = 500,
+        Title = "An error occurred",
+        Detail = app.Environment.IsDevelopment() ? exception?.ToString() : "An unexpected error occurred."
+    });
+}));
 
 if (app.Environment.IsDevelopment())
 {
