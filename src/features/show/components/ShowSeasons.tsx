@@ -37,7 +37,7 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
                 <p className={styles.modalDescription}>
                     {description === null
                         ? 'Loading…'
-                        : description || 'No description available.'}
+                        : description}
                 </p>
                 <button type="button" className={styles.secondaryButton} style={{ width: '100%' }} onClick={onClose}>
                     Close
