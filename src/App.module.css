@@ -894,10 +894,10 @@ input:focus-visible {
 	all: unset;
 	display: flex;
 	align-items: center;
-	gap: 14px;
-	width: 100%;
+	gap: 12px;
+	width: 99%;
 	box-sizing: border-box;
-	padding: 12px 14px;
+	padding: 12px 10px;
 	border-radius: 16px;
 	border: 1px solid var(--border);
 	background: var(--code-bg);
