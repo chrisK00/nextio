@@ -122,11 +122,11 @@ export async function getEpisodeDetail(showId: string, season: number, episode: 
 	try {
 		const [, rawId] = showId.includes(':') ? showId.split(':', 2) : ['tv', showId]
 		const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/season/${season}/episode/${episode}`)
-		if (!res.ok) return ''
+		if(!res.ok) return ''
 		const data = await res.json() as { overview?: string }
-		return data.overview ?? ''
-	} catch {
-		return ''
+		return data.overview ?? 'Missing description from TMDB.'
+	} catch(err) {
+		return `FETCH ERROR: ${String(err)}`
 	}
 }
 
