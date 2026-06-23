@@ -10,135 +10,70 @@ type ShowSeasonsProps = {
     onToggleEpisode: (showId: string, season: number, episode: number) => void
     onRefetch?: () => Promise<TvShow | null>
     onOptimisticUpdate: (seasonNum: number, episodeNums: number[], watched: boolean) => void
+    /** Prevents marking episodes on unfollowed shows. */
     isTracked?: boolean
 }
 
-/**
- * BOTTOM SHEET (replaces modal)
- */
-function EpisodeBottomSheet({
-    ep,
-    showId,
-    onClose
-}: {
-    ep: Episode
-    showId: string
-    onClose: () => void
-}) {
+/** Modal shown when user long-presses an episode button. Fetches description on demand. */
+function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId: string; onClose: () => void }) {
     const [description, setDescription] = useState<string | null>(null)
 
     useEffect(() => {
-        let alive = true
-
-        api.getEpisodeDetail(showId, ep.season, ep.episode)
-            .then((text) => {
-                if(alive) setDescription(text || 'No description available.')
-            })
-            .catch((err) => {
-                if(alive) setDescription(`Connection Error: ${String(err)}`)
-            })
-
-        return () => {
-            alive = false
-        }
+        let cancelled = false
+        api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
+            if(!cancelled) setDescription(text)
+        })
+        return () => { cancelled = true }
     }, [showId, ep.season, ep.episode])
 
     return (
-        <>
-            {/* backdrop */}
-            <div
-                style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    zIndex: 999
-                }}
-                onClick={onClose}
-            />
-
-            {/* bottom sheet */}
-            <div
-                style={{
-                    position: 'fixed',
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 1000,
-                    background: '#1e1e1e',
-                    borderTopLeftRadius: '14px',
-                    borderTopRightRadius: '14px',
-                    padding: '14px 14px 20px',
-                    maxHeight: '70vh',
-                    overflowY: 'auto',
-                    boxShadow: '0 -10px 30px rgba(0,0,0,0.4)'
-                }}
-            >
+        <div className={styles.modalOverlay} onClick={onClose}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <strong>{ep.title}</strong>
-
-                <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>
+                <p className={styles.modalEpisodeMeta}>
                     S{ep.season} E{ep.episode}
                     {ep.airDate ? ` · ${new Date(ep.airDate).toLocaleDateString()}` : ''}
                 </p>
-
-                <p style={{ marginTop: 10, fontSize: '0.95rem', lineHeight: 1.4 }}>
-                    {description === null ? 'Loading…' : description}
+                <p className={styles.modalDescription}>
+                    {description === null
+                        ? 'Loading…'
+                        : description || 'No description available on mobile yet.'}
                 </p>
-
-                <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    style={{ width: '100%', marginTop: 12 }}
-                    onClick={onClose}
-                >
+                <button type="button" className={styles.secondaryButton} style={{ width: '100%' }} onClick={onClose}>
                     Close
                 </button>
             </div>
-        </>
+        </div>
     )
 }
 
-function EpisodeButton({
-    ep,
-    showId,
-    seasonNum,
-    onToggleEpisode,
-    isTracked = true,
-    onLongPress
-}: {
+function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = true }: {
     ep: Episode
     showId: string
     seasonNum: number
     onToggleEpisode: (showId: string, season: number, episode: number) => void
     isTracked?: boolean
-    onLongPress: (episode: Episode) => void
 }) {
     const [loading, setLoading] = useState(false)
+    const [modalOpen, setModalOpen] = useState(false)
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const wasLongPress = useRef(false)
+    const didLongPress = useRef(false)
 
-    const startPress = useCallback(() => {
-        wasLongPress.current = false
-
+    const startLongPress = useCallback(() => {
+        didLongPress.current = false
         longPressTimer.current = setTimeout(() => {
-            wasLongPress.current = true
-            onLongPress(ep)
+            didLongPress.current = true
+            setModalOpen(true)
         }, 500)
-    }, [ep, onLongPress])
+    }, [])
 
-    const cancelPress = useCallback(() => {
-        if(longPressTimer.current) {
-            clearTimeout(longPressTimer.current)
-            longPressTimer.current = null
-        }
+    const cancelLongPress = useCallback(() => {
+        if(longPressTimer.current) clearTimeout(longPressTimer.current)
     }, [])
 
     const handleClick = async () => {
-        if(wasLongPress.current) {
-            wasLongPress.current = false
-            return
-        }
+        if(didLongPress.current) return   // long-press consumed the interaction
         if(!isTracked || loading) return
-
         setLoading(true)
         try {
             await onToggleEpisode(showId, seasonNum, ep.episode)
@@ -148,68 +83,36 @@ function EpisodeButton({
     }
 
     return (
-        <button
-            type="button"
-            className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
-            style={{
-                WebkitTouchCallout: 'none',
-                WebkitUserSelect: 'none',
-                userSelect: 'none'
-            }}
-            onClick={handleClick}
-            onMouseDown={startPress}
-            onMouseUp={cancelPress}
-            onMouseLeave={cancelPress}
-            onTouchStart={startPress}
-            onTouchEnd={cancelPress}
-            onTouchCancel={cancelPress}
-            onContextMenu={(e) => {
-                e.preventDefault()
-                wasLongPress.current = true
-                onLongPress(ep)
-            }}
-            title={`${ep.title} — hold to see description`}
-            disabled={loading}
-        >
-            <span className={styles.episodeNumber}>E{ep.episode}</span>
-            <span className={styles.episodeTitle}>
-                {loading ? 'Updating…' : ep.title}
-            </span>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.4)' }}>
-                {ep?.airDate}
-            </span>
-        </button>
+        <>
+            {modalOpen && <EpisodeDescriptionModal ep={ep} showId={showId} onClose={() => setModalOpen(false)} />}
+            <button
+                type="button"
+                className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
+                onClick={handleClick}
+                onMouseDown={startLongPress}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
+                onTouchStart={startLongPress}
+                // onTouchEnd={cancelLongPress}
+                // onTouchCancel={cancelLongPress}
+                title={`${ep.title} — hold to see description`}
+                disabled={loading}
+            >
+                <span className={styles.episodeNumber}>E{ep.episode}</span>
+                <span className={styles.episodeTitle}>{loading ? 'Updating…' : ep.title}</span>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.4)' }}>
+                    {ep?.airDate}
+                </span>
+            </button>
+        </>
     )
 }
 
-export default function ShowSeasons({
-    showId,
-    seasons,
-    onToggleEpisode,
-    onRefetch,
-    onOptimisticUpdate,
-    isTracked = true
-}: ShowSeasonsProps) {
-
-    const [activeEpisode, setActiveEpisode] = useState<Episode | null>(null)
-
+export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetch, onOptimisticUpdate, isTracked = true }: ShowSeasonsProps) {
     return (
         <div className={styles.seasonsContainer}>
-
-            {activeEpisode && (
-                <EpisodeBottomSheet
-                    ep={activeEpisode}
-                    showId={showId}
-                    onClose={() => setActiveEpisode(null)}
-                />
-            )}
-
             {seasons.map((season) => (
-                <details
-                    key={season.season}
-                    open={!season.episodes.every(ep => ep.watched)}
-                    className={styles.seasonSection}
-                >
+                <details key={season.season} open={!season.episodes.every(ep => ep.watched)} className={styles.seasonSection}>
                     <summary style={{ cursor: 'pointer', listStyle: 'none' }}>
                         <SeasonHeader
                             season={season}
@@ -229,7 +132,6 @@ export default function ShowSeasons({
                                 seasonNum={season.season}
                                 onToggleEpisode={onToggleEpisode}
                                 isTracked={isTracked}
-                                onLongPress={(episode) => setActiveEpisode(episode)}
                             />
                         ))}
                     </div>
