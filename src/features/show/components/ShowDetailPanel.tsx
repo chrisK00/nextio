@@ -90,7 +90,6 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 						← Back
 					</button>
 				</div>
-				<div className={styles.emptyState}>Show not found</div>
 			</main>
 		)
 	}
