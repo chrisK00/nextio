@@ -74,9 +74,16 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
         }
     }, [])
 
+    const handleContextMenu = (e: React.MouseEvent | React.TouchEvent) => {
+        // This stops Android/iOS from showing their native link copy/magnify popups
+        e.preventDefault()
+        didLongPress.current = true
+        setModalOpen(true)
+    }
+
     const handleClick = async () => {
         if(didLongPress.current) {
-            didLongPress.current = false // Reset token
+            didLongPress.current = false // Reset tracking flag
             return   // long-press consumed the interaction
         }
         if(!isTracked || loading) return
@@ -95,23 +102,26 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
                 type="button"
                 className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
                 style={{
-                    WebkitTouchCallout: 'none', // Prevents iOS context menu
-                    WebkitUserSelect: 'none',   // Prevents Android long-press selection
+                    WebkitTouchCallout: 'none',
+                    WebkitUserSelect: 'none',
                     userSelect: 'none'
                 }}
                 onClick={handleClick}
+                // Desktop Mouse Support
                 onMouseDown={startLongPress}
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
-                onTouchStart={(e) => {
-                    // Prevent default behavior to block Android's native text selection / loupe magnifying glass
-                    if(e.cancelable) e.preventDefault()
-                    startLongPress()
-                }}
+                // Mobile Touch Support
+                onTouchStart={startLongPress}
                 onTouchEnd={() => {
-                    cancelLongPress()
+                    // Slight delay so the click handler registers if it was just a quick tap
+                    setTimeout(() => {
+                        cancelLongPress()
+                    }, 10)
                 }}
                 onTouchCancel={cancelLongPress}
+                // The silver bullet for Mobile long-presses:
+                onContextMenu={handleContextMenu}
                 title={`${ep.title} — hold to see description`}
                 disabled={loading}
             >
