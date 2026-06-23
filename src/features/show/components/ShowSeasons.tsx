@@ -1,6 +1,4 @@
-import {
-    useState, useRef, useCallback
-} from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import * as api from '../../../services/api'
 import type { TvShow, Season, Episode } from "../../../services/apiTypes"
 import SeasonHeader from './SeasonHeader'
@@ -17,7 +15,17 @@ type ShowSeasonsProps = {
 }
 
 /** Modal shown when user long-presses an episode button. Fetches description on demand. */
-function EpisodeDescriptionModal({ ep, description, onClose }: { ep: Episode; description: string | null; onClose: () => void }) {
+function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId: string; onClose: () => void }) {
+    const [description, setDescription] = useState<string | null>(null)
+
+    useEffect(() => {
+        let cancelled = false
+        api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
+            if(!cancelled) setDescription(text)
+        })
+        return () => { cancelled = true }
+    }, [showId, ep.season, ep.episode])
+
     return (
         <div className={styles.modalOverlay} onClick={onClose}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -28,8 +36,8 @@ function EpisodeDescriptionModal({ ep, description, onClose }: { ep: Episode; de
                 </p>
                 <p className={styles.modalDescription}>
                     {description === null
-                        ? 'No description available on mobile yet.'
-                        : description}
+                        ? 'Loading…'
+                        : description || 'No description available on mobile yet.'}
                 </p>
                 <button type="button" className={styles.secondaryButton} style={{ width: '100%' }} onClick={onClose}>
                     Close
@@ -48,7 +56,6 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
 }) {
     const [loading, setLoading] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
-    const [description, setDescription] = useState<string | null>(null)
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const didLongPress = useRef(false)
 
@@ -56,12 +63,9 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
         didLongPress.current = false
         longPressTimer.current = setTimeout(() => {
             didLongPress.current = true
-            api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
-                setDescription(text);
-                setModalOpen(true)
-            })
+            setModalOpen(true)
         }, 500)
-    }, [showId, ep.season, ep.episode])
+    }, [])
 
     const cancelLongPress = useCallback(() => {
         if(longPressTimer.current) clearTimeout(longPressTimer.current)
@@ -80,7 +84,7 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
 
     return (
         <>
-            {modalOpen && <EpisodeDescriptionModal ep={ep} description={description} onClose={() => setModalOpen(false)} />}
+            {modalOpen && <EpisodeDescriptionModal ep={ep} showId={showId} onClose={() => setModalOpen(false)} />}
             <button
                 type="button"
                 className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
@@ -89,8 +93,8 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
                 onTouchStart={startLongPress}
-                onTouchEnd={cancelLongPress}
-                onTouchCancel={cancelLongPress}
+                // onTouchEnd={cancelLongPress}
+                // onTouchCancel={cancelLongPress}
                 title={`${ep.title} — hold to see description`}
                 disabled={loading}
             >
