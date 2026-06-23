@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ShowMediaType, type LibraryMovie } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import { getLibrary, setLibraryMovieWatched } from '../../../services/api'
 import type { WatchlistItem } from '../../show/utils/show'
+import FilterButton from '../../../components/common/FilterButton'
 
 type MovieFilter = 'all' | 'watched' | 'unwatched'
 
-const filters: { key: MovieFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'watched', label: 'Watched' },
-  { key: 'unwatched', label: 'Unwatched' },
+const filters: { key: MovieFilter; label: string; tooltip: string }[] = [
+  { key: 'all', label: 'All', tooltip: 'Every movie in your library.' },
+  { key: 'watched', label: 'Watched', tooltip: 'Movies you\'ve already marked as watched.' },
+  { key: 'unwatched', label: 'Unwatched', tooltip: 'Movies in your library you haven\'t watched yet.' },
 ]
 
 export default function MoviesPage() {
@@ -55,17 +56,6 @@ export default function MoviesPage() {
     }
 
     void fetchMovies()
-  }, [filter])
-
-  const title = useMemo(() => {
-    switch (filter) {
-      case 'watched':
-        return 'Watched movies'
-      case 'unwatched':
-        return 'Unwatched movies'
-      default:
-        return 'All movies'
-    }
   }, [filter])
 
   async function toggleWatched(movie: WatchlistItem) {
@@ -120,17 +110,15 @@ export default function MoviesPage() {
     <main className={styles.mainPanel}>
       <section className={styles.tabContent}>
         <div className={styles.settingsHeader}>
-          <h2>{title}</h2>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {filters.map((item) => (
-              <button
+              <FilterButton
                 key={item.key}
-                className={item.key === filter ? styles.primaryButton : styles.secondaryButton}
-                type="button"
+                label={item.label}
+                active={item.key === filter}
+                tooltip={item.tooltip}
                 onClick={() => setFilter(item.key)}
-              >
-                {item.label}
-              </button>
+              />
             ))}
           </div>
         </div>

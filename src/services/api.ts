@@ -1,4 +1,4 @@
-import { type Settings, type LibraryResponse, type LibrarySyncResponse, type LibraryTvShowDetails, type SearchResults, type Season, type TvShow } from "./apiTypes"
+import { type Settings, type LibraryResponse, type LibraryTvShowDetails, type SearchResults, type Season, type TvShow } from "./apiTypes"
 
 export const emptySearchResults: SearchResults = {
 	tvShows: [],
@@ -117,12 +117,31 @@ export async function clearLibraryProgress(showId: string): Promise<void> {
 	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes`, { method: 'DELETE' })
 }
 
+/** Fetch episode overview/description on demand (only called when modal opens). */
+export async function getEpisodeDetail(showId: string, season: number, episode: number): Promise<string> {
+	try {
+		const [, rawId] = showId.includes(':') ? showId.split(':', 2) : ['tv', showId]
+		const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/season/${season}/episode/${episode}`)
+		if (!res.ok) return ''
+		const data = await res.json() as { overview?: string }
+		return data.overview ?? ''
+	} catch {
+		return ''
+	}
+}
+
 export async function getAppSettings(): Promise<Settings> {
 	return Promise.resolve({
 		notificationsEnabled: true,
 		darkMode: false,
 		preferredGenres: ['Drama', 'Sci-Fi', 'Mystery'],
 	})
+}
+
+export async function saveAppSettings(settings: Settings): Promise<Settings> {
+	// Settings are currently client-only; persist to localStorage for now.
+	localStorage.setItem('settings', JSON.stringify(settings))
+	return Promise.resolve(settings)
 }
 
 export async function getLibrary<T>(mediaType: string, status?: string): Promise<LibraryResponse<T>> {
@@ -199,29 +218,40 @@ export async function setLibraryMovieWatched(id: string, watched: boolean): Prom
 	})
 }
 
+/** Toggle (or set) a single episode's watched state. */
 export async function setLibraryEpisodeWatched(showId: string, season: number, episode: number, watched?: boolean): Promise<void> {
 	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ season, episode, watched }),
+		body: JSON.stringify({ season, episode, watched: watched ?? null }),
 	})
 }
 
-export async function syncLibrary(): Promise<LibrarySyncResponse> {
+/** Mark multiple episodes watched/unwatched in a single request (bulk endpoint). */
+export async function setLibraryEpisodesWatchedBulk(
+	showId: string,
+	episodes: Array<{ season: number; episode: number; watched: boolean }>,
+): Promise<void> {
+	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes/batch`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ episodes }),
+	})
+}
+
+export async function getLibraryStats(): Promise<import('./apiTypes').LibraryStats> {
+	const res = await fetchWithAuth('/stats/library')
+	if(!res.ok) throw new Error(await res.text())
+	return res.json() as Promise<import('./apiTypes').LibraryStats>
+}
+
+export async function syncLibrary(): Promise<import('./apiTypes').LibrarySyncResponse> {
 	const res = await fetchWithAuth('/library/sync', { method: 'POST' })
-	if(!res.ok) {
-		throw new Error(await res.text())
-	}
-	return res.json()
+	if(!res.ok) throw new Error(await res.text())
+	return res.json() as Promise<import('./apiTypes').LibrarySyncResponse>
 }
 
-export async function saveAppSettings(settings: Settings): Promise<Settings> {
-	return Promise.resolve(settings)
-}
-
-// --- Authentication API ---
-// TODO move to its own file
-export type AuthResponse = {
+type AuthResponse = {
 	token: string
 	expiresInSeconds: number
 }

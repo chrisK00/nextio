@@ -5,13 +5,24 @@ export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const currentPath = location.pathname
+  const navigateTo = (path: string) => {
+    // Always scroll to top — covers both tab switches and re-clicking the active tab.
+    window.scrollTo(0, 0)
+    if (currentPath === path) {
+      // Already on this page: force a re-render by re-navigating with replace so
+      // the page re-mounts and resets any local scroll state (e.g. inside details elements).
+      navigate(path, { replace: true })
+    } else {
+      navigate(path)
+    }
+  }
 
   return (
     <nav className={styles.bottomNav} aria-label="Primary navigation">
       <button
         type="button"
         className={`${styles.bottomNavButton} ${currentPath === '/unwatched' ? styles.bottomNavActive : ''}`}
-        onClick={() => navigate('/unwatched')}
+        onClick={() => navigateTo('/unwatched')}
         aria-label="Unwatched"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
@@ -24,7 +35,7 @@ export default function BottomNav() {
       <button
         type="button"
         className={`${styles.bottomNavButton} ${currentPath === '/upcoming' ? styles.bottomNavActive : ''}`}
-        onClick={() => navigate('/upcoming')}
+        onClick={() => navigateTo('/upcoming')}
         aria-label="Upcoming"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
@@ -37,7 +48,7 @@ export default function BottomNav() {
       <button
         type="button"
         className={`${styles.bottomNavButton} ${currentPath === '/watching' ? styles.bottomNavActive : ''}`}
-        onClick={() => navigate('/watching')}
+        onClick={() => navigateTo('/watching')}
         aria-label="My Shows"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>

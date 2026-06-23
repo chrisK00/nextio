@@ -20,14 +20,14 @@
 
 .bottomNavButton {
 	display:flex;
-	gap:8px;
+	gap:6px;
 	align-items:center;
 	justify-content:center;
 	background: transparent;
 	border: none;
 	color: var(--text-h);
-	padding: 12px 8px;
-	min-height: 48px;
+	padding: 8px 6px;
+	min-height: 40px;
 	cursor: pointer;
 	border-radius: 999px;
 	transition: background-color 0.2s ease, color 0.2s ease;
@@ -35,6 +35,23 @@
 
 .bottomNavButton svg { opacity: 0.9 }
 
-.bottomNavButton span { font-size: 0.85rem }
+.bottomNavButton span { font-size: 0.78rem }
 
 .bottomNavActive { background: var(--accent-bg); color: var(--accent) }
+
+@media (max-width: 520px) {
+	.bottomNav {
+		padding: 4px;
+		bottom: env(safe-area-inset-bottom, 4px);
+		left: 6px;
+		right: 6px;
+	}
+	.bottomNavButton {
+		padding: 6px 4px;
+		min-height: 34px;
+		gap: 3px;
+	}
+	.bottomNavButton span {
+		font-size: 0.72rem;
+	}
+}

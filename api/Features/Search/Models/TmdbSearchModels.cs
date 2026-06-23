@@ -179,6 +179,9 @@ public sealed class TmdbEpisode
 
     [JsonPropertyName("air_date")]
     public string? AirDate { get; init; }
+
+    [JsonPropertyName("overview")]
+    public string? Overview { get; init; }
 }
 
 public sealed class TmdbTvDetailsResponse

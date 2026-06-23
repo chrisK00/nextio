@@ -13,6 +13,8 @@ public sealed record UpsertTrackedShowRequest(
 
 public sealed record UpdateEpisodeRequest(int Season, int Episode, bool? Watched);
 
+public sealed record BulkUpdateEpisodeRequest(IReadOnlyList<UpdateEpisodeRequest> Episodes);
+
 public sealed record MovieItem(
     string Id,
     string Title,
@@ -69,3 +71,11 @@ public sealed record LibrarySyncResponse(
     int Succeeded,
     int Failed,
     IReadOnlyList<LibrarySyncItem> Items);
+
+public sealed record LibraryStatsResponse(
+    int TotalMovies,
+    int TotalTvShows,
+    int ShowsWithEpisodesButNotFollowed,
+    DateTime? LastSyncAt,
+    bool? LastSyncSucceeded,
+    string? LastSyncMessage);

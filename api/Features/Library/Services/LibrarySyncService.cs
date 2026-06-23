@@ -1,6 +1,7 @@
 using Data;
 using Features.Search.Services;
 using Microsoft.EntityFrameworkCore;
+using nextio.Api.Features.Library.Services;
 
 namespace Features.Library.Services;
 
@@ -10,16 +11,16 @@ public interface ILibrarySyncService
     Task SyncShowAsync(UserTvShow show, CancellationToken cancellationToken = default);
 }
 
-
-
 public sealed class LibrarySyncService(
     ApplicationDbContext db,
     TmdbApi tmdbSearchService,
-    ILogger<LibrarySyncService> logger) : ILibrarySyncService
+    ILogger<LibrarySyncService> logger,
+    ILibrarySyncStatusStore syncStatusStore) : ILibrarySyncService
 {
     private readonly ApplicationDbContext _db = db;
     private readonly TmdbApi _tmdbSearchService = tmdbSearchService;
     private readonly ILogger<LibrarySyncService> _logger = logger;
+    private readonly ILibrarySyncStatusStore _syncStatusStore = syncStatusStore;
 
     public async Task SyncShowAsync(UserTvShow show, CancellationToken cancellationToken = default)
     {
@@ -52,7 +53,6 @@ public sealed class LibrarySyncService(
             }).ToList();
             show.NumberOfEpisodes = details.NumberOfEpisodes;
             show.NumberOfSeasons = details.NumberOfSeasons;
-
         }
         catch (Exception ex)
         {
@@ -65,38 +65,47 @@ public sealed class LibrarySyncService(
 
     public async Task<Models.LibrarySyncResponse> SyncAllAsync(CancellationToken cancellationToken = default)
     {
-        var shows = await _db.UserTvShows
-            .Include(x => x.Episodes)
-            .Include(x => x.SeasonsMetadata)
-            .Where(x => x.IsFollowing)
-            .OrderBy(x => x.Title)
-            .ToListAsync(cancellationToken);
-
-        var items = new List<Models.LibrarySyncItem>(shows.Count);
-        var succeeded = 0;
-
-        // TODO store synced shows in dict and reuse info so dont make multiple calls to TMDb for same show if multiple users has same show in library
-        foreach (var show in shows)
+        try
         {
-            await SyncShowAsync(show, cancellationToken);
-            if (show.SyncError is null)
+            var shows = await _db.UserTvShows
+                .Include(x => x.Episodes)
+                .Include(x => x.SeasonsMetadata)
+                .Where(x => x.IsFollowing)
+                .OrderBy(x => x.Title)
+                .ToListAsync(cancellationToken);
+
+            var items = new List<Models.LibrarySyncItem>(shows.Count);
+            var succeeded = 0;
+
+            // TODO store synced shows in dict and reuse info so dont make multiple calls to TMDb for same show if multiple users has same show in library
+            foreach (var show in shows)
             {
-                items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, true, "Synced successfully.", show.LastSyncedAt!.Value));
-                succeeded++;
+                await SyncShowAsync(show, cancellationToken);
+                if (show.SyncError is null)
+                {
+                    items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, true, "Synced successfully.", show.LastSyncedAt!.Value));
+                    succeeded++;
+                }
+                else
+                {
+                    items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, false, show.SyncError, show.LastSyncedAt!.Value));
+                }
+                await Task.Delay(300, cancellationToken);
             }
-            else
-            {
-                items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, false, show.SyncError, show.LastSyncedAt!.Value));
-            }
-            await Task.Delay(300, cancellationToken);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            _syncStatusStore.MarkSuccess(DateTime.UtcNow, $"Synced {succeeded} of {shows.Count} shows.");
+
+            return new Models.LibrarySyncResponse(
+                Total: shows.Count,
+                Succeeded: succeeded,
+                Failed: shows.Count - succeeded,
+                Items: items);
         }
-
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return new Models.LibrarySyncResponse(
-            Total: shows.Count,
-            Succeeded: succeeded,
-            Failed: shows.Count - succeeded,
-            Items: items);
+        catch (Exception ex)
+        {
+            _syncStatusStore.MarkFailure(DateTime.UtcNow, ex.Message);
+            throw;
+        }
     }
 }

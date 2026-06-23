@@ -1,37 +1,113 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import { isRunningShow } from '../../show/utils/show'
+import FilterButton from '../../../components/common/FilterButton'
 
-type WatchingSort = 'showStatus' | 'watchStatus'
+type WatchingFilter = 'inProgress' | 'notStarted' | 'completed' | 'running' | 'unplanned' | 'all'
 
-const getWatchingTitle = (sort: WatchingSort) => {
-	return sort === 'showStatus' ? 'Sort by show status' : 'Sort by my status'
+const watchingFilters: Array<{ key: WatchingFilter; label: string; tooltip: string }> = [
+	{ key: 'inProgress', label: 'Continue', tooltip: 'Shows where you\'ve watched at least one episode and still have more to go.' },
+	{ key: 'notStarted', label: 'Not started', tooltip: 'Shows you follow but haven\'t watched a single episode of yet.' },
+	{ key: 'completed', label: 'Completed', tooltip: 'Shows where you\'ve watched all available episodes and there\'s no next episode queued.' },
+	{ key: 'running', label: 'Running', tooltip: 'Currently airing shows — TMDb has a future episode date for these.' },
+	{ key: 'unplanned', label: 'Unplanned', tooltip: 'Shows with no announced next air date (ended, cancelled, or hiatus).' },
+	{ key: 'all', label: 'All', tooltip: 'Every show in your library regardless of status.' },
+]
+
+function isNotStarted(show: TvShow) {
+	return show.episodesWatched === 0
 }
 
-const sortWatchingShows = (shows: TvShow[], sort: WatchingSort) => {
-	return [...shows].sort((a, b) => {
-		if(sort === 'watchStatus') {
-			const aHasMore = a.episodesWatched < a.episodesTotal
-			const bHasMore = b.episodesWatched < b.episodesTotal
-			if(aHasMore !== bHasMore) return aHasMore ? -1 : 1
-		}
-		if(sort === 'showStatus') {
-			const aRunning = isRunningShow(a)
-			const bRunning = isRunningShow(b)
-			if(aRunning !== bRunning) return aRunning ? -1 : 1
-		}
-		return a.title.localeCompare(b.title)
-	})
+function isInProgress(show: TvShow) {
+	return show.episodesWatched > 0 && Boolean(show.nextUserEpisode)
+}
+
+function isCompleted(show: TvShow) {
+	return show.episodesWatched > 0 && !show.nextUserEpisode
+}
+
+function matchesFilter(show: TvShow, filter: WatchingFilter) {
+	switch(filter) {
+		case 'inProgress':
+			return isInProgress(show)
+		case 'notStarted':
+			return isNotStarted(show)
+		case 'completed':
+			return isCompleted(show)
+		case 'running':
+			return isRunningShow(show)
+		case 'unplanned':
+			return !isRunningShow(show)
+		case 'all':
+			return true
+	}
+}
+
+function sortShows(shows: TvShow[], filter: WatchingFilter) {
+	const byTitle = [...shows].sort((a, b) => a.title.localeCompare(b.title))
+
+	switch(filter) {
+		case 'running':
+			return [...shows].sort((a, b) => {
+				const aTime = a.nextAiringEpisode?.releaseDate ? new Date(a.nextAiringEpisode.releaseDate).getTime() : Number.MAX_SAFE_INTEGER
+				const bTime = b.nextAiringEpisode?.releaseDate ? new Date(b.nextAiringEpisode.releaseDate).getTime() : Number.MAX_SAFE_INTEGER
+				if(aTime !== bTime) return aTime - bTime
+				return a.title.localeCompare(b.title)
+			})
+		case 'inProgress':
+			return [...shows].sort((a, b) => {
+				const aTime = a.nextUserEpisode?.releaseDate ? new Date(a.nextUserEpisode.releaseDate).getTime() : Number.MAX_SAFE_INTEGER
+				const bTime = b.nextUserEpisode?.releaseDate ? new Date(b.nextUserEpisode.releaseDate).getTime() : Number.MAX_SAFE_INTEGER
+				if(aTime !== bTime) return aTime - bTime
+				return a.title.localeCompare(b.title)
+			})
+		case 'all':
+			return byTitle
+		default:
+			return byTitle
+	}
+}
+
+function getEmptyState(filter: WatchingFilter) {
+	switch(filter) {
+		case 'inProgress':
+			return 'No shows in progress yet.'
+		case 'notStarted':
+			return 'No not started shows yet.'
+		case 'completed':
+			return 'No completed shows yet.'
+		case 'running':
+			return 'No running shows yet.'
+		case 'unplanned':
+			return 'No unplanned shows yet.'
+		case 'all':
+			return 'No followed shows yet. Use search to add your next series.'
+	}
 }
 
 export default function WatchingPage() {
 	const navigate = useNavigate()
+	const [searchParams, setSearchParams] = useSearchParams()
 	const { shows, loading } = useShows('watching')
-	const [watchingSort, setWatchingSort] = useState<WatchingSort>('showStatus')
+	const watchingFilter = (searchParams.get('filter') as WatchingFilter | null) ?? 'running'
+
+	const filteredShows = useMemo(() => {
+		return sortShows(shows.filter((show) => matchesFilter(show, watchingFilter)), watchingFilter)
+	}, [shows, watchingFilter])
+
+	function setWatchingFilter(filter: WatchingFilter) {
+		const params = new URLSearchParams(searchParams)
+		if(filter === 'running') {
+			params.delete('filter')
+		} else {
+			params.set('filter', filter)
+		}
+		setSearchParams(params)
+	}
 
 	function handleShowClick(show: TvShow) {
 		navigate(`/show/${encodeURIComponent(show.id)}`)
@@ -40,118 +116,42 @@ export default function WatchingPage() {
 	if(loading) {
 		return (
 			<main className={styles.mainPanel}>
-				<div className={styles.emptyState}>Loading your show tracking data...</div>
+				<div className={styles.loadingBar} />
 			</main>
 		)
 	}
 
-	if(shows.length === 0) {
-		return (
-			<main className={styles.mainPanel}>
-				<div className={styles.emptyState}>No followed shows yet. Use search to add your next series.</div>
-			</main>
-		)
-	}
-
-	const sortedWatching = sortWatchingShows(shows, watchingSort)
-	const runningShows = sortedWatching.filter(isRunningShow)
-	const unplannedShows = sortedWatching.filter((show) => !isRunningShow(show))
-	const hasUnwatchedShows = sortedWatching.filter((show) => show.nextUserEpisode)
-	const fullyWatchedShows = sortedWatching.filter((show) => !show.nextUserEpisode)
-
-	// TODO also uppgradera filters till att visa en lista i taget så inte behöver scrolla i oändlighet
 	return (
 		<main className={styles.mainPanel}>
 			<section className={styles.tabContent}>
-				<div>
-					<div className={styles.watchingToolbar}>
-						<div>{getWatchingTitle(watchingSort)}</div>
-						<div className={styles.sortControls}>
-							<button
-								type="button"
-								className={`${styles.sortButton} ${watchingSort === 'showStatus' ? styles.sortButtonActive : ''}`}
-								onClick={() => setWatchingSort('showStatus')}
-							>
-								Show status
-							</button>
-							<button
-								type="button"
-								className={`${styles.sortButton} ${watchingSort === 'watchStatus' ? styles.sortButtonActive : ''}`}
-								onClick={() => setWatchingSort('watchStatus')}
-							>
-								My status
-							</button>
-						</div>
+				<div className={styles.watchingToolbar}>
+					<div className={styles.sortControls}>
+						{watchingFilters.map((filter) => (
+							<FilterButton
+								key={filter.key}
+								label={filter.label}
+								active={watchingFilter === filter.key}
+								tooltip={filter.tooltip}
+								onClick={() => setWatchingFilter(filter.key)}
+							/>
+						))}
 					</div>
-					{watchingSort === 'showStatus' ? (
-						<>
-							{runningShows.length > 0 && (
-								<section>
-									<h2>Running TV Shows</h2>
-									<div className={styles.showGrid}>
-										{runningShows.map((show) => (
-											<ShowCard
-												key={show.id}
-												show={show}
-												onClick={handleShowClick}
-												compact
-											/>
-										))}
-									</div>
-								</section>
-							)}
-							{unplannedShows.length > 0 && (
-								<section>
-									<h2>Unplanned TV Shows</h2>
-									<div className={styles.showGrid}>
-										{unplannedShows.map((show) => (
-											<ShowCard
-												key={show.id}
-												show={show}
-												onClick={handleShowClick}
-												compact
-											/>
-										))}
-									</div>
-								</section>
-							)}
-						</>
-					) : (
-						<>
-							{hasUnwatchedShows.length > 0 && (
-								<section>
-									<h2>Has unwatched episodes</h2>
-									<div className={styles.showGrid}>
-										{hasUnwatchedShows.map((show) => (
-											<ShowCard
-												key={show.id}
-												show={show}
-												onClick={handleShowClick}
-												compact
-											/>
-										))}
-									</div>
-								</section>
-							)}
-							{/* if we have fullywatchedshows we can show them in a separate section at the bottom, but only if the user has at least one show with unwatched episodes */}
-							{fullyWatchedShows.length > 0 && (
-								<section>
-									<h2>Fully watched</h2>
-									<div className={styles.showGrid}>
-										{fullyWatchedShows.map((show) => (
-											<ShowCard
-												key={show.id}
-												show={show}
-												onClick={handleShowClick}
-												compact
-											/>
-										))}
-									</div>
-								</section>
-							)}
-						</>
-					)}
 				</div>
+
+				{filteredShows.length === 0 ? (
+					<div className={styles.emptyState}>{getEmptyState(watchingFilter)}</div>
+				) : (
+					<div className={styles.showGrid}>
+						{filteredShows.map((show) => (
+							<ShowCard
+								key={show.id}
+								show={show}
+								onClick={handleShowClick}
+								compact
+							/>
+						))}
+					</div>
+				)}
 			</section>
 		</main>
 	)

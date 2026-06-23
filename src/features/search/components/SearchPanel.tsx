@@ -6,11 +6,12 @@ import styles from '../../../App.module.css'
 type SearchPanelProps = {
   searchQuery: string
   searchResults: SearchResults | null
+  isLoading?: boolean
   onQueryChange: (value: string) => void
   onShowClick?: (show: TvShow) => void
 }
 
-export default function SearchPanel({ searchQuery, searchResults, onQueryChange, onShowClick }: SearchPanelProps) {
+export default function SearchPanel({ searchQuery, searchResults, isLoading = false, onQueryChange, onShowClick }: SearchPanelProps) {
   const tvShows = searchResults?.tvShows ?? []
   const movies = searchResults?.movies ?? []
   const hasResults = tvShows.length > 0 || movies.length > 0
@@ -30,6 +31,10 @@ export default function SearchPanel({ searchQuery, searchResults, onQueryChange,
       <div className={styles.searchResults}>
         {searchQuery.trim().length === 0 && (
           <div className={styles.emptyState}>Enter a search term to discover shows.</div>
+        )}
+
+        {isLoading && searchQuery.trim().length > 0 && (
+          <div className={styles.loadingBar} />
         )}
 
         {searchResults !== null && !hasResults && (

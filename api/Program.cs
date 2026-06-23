@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Features.Search.Services;
 using Features.Library.Services;
 using Microsoft.AspNetCore.HttpOverrides;
+using nextio.Api.Features.Library.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,7 @@ var dbPath = Path.Combine(builder.Environment.ContentRootPath, "nextio.db");
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddMemoryCache(opt => opt.SizeLimit = 1024 * 1024 * 100); // 100 MB cache size limit 
 
 // CORS for local development (vite dev server)
 builder.Services.AddCors(options =>
@@ -36,6 +38,7 @@ builder.Services.AddDbContext<Data.ApplicationDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher<Models.User>, PasswordHasher<Models.User>>();
 builder.Services.AddScoped<Services.IUserService, Services.UserService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
+builder.Services.AddSingleton<ILibrarySyncStatusStore, LibrarySyncStatusStore>();
 builder.Services.AddScoped<ILibrarySyncService, LibrarySyncService>();
 builder.Services.AddHostedService<LibrarySyncWorker>();
 builder.Services.AddHttpClient<TmdbApi>(client =>

@@ -5,10 +5,21 @@ export type Episode = {
     title: string;
     airDate?: string;
     watched: boolean;
-}; export type Season = {
+}
+
+export type Season = {
     season: number
     episodes: Episode[]
 }
+
+export type TvEpisodeItem = {
+    season: number
+    episode: number
+    title: string
+    releaseDate: string
+    watched: boolean
+}
+
 export type TvShow = {
     id: string
     title: string
@@ -16,8 +27,8 @@ export type TvShow = {
     status: string
     episodesWatched: number
     episodesTotal: number
-    nextUserEpisode?: TvEpisodeItem,
-    nextAiringEpisode?: TvEpisodeItem,
+    nextUserEpisode?: TvEpisodeItem
+    nextAiringEpisode?: TvEpisodeItem
     description: string
     seasons?: Season[]
     posterUrl?: string
@@ -28,13 +39,7 @@ export type SearchResults = {
     tvShows: TvShow[]
     movies: TvShow[]
 }
-export type TvEpisodeItem = {
-    season: number
-    episode: number
-    title: string
-    releaseDate: string
-    watched: boolean
-}
+
 export type LibraryTvShow = {
     id: string
     title: string
@@ -43,14 +48,15 @@ export type LibraryTvShow = {
     status?: string
     description?: string
     releaseDate?: string
-    nextUserEpisode?: TvEpisodeItem,
-    nextAiringEpisode?: TvEpisodeItem,
+    nextUserEpisode?: TvEpisodeItem
+    nextAiringEpisode?: TvEpisodeItem
     followedAt: string
     updatedAt: string
     lastSyncedAt?: string
     syncError?: string
     episodes: TvEpisodeItem[]
 }
+
 export type LibraryMovie = {
     id: string
     title: string
@@ -74,6 +80,7 @@ export type LibraryTvShowDetails = {
     show: LibraryTvShow
     episodes: TvEpisodeItem[]
 }
+
 export type LibrarySyncItem = {
     showId: string
     title: string
@@ -81,6 +88,7 @@ export type LibrarySyncItem = {
     message: string
     syncedAt: string
 }
+
 export type LibrarySyncResponse = {
     total: number
     succeeded: number
@@ -94,3 +102,11 @@ export type Settings = {
     preferredGenres: string[]
 }
 
+export type LibraryStats = {
+    totalMovies: number
+    totalTvShows: number
+    showsWithEpisodesButNotFollowed: number
+    lastSyncAt: string | null
+    lastSyncSucceeded: boolean | null
+    lastSyncMessage: string | null
+}

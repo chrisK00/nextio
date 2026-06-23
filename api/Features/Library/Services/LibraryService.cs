@@ -2,6 +2,7 @@ using Data;
 using Features.Library.Models;
 using Features.Search.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Features.Library.Services;
 
@@ -16,24 +17,33 @@ public interface ILibraryService
     Task RemoveMovieAsync(Guid userId, string id, CancellationToken cancellationToken = default);
     Task SetMovieWatchedAsync(Guid userId, string id, bool watched, CancellationToken cancellationToken = default);
     Task SetEpisodeAsync(Guid userId, string id, UpdateEpisodeRequest request, CancellationToken cancellationToken = default);
+    Task SetEpisodesAsync(Guid userId, string id, BulkUpdateEpisodeRequest request, CancellationToken cancellationToken = default);
     Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default);
 }
 
-public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService, TmdbApi tmdbApi) : ILibraryService
+public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService, TmdbApi tmdbApi, IMemoryCache cache) : ILibraryService
 {
     private readonly ApplicationDbContext _db = db;
     private readonly ILibrarySyncService _syncService = syncService;
+    private readonly IMemoryCache _cache = cache;
+    private static readonly TimeSpan EpisodeCacheTtl = TimeSpan.FromHours(6);
 
     private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"ep:{showId}:{seasonNumber}:{episodeNumber}";
+        if (_cache.TryGetValue(cacheKey, out TvEpisodeItem? cached))
+            return cached;
+
         var season = await tmdbApi.GetSeasonInfoAsync(showId, seasonNumber, cancellationToken);
-        if (season == null)
-        {
-            return null;
-        }
+        if (season == null) return null;
 
         var episode = season.Episodes.FirstOrDefault(x => x.EpisodeNumber == episodeNumber);
-        return new TvEpisodeItem(season.SeasonNumber, episode.EpisodeNumber, episode.Name, DateTime.Parse(episode.AirDate), false);
+        if (episode is null) return null;
+
+        var item = new TvEpisodeItem(season.SeasonNumber, episode.EpisodeNumber, episode.Name,
+            DateTime.TryParse(episode.AirDate, out var dt) ? dt : null, false);
+        _cache.Set(cacheKey, item, EpisodeCacheTtl);
+        return item;
     }
 
     private Task<TvEpisodeItem?> GetNextUserEpisodeAsync(string showId, UserTvShowEpisode? recentlyWatchedEpisode, List<ShowSeasonMetadata> seasonsmetadata, CancellationToken cancellationToken = default)
@@ -292,21 +302,9 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             .Include(x => x.Episodes)
             .FirstOrDefaultAsync(x => x.UserId == userId && x.ShowId == id, cancellationToken);
 
-        if (show is null)
+        if (show is null || !show.IsFollowing)
         {
-            // Auto-create a minimal record so episode progress can be saved without explicitly following
-            show = new UserTvShow
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                ShowId = id,
-                Title = id,
-                IsFollowing = false,
-                FollowedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            };
-            _db.UserTvShows.Add(show);
-            await _db.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Show must be followed before updating episodes.");
         }
 
         var episode = show.Episodes.FirstOrDefault(x => x.Season == request.Season && x.Episode == request.Episode);
@@ -327,6 +325,44 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         {
             episode.Watched = request.Watched ?? !episode.Watched;
             episode.UpdatedAt = DateTime.UtcNow;
+        }
+
+        show.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetEpisodesAsync(Guid userId, string id, BulkUpdateEpisodeRequest request, CancellationToken cancellationToken = default)
+    {
+        var show = await _db.UserTvShows
+            .Include(x => x.Episodes)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.ShowId == id, cancellationToken);
+
+        if (show is null || !show.IsFollowing)
+        {
+            throw new InvalidOperationException("Show must be followed before updating episodes.");
+        }
+
+        foreach (var episodeRequest in request.Episodes)
+        {
+            var episode = show.Episodes.FirstOrDefault(x => x.Season == episodeRequest.Season && x.Episode == episodeRequest.Episode);
+            if (episode is null)
+            {
+                episode = new UserTvShowEpisode
+                {
+                    Id = Guid.NewGuid(),
+                    UserTvShowId = show.Id,
+                    Season = episodeRequest.Season,
+                    Episode = episodeRequest.Episode,
+                    Watched = episodeRequest.Watched ?? true,
+                    UpdatedAt = DateTime.UtcNow,
+                };
+                _db.UserTvShowEpisodes.Add(episode);
+            }
+            else
+            {
+                episode.Watched = episodeRequest.Watched ?? !episode.Watched;
+                episode.UpdatedAt = DateTime.UtcNow;
+            }
         }
 
         show.UpdatedAt = DateTime.UtcNow;

@@ -35,6 +35,9 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 	}
 
 	const handleToggleEpisode = async (showId: string, seasonNum: number, episodeNum: number) => {
+		// Guard: episodes cannot be marked on a show the user isn't following.
+		if (!isTracked) return
+
 		setLocalShow((prev) => {
 			if(!prev) return prev
 			const copy: TvShow = JSON.parse(JSON.stringify(prev))
@@ -154,6 +157,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 					onToggleEpisode={handleToggleEpisode}
 					onRefetch={onRefetch}
 					onOptimisticUpdate={handleOptimisticSeasonUpdate}
+					isTracked={isTracked}
 				/>
 			)}
 		</main>

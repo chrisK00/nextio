@@ -30,4 +30,11 @@ public sealed class SearchController(TmdbApi tmdbSearchService) : ControllerBase
         var seasons = await _tmdbSearchService.GetSeasonsAsync(id, cancellationToken);
         return Ok(seasons);
     }
+
+    [HttpGet("tv/{id}/season/{season}/episode/{episode}")]
+    public async Task<IActionResult> EpisodeDetail(string id, int season, int episode, CancellationToken cancellationToken)
+    {
+        var ep = await _tmdbSearchService.GetEpisodeAsync(id, season, episode, cancellationToken);
+        return ep is null ? NotFound() : Ok(new { ep.Name, ep.Overview, ep.AirDate, ep.EpisodeNumber, Season = season });
+    }
 }

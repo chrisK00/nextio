@@ -88,8 +88,30 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
     public async Task<IActionResult> SetEpisode(string id, [FromBody] UpdateEpisodeRequest request, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-        await _libraryService.SetEpisodeAsync(userId, id, request, cancellationToken);
-        return NoContent();
+        try
+        {
+            await _libraryService.SetEpisodeAsync(userId, id, request, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+    }
+
+    [HttpPost("tv/{id}/episodes/batch")]
+    public async Task<IActionResult> SetEpisodes(string id, [FromBody] BulkUpdateEpisodeRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        try
+        {
+            await _libraryService.SetEpisodesAsync(userId, id, request, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpDelete("tv/{id}/episodes")]

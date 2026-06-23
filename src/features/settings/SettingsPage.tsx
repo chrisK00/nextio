@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppContext } from '../../state/AppContext'
 import { useNavigate } from 'react-router-dom'
 import styles from './SettingsPage.module.css'
@@ -13,6 +13,11 @@ export default function SettingsPage() {
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncResult, setSyncResult] = useState<LibrarySyncResponse | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [stats, setStats] = useState<import('../../services/apiTypes').LibraryStats | null>(null)
+
+  useEffect(() => {
+    api.getLibraryStats().then(setStats)
+  }, [])
 
   const handleSync = async () => {
     setSyncLoading(true)
@@ -21,6 +26,8 @@ export default function SettingsPage() {
       const result = await api.syncLibrary()
       setSyncResult(result)
       await refresh()
+      const nextStats = await api.getLibraryStats()
+      setStats(nextStats)
     } catch(error) {
       setSyncError(error instanceof Error ? error.message : 'Sync failed')
     } finally {
@@ -92,8 +99,9 @@ export default function SettingsPage() {
           }
 
           await api.addLibraryTvShow(showToAdd)
-          for(const ep of show.episodes?.filter((e) => e.watched) ?? []) {
-            await api.setLibraryEpisodeWatched(show.id, ep.season, ep.episode, true)
+          const watchedEpisodes = show.episodes?.filter((e) => e.watched) ?? []
+          if (watchedEpisodes.length > 0) {
+            await api.setLibraryEpisodesWatchedBulk(show.id, watchedEpisodes.map(ep => ({ season: ep.season, episode: ep.episode, watched: true })))
           }
           tvCount++
         }
@@ -132,6 +140,21 @@ export default function SettingsPage() {
       </div>
 
       <div className={styles.settingsGrid}>
+        <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
+          <div>
+            <strong>Library Statistics</strong>
+            {stats ? (
+              <div style={{ display: 'flex', gap: '30px', marginTop: '10px', flexWrap: 'wrap' }}>
+                <div>Total Movies: <strong style={{ color: 'var(--accent)' }}>{stats.totalMovies}</strong></div>
+                <div>Total TV Shows: <strong style={{ color: 'var(--accent)' }}>{stats.totalTvShows}</strong></div>
+                <div>Unfollowed Shows with Progress: <strong style={{ color: 'var(--accent)' }}>{stats.showsWithEpisodesButNotFollowed}</strong></div>
+              </div>
+            ) : (
+              <p>Loading statistics...</p>
+            )}
+          </div>
+        </section>
+
         <label className={styles.settingsCard}>
           <div>
             <strong>Notifications</strong>
@@ -183,6 +206,28 @@ export default function SettingsPage() {
           <div>
             <strong>Library sync</strong>
             <p>Force a manual TMDb refresh for tracked shows and inspect the result log.</p>
+            {stats && (
+              <div style={{ marginTop: '10px', fontSize: '0.9rem', borderLeft: '3px solid ' + (stats.lastSyncSucceeded ? '#22c55e' : stats.lastSyncSucceeded === false ? '#ef4444' : 'var(--border)'), paddingLeft: '10px' }}>
+                <strong>Last sync status:</strong>{' '}
+                {stats.lastSyncSucceeded === true ? (
+                  <span style={{ color: '#22c55e' }}>🟢 Success</span>
+                ) : stats.lastSyncSucceeded === false ? (
+                  <span style={{ color: '#ef4444' }}>🔴 Error</span>
+                ) : (
+                  <span>Never run</span>
+                )}
+                {stats.lastSyncAt && (
+                  <span style={{ marginLeft: '10px', color: 'var(--text)' }}>
+                    ({new Date(stats.lastSyncAt).toLocaleString()})
+                  </span>
+                )}
+                {stats.lastSyncMessage && (
+                  <p style={{ margin: '4px 0 0', fontStyle: 'italic', color: 'var(--text)' }}>
+                    {stats.lastSyncMessage}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <button className={appStyles.primaryButton} onClick={() => void handleSync()} type="button" disabled={syncLoading}>
             {syncLoading ? 'Syncing...' : 'Sync now'}

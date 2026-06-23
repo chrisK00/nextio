@@ -68,6 +68,21 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         }
     }
 
+    public async Task<TmdbEpisode?> GetEpisodeAsync(string showId, int season, int episode, CancellationToken cancellationToken = default)
+    {
+        var parsedShowId = TmdbShowIdExtractor.Extract(showId);
+        var url = $"tv/{parsedShowId}/season/{season}/episode/{episode}?language=en-US";
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<TmdbEpisode>(AppendApiKey(url), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("Failed to fetch episode for show: {showId}, s{season}e{episode}. Error: {error}", parsedShowId, season, episode, ex.Message);
+            return null;
+        }
+    }
+
     public async Task<SearchDetailResponse?> GetDetailsAsync(string mediaType, string showId, CancellationToken cancellationToken = default)
     {
         var parsedShowId = TmdbShowIdExtractor.Extract(showId);

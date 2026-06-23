@@ -1,60 +1,123 @@
-import { useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import { getReleaseCountdown } from '../../show/utils/show'
+import FilterButton from '../../../components/common/FilterButton'
 
-function UpcomingItem({ show, onClick }: { show: TvShow; onClick: (show: TvShow) => void }) {
-	const countdown = getReleaseCountdown(show)
-	const isToday = countdown === 'Today'
+type UpcomingFilter = 'continue' | 'all'
 
-	const nextEpisodeDateString = show.nextAiringEpisode?.releaseDate ? new Date(show.nextAiringEpisode.releaseDate)
-		.toLocaleDateString([], {
-			dateStyle: 'medium'
-		})
-		: null;
+const upcomingFilters: Array<{ key: UpcomingFilter; label: string; tooltip: string }> = [
+    { key: 'continue', label: 'Continue', tooltip: 'Upcoming episodes only for shows you\'ve already started watching at least 1 episode.' },
+    { key: 'all', label: 'All', tooltip: 'All tracked shows with a future episode date, including ones you haven\'t started yet.' },
+]
 
-	return (
-		<button type="button" className={styles.upcomingItemButton} onClick={() => onClick(show)}>
-			<div className={styles.upcomingPoster}>
-				{show.posterUrl
-					? <img src={show.posterUrl} alt={show.title} className={styles.showCardImage} />
-					: <div className={styles.upcomingPosterPlaceholder} />}
-			</div>
-			<div className={styles.upcomingInfo}>
-				<strong className={styles.upcomingTitle}>{show.title}</strong>
-				<strong>S{show.nextAiringEpisode?.season} E{show.nextAiringEpisode?.episode}</strong>
-				<span>{show.nextAiringEpisode?.title}</span>
-				<span className={styles.upcomingNetwork}>{nextEpisodeDateString}</span>
-			</div>
-			<div className={`${styles.upcomingCountdown} ${isToday ? styles.upcomingCountdownToday : ''}`}>
-				{isToday ? '🟣 Today' : countdown}
-			</div>
-		</button>
-	)
+function UpcomingCard({ show, onClick }: { show: TvShow; onClick: (show: TvShow) => void }) {
+    const countdown = getReleaseCountdown(show)
+    const isToday = countdown === 'Today'
+
+    const releaseDate = show.nextAiringEpisode?.releaseDate
+        ? new Date(show.nextAiringEpisode.releaseDate)
+        : null
+
+    // Show time only if it's not midnight (i.e. TMDb provided an actual time)
+    const hasTime = releaseDate && (releaseDate.getHours() !== 0 || releaseDate.getMinutes() !== 0)
+
+    const dateString = releaseDate
+        ? releaseDate.toLocaleDateString([], { dateStyle: 'medium' })
+        : null
+
+    const timeString = hasTime
+        ? releaseDate!.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : null
+
+    return (
+        <button type="button" className={styles.upcomingCard} onClick={() => onClick(show)}>
+            <div className={styles.upcomingCardPoster}>
+                {show.posterUrl
+                    ? <img src={show.posterUrl} alt={show.title} className={styles.showCardImage} />
+                    : <div className={styles.upcomingPosterPlaceholder} />}
+            </div>
+            <div className={styles.upcomingCardInfo}>
+                <strong className={styles.upcomingTitle}>{show.title}</strong>
+                <span>S{show.nextAiringEpisode?.season} E{show.nextAiringEpisode?.episode} · {show.nextAiringEpisode?.title}</span>
+                {dateString && (
+                    <span className={styles.upcomingNetwork}>
+                        {dateString}{timeString ? ` at ${timeString}` : ''}
+                    </span>
+                )}
+            </div>
+            <div className={`${styles.upcomingCountdown} ${isToday ? styles.upcomingCountdownToday : ''}`}>
+                {isToday ? '🟣 Today' : countdown}
+            </div>
+        </button>
+    )
 }
 
 export default function UpcomingPage() {
-	const navigate = useNavigate()
-	const { shows, loading } = useShows('upcoming')
+    const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const { shows, loading } = useShows('upcoming')
+    const filter = (searchParams.get('filter') as UpcomingFilter | null) ?? 'continue'
 
-	if(loading) {
-		return <main className={styles.mainPanel}><div className={styles.emptyState}>Loading...</div></main>
-	}
+    const filteredShows = useMemo(() => {
+        if (filter === 'continue') {
+            // Only shows where the user has already started watching
+            return shows.filter((s) => (s.episodesWatched ?? 0) > 0)
+        }
+        return shows
+    }, [shows, filter])
 
-	if(shows.length === 0) {
-		return <main className={styles.mainPanel}><div className={styles.emptyState}>No upcoming releases yet. Add shows to track future episodes.</div></main>
-	}
+    function setFilter(next: UpcomingFilter) {
+        const params = new URLSearchParams(searchParams)
+        if (next === 'continue') {
+            params.delete('filter')
+        } else {
+            params.set('filter', next)
+        }
+        setSearchParams(params)
+    }
 
-	return (
-		<main className={styles.mainPanel}>
-			<ol className={styles.upcomingList}>
-				{shows.map((show) => (
-					<li key={show.id}>
-						<UpcomingItem show={show} onClick={(s) => navigate(`/show/${encodeURIComponent(s.id)}`)} />
-					</li>
-				))}
-			</ol>
-		</main>
-	)
+    if (loading) {
+        return <main className={styles.mainPanel}><div className={styles.loadingBar} /></main>
+    }
+
+    return (
+        <main className={styles.mainPanel}>
+            <section className={styles.tabContent}>
+                <div className={styles.watchingToolbar}>
+                    <div className={styles.sortControls}>
+                        {upcomingFilters.map((f) => (
+                            <FilterButton
+                                key={f.key}
+                                label={f.label}
+                                active={filter === f.key}
+                                tooltip={f.tooltip}
+                                onClick={() => setFilter(f.key)}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {filteredShows.length === 0 ? (
+                    <div className={styles.emptyState}>
+                        {filter === 'continue'
+                            ? 'No upcoming episodes for shows you\'re watching. Switch to All to see everything.'
+                            : 'No upcoming releases yet. Add shows to track future episodes.'}
+                    </div>
+                ) : (
+                    <div className={styles.upcomingGrid}>
+                        {filteredShows.map((show) => (
+                            <UpcomingCard
+                                key={show.id}
+                                show={show}
+                                onClick={(s) => navigate(`/show/${encodeURIComponent(s.id)}`)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </section>
+        </main>
+    )
 }

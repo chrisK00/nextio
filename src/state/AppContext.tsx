@@ -1,4 +1,36 @@
 /* eslint-disable react-refresh/only-export-components */
+/**
+ * AppContext — global application state
+ *
+ * ## What lives here
+ * - `tvShows`      – The user's TV library (followed shows with episode progress).
+ *                    Loaded once on mount / after login and refreshed after mutations.
+ * - `settings`     – UI preferences (dark mode, notifications, genres).
+ * - `isLibraryLoaded` – False until the first `/library/tv` response arrives.
+ *                       Pages check this before rendering to avoid an empty flash.
+ *
+ * ## Data flow
+ * 1. On mount: `loadSettings()` and `loadLibrary()` fire in parallel via two separate
+ *    `useEffect`s. This keeps settings (static) and library (auth-dependent) independent.
+ * 2. After login/logout: `token` state changes → `loadLibrary` dependency array re-runs
+ *    → the library is re-fetched (or cleared) automatically.
+ * 3. Mutations (`toggleEpisode`, `followShow`, etc.) call the API then call `loadLibrary()`
+ *    to keep the client in sync with the server. This is intentionally simple over an
+ *    optimistic-only approach so the library state always reflects server truth.
+ *
+ * ## Why `useCallback` everywhere
+ * All mutator functions are wrapped in `useCallback` so their identities are stable
+ * across re-renders. This prevents child components that receive these as props from
+ * re-rendering unnecessarily (the React Compiler handles most of this, but explicit
+ * `useCallback` makes the intent clear).
+ *
+ * ## `watchlistRef` pattern (see useShow.ts)
+ * When a callback needs to read the current `tvShows` array without having it as a
+ * dependency (which would recreate the callback on every library refresh), we store
+ * the latest value in a `useRef`. The ref is updated in a `useEffect` so it is always
+ * current, but reading from it inside a callback doesn't add it to that callback's
+ * dependency array.
+ */
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { ShowMediaType, type Settings } from "../services/apiTypes"
 import type { LibraryResponse } from "../services/apiTypes"
@@ -55,6 +87,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadLibrary = useCallback(async () => {
     if(!token) {
+      // Mark the library as loaded even when signed out so pages can render their empty states.
       setWatchlist([])
       setIsLibraryLoaded(true)
       return
@@ -78,6 +111,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     void (async () => {
       if(!mounted) return
+      // Load UI settings once at startup; they are independent of auth.
       await loadSettings()
     })()
     return () => {
@@ -89,6 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     void (async () => {
       if(!mounted) return
+      // Library data depends on the auth token, so this re-runs after login/logout.
       await loadLibrary()
     })()
     return () => {
@@ -140,6 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadLibrary])
 
   const toggleEpisode = useCallback(async (showId: string, season: number, episode: number) => {
+    // TV progress is always saved server-side, then we reload the library so derived state stays in sync.
     await api.setLibraryEpisodeWatched(showId, season, episode)
     await loadLibrary()
   }, [loadLibrary])
