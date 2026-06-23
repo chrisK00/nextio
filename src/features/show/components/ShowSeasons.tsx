@@ -19,12 +19,23 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
     const [description, setDescription] = useState<string | null>(null)
 
     useEffect(() => {
-        // let cancelled = false
-        api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
-            setDescription(text)
-            // if(!cancelled) setDescription(text)
-        })
-        // return () => { cancelled = true }
+        let isCurrentRequest = true
+
+        api.getEpisodeDetail(showId, ep.season, ep.episode)
+            .then((text) => {
+                if(isCurrentRequest) {
+                    setDescription(text || 'No description available.')
+                }
+            })
+            .catch((err) => {
+                if(isCurrentRequest) {
+                    setDescription(`Connection Error: ${String(err)}`)
+                }
+            })
+
+        return () => {
+            isCurrentRequest = false
+        }
     }, [showId, ep.season, ep.episode])
 
     return (
@@ -36,9 +47,7 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
                     {ep.airDate ? ` · ${new Date(ep.airDate).toLocaleDateString()}` : ''}
                 </p>
                 <p className={styles.modalDescription}>
-                    {description === null
-                        ? 'Loading…'
-                        : description}
+                    {description === null ? 'Loading…' : description}
                 </p>
                 <button type="button" className={styles.secondaryButton} style={{ width: '100%' }} onClick={onClose}>
                     Close
@@ -48,44 +57,37 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
     )
 }
 
-function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = true }: {
+function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = true, onLongPress }: {
     ep: Episode
     showId: string
     seasonNum: number
     onToggleEpisode: (showId: string, season: number, episode: number) => void
     isTracked?: boolean
+    onLongPress: (episode: Episode) => void
 }) {
     const [loading, setLoading] = useState(false)
-    const [modalOpen, setModalOpen] = useState(false)
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const didLongPress = useRef(false)
+    const wasLongPress = useRef(false)
 
-    const startLongPress = useCallback(() => {
-        didLongPress.current = false
+    const startPress = useCallback(() => {
+        wasLongPress.current = false
         longPressTimer.current = setTimeout(() => {
-            didLongPress.current = true
-            setModalOpen(true)
+            wasLongPress.current = true
+            onLongPress(ep)
         }, 500)
-    }, [])
+    }, [ep, onLongPress])
 
-    const cancelLongPress = useCallback(() => {
+    const cancelPress = useCallback(() => {
         if(longPressTimer.current) {
             clearTimeout(longPressTimer.current)
             longPressTimer.current = null
         }
     }, [])
 
-    const handleContextMenu = (e: React.MouseEvent | React.TouchEvent) => {
-        // This stops Android/iOS from showing their native link copy/magnify popups
-        e.preventDefault()
-        didLongPress.current = true
-        setModalOpen(true)
-    }
-
     const handleClick = async () => {
-        if(didLongPress.current) {
-            didLongPress.current = false // Reset tracking flag
-            return   // long-press consumed the interaction
+        if(wasLongPress.current) {
+            wasLongPress.current = false
+            return
         }
         if(!isTracked || loading) return
         setLoading(true)
@@ -97,48 +99,54 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
     }
 
     return (
-        <>
-            {modalOpen && <EpisodeDescriptionModal ep={ep} showId={showId} onClose={() => setModalOpen(false)} />}
-            <button
-                type="button"
-                className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
-                style={{
-                    WebkitTouchCallout: 'none',
-                    WebkitUserSelect: 'none',
-                    userSelect: 'none'
-                }}
-                onClick={handleClick}
-                // Desktop Mouse Support
-                onMouseDown={startLongPress}
-                onMouseUp={cancelLongPress}
-                onMouseLeave={cancelLongPress}
-                // Mobile Touch Support
-                onTouchStart={startLongPress}
-                onTouchEnd={() => {
-                    // Slight delay so the click handler registers if it was just a quick tap
-                    setTimeout(() => {
-                        cancelLongPress()
-                    }, 10)
-                }}
-                onTouchCancel={cancelLongPress}
-                // The silver bullet for Mobile long-presses:
-                onContextMenu={handleContextMenu}
-                title={`${ep.title} — hold to see description`}
-                disabled={loading}
-            >
-                <span className={styles.episodeNumber}>E{ep.episode}</span>
-                <span className={styles.episodeTitle}>{loading ? 'Updating…' : ep.title}</span>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.4)' }}>
-                    {ep?.airDate}
-                </span>
-            </button>
-        </>
+        <button
+            type="button"
+            className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
+            style={{
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none'
+            }}
+            onClick={handleClick}
+            // Mouse Hooks
+            onMouseDown={startPress}
+            onMouseUp={cancelPress}
+            onMouseLeave={cancelPress}
+            // Mobile Touch Hooks
+            onTouchStart={startPress}
+            onTouchEnd={cancelPress}
+            onTouchCancel={cancelPress}
+            // Context Menu Intercept (Stops Android System popups from hijacking the view)
+            onContextMenu={(e) => {
+                e.preventDefault()
+                wasLongPress.current = true
+                onLongPress(ep)
+            }}
+            title={`${ep.title} — hold to see description`}
+            disabled={loading}
+        >
+            <span className={styles.episodeNumber}>E{ep.episode}</span>
+            <span className={styles.episodeTitle}>{loading ? 'Updating…' : ep.title}</span>
+            <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.4)' }}>
+                {ep?.airDate}
+            </span>
+        </button>
     )
 }
 
 export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetch, onOptimisticUpdate, isTracked = true }: ShowSeasonsProps) {
+    const [activeModalEpisode, setActiveModalEpisode] = useState<Episode | null>(null)
+
     return (
         <div className={styles.seasonsContainer}>
+            {activeModalEpisode && (
+                <EpisodeDescriptionModal
+                    ep={activeModalEpisode}
+                    showId={showId}
+                    onClose={() => setActiveModalEpisode(null)}
+                />
+            )}
+
             {seasons.map((season) => (
                 <details key={season.season} open={!season.episodes.every(ep => ep.watched)} className={styles.seasonSection}>
                     <summary style={{ cursor: 'pointer', listStyle: 'none' }}>
@@ -160,6 +168,7 @@ export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetc
                                 seasonNum={season.season}
                                 onToggleEpisode={onToggleEpisode}
                                 isTracked={isTracked}
+                                onLongPress={(episode) => setActiveModalEpisode(episode)}
                             />
                         ))}
                     </div>

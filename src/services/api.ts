@@ -124,7 +124,7 @@ export async function getEpisodeDetail(showId: string, season: number, episode: 
 		const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/season/${season}/episode/${episode}`)
 		if(!res.ok) return ''
 		const data = await res.json() as { overview?: string }
-		return data.overview ?? 'Missing description from TMDB.'
+		return data.overview ?? 'No description found.'
 	} catch(err) {
 		return `FETCH ERROR: ${String(err)}`
 	}
