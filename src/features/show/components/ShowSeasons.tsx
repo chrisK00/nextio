@@ -39,12 +39,8 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
     }, [showId, ep.season, ep.episode])
 
     return (
-        <div
-            className={styles.modalOverlay}
-            // Fix: Use onPointerDown instead of onClick to prevent trailing ghost clicks from triggering an accidental close
-            onPointerDown={onClose}
-        >
-            <div className={styles.modalContent} onPointerDown={(e) => e.stopPropagation()}>
+        <div className={styles.modalOverlay} onClick={onClose}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <strong>{ep.title}</strong>
                 <p className={styles.modalEpisodeMeta}>
                     S{ep.season} E{ep.episode}
@@ -53,15 +49,7 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
                 <p className={styles.modalDescription}>
                     {description === null ? 'Loading…' : description}
                 </p>
-                <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    style={{ width: '100%' }}
-                    onPointerDown={(e) => {
-                        e.stopPropagation();
-                        onClose();
-                    }}
-                >
+                <button type="button" className={styles.secondaryButton} style={{ width: '100%' }} onClick={onClose}>
                     Close
                 </button>
             </div>
@@ -81,8 +69,7 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const wasLongPress = useRef(false)
 
-    // Using PointerEvents simplifies Mouse + Touch into a unified system
-    const startPress = useCallback((e: React.PointerEvent) => {
+    const startPress = useCallback(() => {
         wasLongPress.current = false
         longPressTimer.current = setTimeout(() => {
             wasLongPress.current = true
@@ -97,11 +84,8 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
         }
     }, [])
 
-    const handleClick = async (e: React.MouseEvent) => {
-        // Prevent default and stop propagation if it was handled as a long press
+    const handleClick = async () => {
         if(wasLongPress.current) {
-            e.preventDefault()
-            e.stopPropagation()
             wasLongPress.current = false
             return
         }
@@ -121,19 +105,20 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
             style={{
                 WebkitTouchCallout: 'none',
                 WebkitUserSelect: 'none',
-                userSelect: 'none',
-                touchAction: 'none' // Fix: Stops Android from handling scrolling/pan actions while holding the button
+                userSelect: 'none'
             }}
             onClick={handleClick}
-            // Unified Pointer Events
-            onPointerDown={startPress}
-            onPointerUp={cancelPress}
-            onPointerLeave={cancelPress}
-            onPointerCancel={cancelPress}
-            // Context Menu Intercept
+            // Mouse Hooks
+            onMouseDown={startPress}
+            onMouseUp={cancelPress}
+            onMouseLeave={cancelPress}
+            // Mobile Touch Hooks
+            onTouchStart={startPress}
+            onTouchEnd={cancelPress}
+            onTouchCancel={cancelPress}
+            // Context Menu Intercept (Stops Android System popups from hijacking the view)
             onContextMenu={(e) => {
                 e.preventDefault()
-                e.stopPropagation()
                 wasLongPress.current = true
                 onLongPress(ep)
             }}
