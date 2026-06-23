@@ -18,9 +18,11 @@ public sealed record MovieItem(
     string Title,
     string? PosterUrl,
     string? Description,
-    DateTime WatchedAt,
     string? ReleaseDate,
+    bool Watched,
     string MediaType = "movie");
+
+public sealed record UpdateMovieWatchStatusRequest(bool Watched);
 
 public sealed record TvEpisodeItem(
     int Season,

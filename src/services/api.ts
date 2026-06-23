@@ -125,9 +125,10 @@ export async function getAppSettings(): Promise<Settings> {
 	})
 }
 
-export async function getLibrary<T>(mediaType: string): Promise<LibraryResponse<T>> {
+export async function getLibrary<T>(mediaType: string, status?: string): Promise<LibraryResponse<T>> {
 	try {
-		const res = await fetchWithAuth(`/library/${mediaType}`)
+		const params = status ? `?${new URLSearchParams({ status }).toString()}` : ''
+		const res = await fetchWithAuth(`/library/${mediaType}${params}`)
 		if(!res.ok) return { items: [], length: 0 }
 		return normalizeLibrary(await res.json())
 	} catch {
@@ -188,6 +189,14 @@ export async function removeLibraryTvShow(id: string): Promise<void> {
 
 export async function removeLibraryMovie(id: string): Promise<void> {
 	await fetchWithAuth(`/library/movies/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function setLibraryMovieWatched(id: string, watched: boolean): Promise<void> {
+	await fetchWithAuth(`/library/movies/${encodeURIComponent(id)}/watched`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ watched }),
+	})
 }
 
 export async function setLibraryEpisodeWatched(showId: string, season: number, episode: number, watched?: boolean): Promise<void> {

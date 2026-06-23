@@ -40,7 +40,7 @@ public sealed class UserMovie
     public string? PosterUrl { get; set; }
     public string? Description { get; set; }
     public string? ReleaseDate { get; set; }
-    public DateTime WatchedAt { get; set; }
+    public bool IsWatched { get; set; } = false;
 }
 
 public sealed class UserTvShowEpisode

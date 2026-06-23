@@ -1,84 +1,174 @@
-import { useNavigate } from 'react-router-dom'
-import { ShowMediaType, type LibraryMovie, type TvShow } from "../../../services/apiTypes"
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ShowMediaType, type LibraryMovie } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
-import { useEffect, useState } from 'react'
-import { getLibrary } from '../../../services/api'
+import { getLibrary, setLibraryMovieWatched } from '../../../services/api'
 import type { WatchlistItem } from '../../show/utils/show'
+
+type MovieFilter = 'all' | 'watched' | 'unwatched'
+
+const filters: { key: MovieFilter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'watched', label: 'Watched' },
+  { key: 'unwatched', label: 'Unwatched' },
+]
 
 export default function MoviesPage() {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [movies, setMovies] = useState<WatchlistItem[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [movies, setMovies] = useState<WatchlistItem[]>([])
+
+  const filter = (searchParams.get('status') as MovieFilter | null) ?? 'all'
 
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        setLoading(true);
-        const response = await getLibrary<LibraryMovie>(ShowMediaType.Movie);
-        const a: WatchlistItem[] = response.items.map(x => ({
-          id: x.id,
-          title: x.title,
+        setLoading(true)
+        setError('')
+        const response = await getLibrary<LibraryMovie>(ShowMediaType.Movie, filter === 'all' ? undefined : filter)
+        const mapped: WatchlistItem[] = response.items.map((movie) => ({
+          id: movie.id,
+          title: movie.title,
           mediaType: 'movie',
-          description: x.description ?? 'No description.',
-          posterUrl: x.posterUrl,
-          status: '_',
-          episodesWatched: 0,
-          episodesTotal: 0,
+          description: movie.description ?? 'No description.',
+          posterUrl: movie.posterUrl,
+          status: movie.watched ? 'Watched' : 'Unwatched',
+          episodesWatched: movie.watched ? 1 : 0,
+          episodesTotal: 1,
           nextUserEpisode: undefined,
           nextAiringEpisode: undefined,
           seasons: undefined,
-          releaseDate: x.releaseDate,
-          lastUpdatedAt: undefined
-          // status: x.status
-          // releaseDate: x.releaseDate
-        }));
+          releaseDate: movie.releaseDate,
+          lastUpdatedAt: undefined,
+        }))
 
-        setMovies(a);
-      } catch(e: unknown) {
-        console.error("Failed to fetch movies:", e);
-        if(e instanceof Error) {
-          setError(e.message)
-        } else {
-          setError("Something went wrong");
-        }
+        setMovies(mapped)
+      } catch (e: unknown) {
+        console.error('Failed to fetch movies:', e)
+        setError(e instanceof Error ? e.message : 'Something went wrong')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchMovies();
+    void fetchMovies()
+  }, [filter])
 
-  }, []);
+  const title = useMemo(() => {
+    switch (filter) {
+      case 'watched':
+        return 'Watched movies'
+      case 'unwatched':
+        return 'Unwatched movies'
+      default:
+        return 'All movies'
+    }
+  }, [filter])
 
-  function handleMovieClick(movie: TvShow) {
-    navigate(`/show/${encodeURIComponent(movie.id)}`)
+  async function toggleWatched(movie: WatchlistItem) {
+    const watched = movie.status !== 'Watched'
+    await setLibraryMovieWatched(movie.id, watched)
+    setMovies((current) => {
+      const next = current
+        .map((item) =>
+          item.id === movie.id
+            ? { ...item, status: watched ? 'Watched' : 'Unwatched', episodesWatched: watched ? 1 : 0, lastUpdatedAt: new Date().toISOString() }
+            : item,
+        )
+      if (filter === 'all') {
+        return next
+      }
+      return next.filter((item) => item.status.toLowerCase() === filter)
+    })
   }
 
-  if(movies.length === 0) {
+  function openMovie(movieId: string) {
+    const normalizedMovieId = movieId.startsWith('movie:') ? movieId.slice('movie:'.length) : movieId
+    navigate(`/show/${encodeURIComponent(`movie:${normalizedMovieId}`)}`)
+  }
+
+  function setFilter(nextFilter: MovieFilter) {
+    const params = new URLSearchParams(searchParams)
+    if (nextFilter === 'all') {
+      params.delete('status')
+    } else {
+      params.set('status', nextFilter)
+    }
+    setSearchParams(params)
+  }
+
+  if (loading) {
     return (
       <main className={styles.mainPanel}>
-        <div className={styles.emptyState}>No watched movies yet. Add a movie from search when you finish one.</div>
+        <div className={styles.emptyState}>Loading movies...</div>
       </main>
     )
   }
 
-  if(loading) return <div>Loading movies...</div>;
-  if(error) return <div>Error: {error}</div>;
+  if (error) {
+    return (
+      <main className={styles.mainPanel}>
+        <div className={styles.emptyState}>Error: {error}</div>
+      </main>
+    )
+  }
+
   return (
     <main className={styles.mainPanel}>
       <section className={styles.tabContent}>
-        <div className={styles.showGrid}>
-          {movies.map((movie) => (
-            <ShowCard
-              key={movie.id}
-              show={movie}
-              onClick={handleMovieClick}
-              compact
-            />
-          ))}
+        <div className={styles.settingsHeader}>
+          <h2>{title}</h2>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {filters.map((item) => (
+              <button
+                key={item.key}
+                className={item.key === filter ? styles.primaryButton : styles.secondaryButton}
+                type="button"
+                onClick={() => setFilter(item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {movies.length === 0 ? (
+          <div className={styles.emptyState}>
+            {filter === 'unwatched'
+              ? 'No unwatched movies yet.'
+              : filter === 'watched'
+                ? 'No watched movies yet.'
+                : 'No movies in your library yet.'}
+          </div>
+        ) : (
+          <div className={styles.showGrid}>
+            {movies.map((movie) => (
+              <ShowCard
+                key={movie.id}
+                show={movie}
+                compact
+                onClick={() => openMovie(movie.id)}
+                action={
+                  <div className={styles.showCardMeta}>
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void toggleWatched(movie)
+                      }}
+                    >
+                      {movie.status === 'Watched' ? 'Mark unwatched' : 'Mark watched'}
+                    </button>
+                  </div>
+                }
+              />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   )

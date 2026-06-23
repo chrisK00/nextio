@@ -56,8 +56,8 @@ export type LibraryMovie = {
     title: string
     posterUrl?: string
     description?: string
-    watchedAt: string
     releaseDate?: string
+    watched: boolean
 }
 
 export const ShowMediaType = {

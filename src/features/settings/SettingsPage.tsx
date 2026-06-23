@@ -34,7 +34,7 @@ export default function SettingsPage() {
 
   type ExportEpisode = { season: number; episode: number; watched: boolean; }
   type ExportShow = { id: string; title: string; status?: string; episodes: ExportEpisode[], posterUrl: string }
-  type ExportMovie = { id: string; title: string; posterUrl?: string, watchedAt?: string, releaseDate?: string }
+  type ExportMovie = { id: string; title: string; posterUrl?: string, releaseDate?: string, watched?: boolean }
   type ExportFile = { tvShows: ExportShow[]; movies: ExportMovie[] }
 
   const handleExport = async () => {
@@ -55,7 +55,7 @@ export default function SettingsPage() {
         })),
         totalShows: tvDetails.length,
         totalMovies: movieLibrary.items.length,
-        movies: movieLibrary.items.map((m) => ({ id: m.id, title: m.title, posterUrl: m.posterUrl, watchedAt: m.watchedAt, releaseDate: m.releaseDate })),
+        movies: movieLibrary.items.map((m) => ({ id: m.id, title: m.title, posterUrl: m.posterUrl, releaseDate: m.releaseDate, watched: m.watched })),
       }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -101,6 +101,9 @@ export default function SettingsPage() {
         // TODO lite broken eftersom vi inte har synk i backend
         for(const movie of data.movies ?? []) {
           await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', posterUrl: movie.posterUrl, releaseDate: movie.releaseDate, status: waitForSyncMessage, episodesWatched: 0, episodesTotal: 0, description: waitForSyncMessage })
+          if(movie.watched === true) {
+            await api.setLibraryMovieWatched(movie.id, true)
+          }
           movieCount++
         }
 

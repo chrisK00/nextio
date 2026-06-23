@@ -8,12 +8,13 @@ namespace Features.Library.Services;
 public interface ILibraryService
 {
     Task<LibraryResponse<TvShowItem>> GetTvShowLibraryAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<LibraryResponse<MovieItem>> GetMovieLibraryAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<LibraryResponse<MovieItem>> GetMovieLibraryAsync(Guid userId, string? status = null, CancellationToken cancellationToken = default);
     Task<LibraryTvShowDetailsResponse?> GetTvShowAsync(Guid userId, string id, CancellationToken cancellationToken = default);
     Task UpsertTvShowAsync(Guid userId, UpsertTrackedShowRequest request, CancellationToken cancellationToken = default);
     Task UpsertMovieAsync(Guid userId, UpsertTrackedShowRequest request, CancellationToken cancellationToken = default);
     Task RemoveTvShowAsync(Guid userId, string id, CancellationToken cancellationToken = default);
     Task RemoveMovieAsync(Guid userId, string id, CancellationToken cancellationToken = default);
+    Task SetMovieWatchedAsync(Guid userId, string id, bool watched, CancellationToken cancellationToken = default);
     Task SetEpisodeAsync(Guid userId, string id, UpdateEpisodeRequest request, CancellationToken cancellationToken = default);
     Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default);
 }
@@ -114,13 +115,25 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         return new LibraryResponse<TvShowItem>(awaitedShows, awaitedShows.Length);
     }
 
-    public async Task<LibraryResponse<MovieItem>> GetMovieLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<LibraryResponse<MovieItem>> GetMovieLibraryAsync(Guid userId, string? status = null, CancellationToken cancellationToken = default)
     {
-        var movies = await _db.UserMovies
+        var query = _db.UserMovies
         .AsNoTracking()
-         .Where(x => x.UserId == userId)
-         .OrderByDescending(x => x.WatchedAt)
-         .Select(x => new MovieItem(x.MovieId, x.Title, x.PosterUrl, x.Description, x.WatchedAt, x.ReleaseDate))
+         .Where(x => x.UserId == userId);
+
+        if (string.Equals(status, "watched", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(x => x.IsWatched);
+        }
+        else if (string.Equals(status, "unwatched", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(x => !x.IsWatched);
+        }
+
+        var movies = await query
+         .OrderBy(x => x.IsWatched)
+         .ThenBy(x => x.Title)
+         .Select(x => new MovieItem(x.MovieId, x.Title, x.PosterUrl, x.Description, x.ReleaseDate, x.IsWatched))
          .ToListAsync(cancellationToken);
 
         return new LibraryResponse<MovieItem>(movies, movies.Count);
@@ -225,7 +238,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 PosterUrl = request.PosterUrl,
                 Description = request.Description,
                 ReleaseDate = request.ReleaseDate,
-                WatchedAt = now,
+                IsWatched = false,
             };
             _db.UserMovies.Add(movie);
         }
@@ -235,7 +248,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             movie.PosterUrl = request.PosterUrl;
             movie.Description = request.Description;
             movie.ReleaseDate = request.ReleaseDate;
-            movie.WatchedAt = now;
         }
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -259,6 +271,18 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         }
 
         _db.UserMovies.Remove(movie);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetMovieWatchedAsync(Guid userId, string id, bool watched, CancellationToken cancellationToken = default)
+    {
+        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && x.MovieId == id, cancellationToken);
+        if (movie is null)
+        {
+            return;
+        }
+
+        movie.IsWatched = watched;
         await _db.SaveChangesAsync(cancellationToken);
     }
 

@@ -3,12 +3,13 @@ import type { TvShow } from "../../services/apiTypes"
 import ShowDetailPanel from './components/ShowDetailPanel'
 import useShow from './hooks/useShow'
 import { useAppContext } from '../../state/AppContext'
+import * as api from '../../services/api'
 
 export default function ShowPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const decoded = id ? decodeURIComponent(id) : undefined
-  const { show, loading, isTracked, setIsTracked, refetch } = useShow(decoded)
+  const { show, loading, isTracked, isMovieWatched, setIsTracked, setMovieWatched, refetch } = useShow(decoded)
   const { toggleEpisode, followShow, unfollowShow } = useAppContext()
   const handleFollowToggle = async (target: TvShow, tracked: boolean) => {
     if(tracked) {
@@ -21,6 +22,12 @@ export default function ShowPage() {
     await refetch()
   }
 
+  const handleMovieWatchedToggle = async (target: TvShow, watched: boolean) => {
+    setMovieWatched(watched)
+    await api.setLibraryMovieWatched(target.id, watched)
+    await refetch()
+  }
+
   return (
     <ShowDetailPanel
       key={show?.id}
@@ -29,6 +36,8 @@ export default function ShowPage() {
       onBack={() => navigate(-1)}
       onToggleEpisode={toggleEpisode}
       onFollowToggle={handleFollowToggle}
+      onToggleMovieWatched={handleMovieWatchedToggle}
+      isMovieWatched={isMovieWatched}
       isTracked={isTracked}
       onRefetch={refetch}
     />

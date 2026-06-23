@@ -9,11 +9,13 @@ type ShowDetailPanelProps = {
 	onBack: () => void
 	onToggleEpisode: (showId: string, season: number, episode: number) => void
 	onFollowToggle: (show: TvShow, tracked: boolean) => void
+	onToggleMovieWatched?: (show: TvShow, watched: boolean) => void
+	isMovieWatched?: boolean
 	isTracked: boolean
 	onRefetch?: () => Promise<TvShow | null>
 }
 
-export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, isTracked, onRefetch }: ShowDetailPanelProps) {
+export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, onToggleMovieWatched, isMovieWatched = false, isTracked, onRefetch }: ShowDetailPanelProps) {
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
 	const displayShow = localShow ?? show
 
@@ -98,6 +100,15 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 					<button className={styles.secondaryButton} onClick={onBack} type="button">
 						← Back
 					</button>
+					{displayShow?.mediaType === 'movie' && isTracked && onToggleMovieWatched && (
+						<button
+							className={styles.secondaryButton}
+							onClick={() => show && onToggleMovieWatched(show, !isMovieWatched)}
+							type="button"
+						>
+							{isMovieWatched ? 'Mark unwatched' : 'Mark watched'}
+						</button>
+					)}
 					<button
 						className={styles.secondaryButton}
 						onClick={() => show && onFollowToggle(show, isTracked)}

@@ -4,12 +4,22 @@ import type { TvShow, LibraryTvShowDetails, LibraryMovie } from "../../../servic
 import type { Season } from "../../../services/apiTypes"
 import { useAppContext } from '../../../state/AppContext'
 
+function normalizeMovieId(value?: string) {
+  if(!value) return value
+  let normalized = value
+  while(normalized.startsWith('movie:')) {
+    normalized = normalized.slice('movie:'.length)
+  }
+  return normalized
+}
+
 export default function useShow(id?: string) {
   const { tvShows, isLibraryLoaded } = useAppContext()
   const [show, setShow] = useState<TvShow | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [isTrackedMovie, setIsTrackedMovie] = useState(false)
+  const [isWatchedMovie, setIsWatchedMovie] = useState(false)
 
   // TODO what is Keep a ref so fetchShow always reads current watchlist without being a dep
   const watchlistRef = useRef(tvShows)
@@ -18,17 +28,21 @@ export default function useShow(id?: string) {
   }, [tvShows])
 
   const fetchShow = async (showId: string): Promise<TvShow | null> => {
-    const isMovie = showId.startsWith('movie:')
+    const normalizedMovieId = normalizeMovieId(showId)
+    const isMovie = normalizedMovieId !== showId || showId.startsWith('movie:')
 
     if(isMovie) {
+      const movieId = `movie:${normalizedMovieId}`
       const [details, movieLibrary] = await Promise.all([
-        api.getShowDetails(showId),
+        api.getShowDetails(movieId),
         api.getLibrary<LibraryMovie>('movie'),
       ])
       if(!details) return null
 
-      const isTracked = movieLibrary.items.some((item) => item.id === showId)
+      const trackedMovie = movieLibrary.items.find((item) => normalizeMovieId(item.id) === normalizedMovieId)
+      const isTracked = Boolean(trackedMovie)
       setIsTrackedMovie(isTracked)
+      setIsWatchedMovie(trackedMovie?.watched ?? false)
       return { ...details, seasons: undefined }
     } else {
       const tracked = watchlistRef.current.find((item) => item.id === showId)
@@ -86,9 +100,15 @@ export default function useShow(id?: string) {
     loading,
     error,
     isTracked,
+    isMovieWatched: isWatchedMovie,
     setIsTracked: (tracked: boolean) => {
       if(isMovie) {
         setIsTrackedMovie(tracked)
+      }
+    },
+    setMovieWatched: (watched: boolean) => {
+      if(isMovie) {
+        setIsWatchedMovie(watched)
       }
     },
     refetch: async () => {

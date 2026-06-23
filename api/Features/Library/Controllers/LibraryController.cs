@@ -15,13 +15,13 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
     private readonly ILibraryService _libraryService = libraryService;
 
     [HttpGet("{mediaType}")]
-    public async Task<IActionResult> GetLibrary(string mediaType, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetLibrary(string mediaType, [FromQuery] string? status, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
 
         if (mediaType == ShowMediaType.Movie)
         {
-            var response = await _libraryService.GetMovieLibraryAsync(userId, cancellationToken);
+            var response = await _libraryService.GetMovieLibraryAsync(userId, status, cancellationToken);
             return Ok(response);
         }
         else
@@ -73,6 +73,14 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
     {
         var userId = User.GetUserId();
         await _libraryService.RemoveMovieAsync(userId, id, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("movies/{id}/watched")]
+    public async Task<IActionResult> SetMovieWatched(string id, [FromBody] UpdateMovieWatchStatusRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        await _libraryService.SetMovieWatchedAsync(userId, id, request.Watched, cancellationToken);
         return NoContent();
     }
 
