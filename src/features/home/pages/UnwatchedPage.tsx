@@ -96,8 +96,8 @@ export default function UnwatchedPage() {
 									<div className={styles.unwatchedCardFooter}>
 										<span className={styles.unwatchedEpTitle}>
 											{show.nextUserEpisode?.title &&
-												(show.nextUserEpisode.title.length > 22
-													? `${show.nextUserEpisode.title.slice(0, 22)}...`
+												(show.nextUserEpisode.title.length > 20
+													? `${show.nextUserEpisode.title.slice(0, 20)}...`
 													: show.nextUserEpisode.title)}
 										</span>
 										<span className={`${styles.badge} ${styles.badgeNext}`}>▶ S{show.nextUserEpisode?.season} E{show.nextUserEpisode?.episode}</span>
