@@ -5,7 +5,7 @@ import { sortShowsByLastUpdated } from '../../show/utils/show'
 type ShowStatus = 'unwatched' | 'upcoming' | 'watching'
 
 export default function useShows(status: ShowStatus) {
-    const { tvShows } = useAppContext()
+    const { tvShows, isLibraryLoaded } = useAppContext()
 
     const shows = useMemo(() => {
         const filtered = tvShows.filter((show) => {
@@ -38,5 +38,5 @@ export default function useShows(status: ShowStatus) {
 
     }, [status, tvShows])
 
-    return { shows, loading: false }
+    return { shows, loading: !isLibraryLoaded }
 }

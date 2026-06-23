@@ -15,7 +15,7 @@ export default function UnwatchedPage() {
 	if(loading) {
 		return (
 			<main className={styles.mainPanel}>
-				<div className={styles.emptyState}>Loading your show tracking data...</div>
+				<div className={styles.loadingBar} />
 			</main>
 		)
 	}
