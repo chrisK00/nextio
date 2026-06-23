@@ -10,54 +10,101 @@ type ShowSeasonsProps = {
     onToggleEpisode: (showId: string, season: number, episode: number) => void
     onRefetch?: () => Promise<TvShow | null>
     onOptimisticUpdate: (seasonNum: number, episodeNums: number[], watched: boolean) => void
-    /** Prevents marking episodes on unfollowed shows. */
     isTracked?: boolean
 }
 
-/** Modal shown when user long-presses an episode button. Fetches description on demand. */
-function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId: string; onClose: () => void }) {
+/**
+ * BOTTOM SHEET (replaces modal)
+ */
+function EpisodeBottomSheet({
+    ep,
+    showId,
+    onClose
+}: {
+    ep: Episode
+    showId: string
+    onClose: () => void
+}) {
     const [description, setDescription] = useState<string | null>(null)
 
     useEffect(() => {
-        let isCurrentRequest = true
+        let alive = true
 
         api.getEpisodeDetail(showId, ep.season, ep.episode)
             .then((text) => {
-                if(isCurrentRequest) {
-                    setDescription(text || 'No description available.')
-                }
+                if(alive) setDescription(text || 'No description available.')
             })
             .catch((err) => {
-                if(isCurrentRequest) {
-                    setDescription(`Connection Error: ${String(err)}`)
-                }
+                if(alive) setDescription(`Connection Error: ${String(err)}`)
             })
 
         return () => {
-            isCurrentRequest = false
+            alive = false
         }
     }, [showId, ep.season, ep.episode])
 
     return (
-        <div className={styles.modalOverlay} onClick={onClose}>
-            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <>
+            {/* backdrop */}
+            <div
+                style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    zIndex: 999
+                }}
+                onClick={onClose}
+            />
+
+            {/* bottom sheet */}
+            <div
+                style={{
+                    position: 'fixed',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 1000,
+                    background: '#1e1e1e',
+                    borderTopLeftRadius: '14px',
+                    borderTopRightRadius: '14px',
+                    padding: '14px 14px 20px',
+                    maxHeight: '70vh',
+                    overflowY: 'auto',
+                    boxShadow: '0 -10px 30px rgba(0,0,0,0.4)'
+                }}
+            >
                 <strong>{ep.title}</strong>
-                <p className={styles.modalEpisodeMeta}>
+
+                <p style={{ opacity: 0.7, fontSize: '0.85rem' }}>
                     S{ep.season} E{ep.episode}
                     {ep.airDate ? ` · ${new Date(ep.airDate).toLocaleDateString()}` : ''}
                 </p>
-                <p className={styles.modalDescription}>
+
+                <p style={{ marginTop: 10, fontSize: '0.95rem', lineHeight: 1.4 }}>
                     {description === null ? 'Loading…' : description}
                 </p>
-                <button type="button" className={styles.secondaryButton} style={{ width: '100%' }} onClick={onClose}>
+
+                <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    style={{ width: '100%', marginTop: 12 }}
+                    onClick={onClose}
+                >
                     Close
                 </button>
             </div>
-        </div>
+        </>
     )
 }
 
-function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = true, onLongPress }: {
+function EpisodeButton({
+    ep,
+    showId,
+    seasonNum,
+    onToggleEpisode,
+    isTracked = true,
+    onLongPress
+}: {
     ep: Episode
     showId: string
     seasonNum: number
@@ -71,6 +118,7 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
 
     const startPress = useCallback(() => {
         wasLongPress.current = false
+
         longPressTimer.current = setTimeout(() => {
             wasLongPress.current = true
             onLongPress(ep)
@@ -90,6 +138,7 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
             return
         }
         if(!isTracked || loading) return
+
         setLoading(true)
         try {
             await onToggleEpisode(showId, seasonNum, ep.episode)
@@ -108,15 +157,12 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
                 userSelect: 'none'
             }}
             onClick={handleClick}
-            // Mouse Hooks
             onMouseDown={startPress}
             onMouseUp={cancelPress}
             onMouseLeave={cancelPress}
-            // Mobile Touch Hooks
             onTouchStart={startPress}
             onTouchEnd={cancelPress}
             onTouchCancel={cancelPress}
-            // Context Menu Intercept (Stops Android System popups from hijacking the view)
             onContextMenu={(e) => {
                 e.preventDefault()
                 wasLongPress.current = true
@@ -126,7 +172,9 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
             disabled={loading}
         >
             <span className={styles.episodeNumber}>E{ep.episode}</span>
-            <span className={styles.episodeTitle}>{loading ? 'Updating…' : ep.title}</span>
+            <span className={styles.episodeTitle}>
+                {loading ? 'Updating…' : ep.title}
+            </span>
             <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.4)' }}>
                 {ep?.airDate}
             </span>
@@ -134,21 +182,34 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
     )
 }
 
-export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetch, onOptimisticUpdate, isTracked = true }: ShowSeasonsProps) {
-    const [activeModalEpisode, setActiveModalEpisode] = useState<Episode | null>(null)
+export default function ShowSeasons({
+    showId,
+    seasons,
+    onToggleEpisode,
+    onRefetch,
+    onOptimisticUpdate,
+    isTracked = true
+}: ShowSeasonsProps) {
+
+    const [activeEpisode, setActiveEpisode] = useState<Episode | null>(null)
 
     return (
         <div className={styles.seasonsContainer}>
-            {activeModalEpisode && (
-                <EpisodeDescriptionModal
-                    ep={activeModalEpisode}
+
+            {activeEpisode && (
+                <EpisodeBottomSheet
+                    ep={activeEpisode}
                     showId={showId}
-                    onClose={() => setActiveModalEpisode(null)}
+                    onClose={() => setActiveEpisode(null)}
                 />
             )}
 
             {seasons.map((season) => (
-                <details key={season.season} open={!season.episodes.every(ep => ep.watched)} className={styles.seasonSection}>
+                <details
+                    key={season.season}
+                    open={!season.episodes.every(ep => ep.watched)}
+                    className={styles.seasonSection}
+                >
                     <summary style={{ cursor: 'pointer', listStyle: 'none' }}>
                         <SeasonHeader
                             season={season}
@@ -168,7 +229,7 @@ export default function ShowSeasons({ showId, seasons, onToggleEpisode, onRefetc
                                 seasonNum={season.season}
                                 onToggleEpisode={onToggleEpisode}
                                 isTracked={isTracked}
-                                onLongPress={(episode) => setActiveModalEpisode(episode)}
+                                onLongPress={(episode) => setActiveEpisode(episode)}
                             />
                         ))}
                     </div>
