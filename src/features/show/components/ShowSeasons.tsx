@@ -15,16 +15,7 @@ type ShowSeasonsProps = {
 }
 
 /** Modal shown when user long-presses an episode button. Fetches description on demand. */
-function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId: string; onClose: () => void }) {
-    const [description, setDescription] = useState<string | null>(null)
-
-    useEffect(() => {
-        let cancelled = false
-        api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
-            if(!cancelled) setDescription(text)
-        })
-        return () => { cancelled = true }
-    }, [showId, ep.season, ep.episode])
+function EpisodeDescriptionModal({ ep, description, onClose }: { ep: Episode; description: string | null; onClose: () => void }) {
 
     return (
         <div className={styles.modalOverlay} onClick={onClose}>
@@ -36,8 +27,8 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
                 </p>
                 <p className={styles.modalDescription}>
                     {description === null
-                        ? 'Loading…'
-                        : description || 'No description available on mobile yet.'}
+                        ? 'No description available on mobile yet.'
+                        : description}
                 </p>
                 <button type="button" className={styles.secondaryButton} style={{ width: '100%' }} onClick={onClose}>
                     Close
@@ -57,7 +48,16 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
     const [loading, setLoading] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const [description, setDescription] = useState<string | null>(null)
     const didLongPress = useRef(false)
+
+    useEffect(() => {
+        let cancelled = false
+        api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
+            if(!cancelled) setDescription(text)
+        })
+        return () => { cancelled = true }
+    }, [showId, ep.season, ep.episode])
 
     const startLongPress = useCallback(() => {
         didLongPress.current = false
@@ -84,7 +84,7 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
 
     return (
         <>
-            {modalOpen && <EpisodeDescriptionModal ep={ep} showId={showId} onClose={() => setModalOpen(false)} />}
+            {modalOpen && <EpisodeDescriptionModal ep={ep} description={description} onClose={() => setModalOpen(false)} />}
             <button
                 type="button"
                 className={`${styles.episodeButton} ${ep.watched ? styles.episodeWatched : ''} ${!isTracked ? styles.episodeDisabled : ''}`}
@@ -93,8 +93,8 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
                 onTouchStart={startLongPress}
-                // onTouchEnd={cancelLongPress}
-                // onTouchCancel={cancelLongPress}
+                onTouchEnd={cancelLongPress}
+                onTouchCancel={cancelLongPress}
                 title={`${ep.title} — hold to see description`}
                 disabled={loading}
             >
