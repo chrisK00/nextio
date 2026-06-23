@@ -19,11 +19,12 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
     const [description, setDescription] = useState<string | null>(null)
 
     useEffect(() => {
-        let cancelled = false
+        // let cancelled = false
         api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
-            if(!cancelled) setDescription(text)
+            setDescription(text)
+            // if(!cancelled) setDescription(text)
         })
-        return () => { cancelled = true }
+        // return () => { cancelled = true }
     }, [showId, ep.season, ep.episode])
 
     return (
