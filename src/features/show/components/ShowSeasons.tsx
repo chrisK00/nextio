@@ -21,7 +21,7 @@ function EpisodeDescriptionModal({ ep, showId, onClose }: { ep: Episode; showId:
     useEffect(() => {
         let cancelled = false
         api.getEpisodeDetail(showId, ep.season, ep.episode).then((text) => {
-            if (!cancelled) setDescription(text)
+            if(!cancelled) setDescription(text)
         })
         return () => { cancelled = true }
     }, [showId, ep.season, ep.episode])
@@ -68,12 +68,12 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
     }, [])
 
     const cancelLongPress = useCallback(() => {
-        if (longPressTimer.current) clearTimeout(longPressTimer.current)
+        if(longPressTimer.current) clearTimeout(longPressTimer.current)
     }, [])
 
     const handleClick = async () => {
-        if (didLongPress.current) return   // long-press consumed the interaction
-        if (!isTracked || loading) return
+        if(didLongPress.current) return   // long-press consumed the interaction
+        if(!isTracked || loading) return
         setLoading(true)
         try {
             await onToggleEpisode(showId, seasonNum, ep.episode)
@@ -93,7 +93,12 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
                 onTouchStart={startLongPress}
-                onTouchEnd={cancelLongPress}
+                onTouchEnd={(e) => {
+                    cancelLongPress()
+                    if(didLongPress.current) {
+                        e.preventDefault() // Blocks browser ghost clicks that trigger component cleanup
+                    }
+                }}
                 onTouchCancel={cancelLongPress}
                 title={`${ep.title} — hold to see description`}
                 disabled={loading}
