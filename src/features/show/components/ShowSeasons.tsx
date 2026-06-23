@@ -82,7 +82,7 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
     const wasLongPress = useRef(false)
 
     // Using PointerEvents simplifies Mouse + Touch into a unified system
-    const startPress = useCallback((e: React.PointerEvent) => {
+    const startPress = useCallback(() => {
         wasLongPress.current = false
         longPressTimer.current = setTimeout(() => {
             wasLongPress.current = true
