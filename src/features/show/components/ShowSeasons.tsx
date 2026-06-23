@@ -93,8 +93,8 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
                 onTouchStart={startLongPress}
-                // onTouchEnd={cancelLongPress}
-                // onTouchCancel={cancelLongPress}
+                onTouchEnd={cancelLongPress}
+                onTouchCancel={cancelLongPress}
                 title={`${ep.title} — hold to see description`}
                 disabled={loading}
             >
