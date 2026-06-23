@@ -37,7 +37,7 @@ function CardInner({ show, action, compact, showReleaseDate, hideEpisodeTitle }:
 }
 
 export default function ShowCard({ show, action, onClick, compact = false, showReleaseDate = false, hideEpisodeTitle = false }: ShowCardProps) {
-    if (!onClick) {
+    if(!onClick) {
         return (
             <div className={styles.showCardButton}>
                 <CardInner show={show} action={action} compact={compact} showReleaseDate={showReleaseDate} hideEpisodeTitle={hideEpisodeTitle} />
@@ -50,7 +50,7 @@ export default function ShowCard({ show, action, onClick, compact = false, showR
             role="button"
             tabIndex={0}
             onClick={() => onClick(show)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(show) } }}
+            onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(show) } }}
         >
             <CardInner show={show} action={action} compact={compact} showReleaseDate={showReleaseDate} hideEpisodeTitle={hideEpisodeTitle} />
         </div>

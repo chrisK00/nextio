@@ -35,8 +35,6 @@
 
 .bottomNavButton svg { opacity: 0.9 }
 
-.bottomNavButton span { font-size: 0.78rem }
-
 .bottomNavActive { background: var(--accent-bg); color: var(--accent) }
 
 @media (max-width: 520px) {
@@ -47,11 +45,8 @@
 		right: 6px;
 	}
 	.bottomNavButton {
-		padding: 6px 4px;
+		padding: 12px 4px;
 		min-height: 34px;
 		gap: 3px;
-	}
-	.bottomNavButton span {
-		font-size: 0.72rem;
 	}
 }
