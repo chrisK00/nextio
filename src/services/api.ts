@@ -12,6 +12,18 @@ export function normalizeSearchResults(results?: Partial<SearchResults> | null):
 	}
 }
 
+export function normalizeId(id: string): string {
+	if(id.startsWith('tv:')) {
+		return id.slice(3);
+	}
+
+	if(id.startsWith('movie:')) {
+		return id.slice(6);
+	}
+
+	return id;
+}
+
 function mapSearchItem(result: Record<string, unknown>): TvShow {
 	const mediaType = String(result.mediaType ?? result.MediaType ?? result['mediaType'] ?? 'tv') as 'tv' | 'movie'
 	const title = String(result.title ?? result.Title ?? result.name ?? result.Name ?? 'Untitled')
@@ -211,7 +223,7 @@ export async function removeLibraryMovie(id: string): Promise<void> {
 }
 
 export async function setLibraryMovieWatched(id: string, watched: boolean): Promise<void> {
-	await fetchWithAuth(`/library/movies/${encodeURIComponent(id)}/watched`, {
+	await fetchWithAuth(`/library/movies/${encodeURIComponent(normalizeId(id))}/watched`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ watched }),
