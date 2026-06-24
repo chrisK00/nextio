@@ -578,7 +578,7 @@ input:focus-visible {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	margin-bottom: 14px;
+	margin-bottom: 10px;
 	align-items: stretch;
 }
 
@@ -597,8 +597,8 @@ input:focus-visible {
 }
 
 .detailThumbnail {
-	width: 96px;
-	height: 136px;
+	width: 100px;
+	height: 140px;
 	border-radius: 18px;
 	overflow: hidden;
 	box-shadow: var(--shadow);
@@ -625,18 +625,18 @@ input:focus-visible {
 }
 
 .showDescription {
-	margin: 0 0 20px;
+	margin: 0 0 10px;
 	line-height: 1.6;
 }
 
 .seasonsContainer {
 	display: grid;
-	gap: 24px;
+	gap: 18px;
 }
 
 .seasonSection {
 	border-top: 2px solid var(--border);
-	padding-top: 20px;
+	padding-top: 15px;
 }
 
 .seasonSection h3 {

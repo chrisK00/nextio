@@ -18,6 +18,7 @@ type ShowDetailPanelProps = {
 export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, onToggleMovieWatched, isMovieWatched = false, isTracked, onRefetch }: ShowDetailPanelProps) {
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
 	const displayShow = localShow ?? show
+	const maxDescriptionLength = 40;
 
 	const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
 	const description = show?.description || '';
@@ -141,8 +142,8 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 			</div>
 
 			<p className={styles.showDescription}>
-				{isDescriptionExpanded || description.length <= 140 ? description : `${description.slice(0, 140)}... `}
-				{description.length > 140 && (
+				{isDescriptionExpanded || description.length <= maxDescriptionLength ? description : `${description.slice(0, maxDescriptionLength)}... `}
+				{description.length > maxDescriptionLength && (
 					<button onClick={() => setDescriptionExpanded(!isDescriptionExpanded)} style={{ border: 'none', background: 'none', color: '#0070f3', cursor: 'pointer', fontWeight: 'bold' }}>
 						{isDescriptionExpanded ? 'Less' : 'More'}
 					</button>
