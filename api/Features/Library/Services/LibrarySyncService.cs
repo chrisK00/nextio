@@ -42,7 +42,7 @@ public sealed class LibrarySyncService(
                 Episode = details.NextEpisodeToAir.EpisodeNumber,
                 Title = details.NextEpisodeToAir.Name,
                 UpdatedAt = DateTime.UtcNow,
-                AirDate = DateTime.Parse(details.NextEpisodeToAir?.AirDate)
+                AirDate = DateTime.Parse(details.NextEpisodeToAir?.AirDate).AddMinutes(-1) // because we dont get time from tmdb right now, we dont want date 00:00, 23:59 is more accurate
             } : null;
             show.SeasonsMetadata = details.Seasons.Select(x => new ShowSeasonMetadata
             {

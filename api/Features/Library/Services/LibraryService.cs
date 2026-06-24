@@ -285,7 +285,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         show.IsFollowing = false;
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
-        _cache.Remove(GetTvShowCacheKey(show.ShowId));
+
     }
 
     public async Task RemoveMovieAsync(Guid userId, string id, CancellationToken cancellationToken = default)
