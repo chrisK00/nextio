@@ -37,8 +37,12 @@ export default function useShows(status: ShowStatus) {
                 case 'unwatched':
                     // Show appears here when there's a next episode to watch that has already aired.
                     // We exclude it when nextUserEpisode == nextAiringEpisode (still in the future).
-                    return show.nextUserEpisode &&
-                        (show.nextUserEpisode.episode != show.nextAiringEpisode?.episode && show.nextUserEpisode.season != show.nextAiringEpisode?.season);
+
+                    // 1. '!!' forces a strict boolean return if nextUserEpisode is missing (avoids returning null/undefined).
+                    return !!show.nextUserEpisode && (
+                        show.nextUserEpisode.episode !== show.nextAiringEpisode?.episode ||
+                        show.nextUserEpisode.season !== show.nextAiringEpisode?.season
+                    );
                 case 'upcoming':
                     return Boolean(show.nextAiringEpisode)
             }
