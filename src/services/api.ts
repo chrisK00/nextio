@@ -180,7 +180,7 @@ export async function getLibraryTvShow(id: string): Promise<LibraryTvShowDetails
 function normalizeLibrary<T>(data: unknown): LibraryResponse<T> {
 	const payload = data as Partial<LibraryResponse<T>> | null
 	return {
-		items: Array.isArray(payload?.items) ? payload!.items : [],
+		items: Array.isArray(payload?.items) ? payload!.items.filter(x => x) : [],
 		length: Number.isInteger(payload?.length) ? payload!.length! : 0,
 	}
 }

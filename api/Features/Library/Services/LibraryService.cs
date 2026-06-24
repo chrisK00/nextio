@@ -105,7 +105,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             catch (Exception ex)
             {
                 logger.LogError("Failed getting next user episode for {showid}. {message}", show.ShowId, ex.Message);
-                throw;
+                return null;
             }
 
             return new TvShowItem(
