@@ -72,6 +72,7 @@ public sealed class LibrarySyncService(
                 .Include(x => x.SeasonsMetadata)
                 .Where(x => x.IsFollowing)
                 .OrderBy(x => x.Title)
+                .AsSplitQuery()
                 .ToListAsync(cancellationToken);
 
             var items = new List<Models.LibrarySyncItem>(shows.Count);
