@@ -74,6 +74,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         var url = $"tv/{parsedShowId}/season/{season}/episode/{episode}?language=en-US";
         try
         {
+            logger.LogInformation("TODO");
             return await _httpClient.GetFromJsonAsync<TmdbEpisode>(AppendApiKey(url), cancellationToken);
         }
         catch (Exception ex)
@@ -85,6 +86,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
 
     public async Task<SearchDetailResponse?> GetDetailsAsync(string mediaType, string showId, CancellationToken cancellationToken = default)
     {
+        logger.LogInformation("TODO");
         var parsedShowId = TmdbShowIdExtractor.Extract(showId);
         var endpoint = string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase) ? $"movie/{parsedShowId}" : $"tv/{parsedShowId}";
         var url = $"{endpoint}?language=en-US";
@@ -94,6 +96,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse?>(AppendApiKey(url), cancellationToken);
             if (response == null)
             {
+                logger.LogInformation("TMDB could not find: {mediaType} {showId}", mediaType, showId);
                 return null;
             }
 
