@@ -50,12 +50,13 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         return new SearchResponse(tvShows, movies);
     }
 
-    public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, CancellationToken cancellationToken = default)
+    public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, SemaphoreSlim tmdbRateLimiter, CancellationToken cancellationToken = default)
     {
         var parsedShowId = TmdbShowIdExtractor.Extract(showId);
         var url = $"tv/{parsedShowId}/season/{season}";
         try
         {
+            await tmdbRateLimiter.WaitAsync(cancellationToken);
             var response = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(AppendApiKey(url), cancellationToken);
 
             return response;
@@ -65,6 +66,10 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         {
             logger.LogError("Failed to fetch season info for show: {showId}, season: {season}. Url: {url}. Error: {error}", parsedShowId, season, url, ex.Message);
             return null;
+        }
+        finally
+        {
+            tmdbRateLimiter.Release();
         }
     }
 

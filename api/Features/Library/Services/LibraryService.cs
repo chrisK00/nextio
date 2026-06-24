@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Data;
 using Features.Library.Models;
 using Features.Search.Services;
@@ -28,18 +27,15 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
     private readonly ILibrarySyncService _syncService = syncService;
     private readonly IMemoryCache _cache = cache;
     private static readonly TimeSpan EpisodeCacheTtl = TimeSpan.FromHours(6);
-    private string GetTvShowCacheKey(string showId)
-    {
-        return $"{showId}";
-    }
+    private static string GetTvShowCacheKey(string showId) => showId;
 
-    private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, CancellationToken cancellationToken = default)
+    private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, SemaphoreSlim tmdbRateLimiter, CancellationToken cancellationToken = default)
     {
         var cacheKey = GetTvShowCacheKey(showId);
         if (_cache.TryGetValue(cacheKey, out TvEpisodeItem? cached))
             return cached;
 
-        var season = await tmdbApi.GetSeasonInfoAsync(showId, seasonNumber, cancellationToken);
+        var season = await tmdbApi.GetSeasonInfoAsync(showId, seasonNumber, tmdbRateLimiter, cancellationToken);
         if (season == null) return null;
 
         var episode = season.Episodes.FirstOrDefault(x => x.EpisodeNumber == episodeNumber);
@@ -47,32 +43,34 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
         var item = new TvEpisodeItem(season.SeasonNumber, episode.EpisodeNumber, episode.Name,
             DateTime.TryParse(episode.AirDate, out var dt) ? dt : null, false);
+
         _cache.Set(cacheKey, item, new MemoryCacheEntryOptions()
         .SetAbsoluteExpiration(EpisodeCacheTtl)
         .SetSize(1));
+
         return item;
     }
 
-    private Task<TvEpisodeItem?> GetNextUserEpisodeAsync(string showId, UserTvShowEpisode? recentlyWatchedEpisode, List<ShowSeasonMetadata> seasonsmetadata, CancellationToken cancellationToken = default)
+    private Task<TvEpisodeItem?> GetNextUserEpisodeAsync(string showId, UserTvShowEpisode? recentlyWatchedEpisode, List<ShowSeasonMetadata> seasonsmetadata, SemaphoreSlim tmdbRateLimiter, CancellationToken cancellationToken = default)
     {
         // Case 1: No history - Start from Season 1, Episode 1
         if (recentlyWatchedEpisode is null)
         {
             return seasonsmetadata.Any(x => x.SeasonNumber == 1 && x.EpisodeCount > 0)
-                ? GetEpisodeAsync(showId, 1, 1, cancellationToken)
+                ? GetEpisodeAsync(showId, 1, 1, tmdbRateLimiter, cancellationToken)
                 : Task.FromResult<TvEpisodeItem?>(null);
         }
 
         // Case 2: Next episode in the current season
         if (seasonsmetadata.Any(x => x.SeasonNumber == recentlyWatchedEpisode.Season && x.EpisodeCount >= recentlyWatchedEpisode.Episode + 1))
         {
-            return GetEpisodeAsync(showId, recentlyWatchedEpisode.Season, recentlyWatchedEpisode.Episode + 1, cancellationToken);
+            return GetEpisodeAsync(showId, recentlyWatchedEpisode.Season, recentlyWatchedEpisode.Episode + 1, tmdbRateLimiter, cancellationToken);
         }
 
         // Case 3: First episode of the next season
         if (seasonsmetadata.Any(x => x.SeasonNumber == recentlyWatchedEpisode.Season + 1 && x.EpisodeCount > 0))
         {
-            return GetEpisodeAsync(showId, recentlyWatchedEpisode.Season + 1, 1, cancellationToken);
+            return GetEpisodeAsync(showId, recentlyWatchedEpisode.Season + 1, 1, tmdbRateLimiter, cancellationToken);
         }
 
         return Task.FromResult<TvEpisodeItem?>(null);
@@ -80,8 +78,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
     public async Task<LibraryResponse<TvShowItem>> GetTvShowLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
         var tvEntities = await _db.UserTvShows
             .AsNoTracking()
             .Include(x => x.Episodes)
@@ -90,10 +86,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             .OrderByDescending(x => x.UpdatedAt)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
-        stopwatch.Stop();
 
-        logger.LogError($"stop1 {stopwatch.ElapsedMilliseconds} ms");
-        stopwatch.Restart();
+        var tmdbRateLimiter = new SemaphoreSlim(50, 50);
         var tvShows = tvEntities.Select(async show =>
         {
             // TODO fix bugg where if for example user watches season 3 e1 but not season 2 e1 we will only check after season 3 e1
@@ -106,11 +100,11 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             TvEpisodeItem? nextUserEpisode = null;
             try
             {
-                nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, cancellationToken);
+                nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, tmdbRateLimiter, cancellationToken);
             }
             catch (Exception ex)
             {
-                logger.LogError("Failed getting next user episode for {showid}. {message}", show.ShowId, ex.Message);
+                logger.LogError("Failed calculating next user episode for {showid}. {message}", show.ShowId, ex.Message);
                 return null;
             }
 
@@ -126,8 +120,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                             new TvEpisodeItem(
                                 show.NextEpisodeToAir?.Season ?? 0,
                                 show.NextEpisodeToAir?.Episode ?? 0,
-                                show.NextEpisodeToAir.Title,
-                                show.NextEpisodeToAir.AirDate,
+                                show.NextEpisodeToAir?.Title ?? "TODO",
+                                show.NextEpisodeToAir?.AirDate,
                                 false
                             ) : null,
                             show.FollowedAt,
@@ -142,8 +136,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         });
 
         var awaitedShows = await Task.WhenAll(tvShows);
-        stopwatch.Stop();
-        logger.LogError($"stop2 {stopwatch.ElapsedMilliseconds} ms");
 
         return new LibraryResponse<TvShowItem>(awaitedShows, awaitedShows.Length);
     }

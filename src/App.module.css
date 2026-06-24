@@ -666,7 +666,7 @@ input:focus-visible {
 	gap: 6px;
 }
 
-.episodeButton:hover {
+.episodeButton:focus {
 	border-color: var(--accent);
 	background: var(--accent-bg);
 	transform: translateY(-2px);
