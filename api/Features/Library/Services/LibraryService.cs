@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Data;
 using Features.Library.Models;
 using Features.Search.Services;
@@ -79,14 +80,20 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
     public async Task<LibraryResponse<TvShowItem>> GetTvShowLibraryAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
         var tvEntities = await _db.UserTvShows
             .AsNoTracking()
             .Include(x => x.Episodes)
             .Include(x => x.SeasonsMetadata)
             .Where(x => x.UserId == userId && x.IsFollowing)
             .OrderByDescending(x => x.UpdatedAt)
+            .AsSplitQuery()
             .ToListAsync(cancellationToken);
+        stopwatch.Stop();
 
+        logger.LogError($"stop1 {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Restart();
         var tvShows = tvEntities.Select(async show =>
         {
             // TODO fix bugg where if for example user watches season 3 e1 but not season 2 e1 we will only check after season 3 e1
@@ -99,7 +106,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             TvEpisodeItem? nextUserEpisode = null;
             try
             {
-
                 nextUserEpisode = await GetNextUserEpisodeAsync(show.ShowId, mostRecentlyWatchedEpisode, show.SeasonsMetadata, cancellationToken);
             }
             catch (Exception ex)
@@ -136,6 +142,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         });
 
         var awaitedShows = await Task.WhenAll(tvShows);
+        stopwatch.Stop();
+        logger.LogError($"stop2 {stopwatch.ElapsedMilliseconds} ms");
 
         return new LibraryResponse<TvShowItem>(awaitedShows, awaitedShows.Length);
     }

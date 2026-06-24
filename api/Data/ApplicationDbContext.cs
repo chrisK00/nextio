@@ -37,6 +37,11 @@ namespace Data
                     builder.WithOwner().HasForeignKey("UserTvShowId");
                     builder.HasKey("UserTvShowId", nameof(ShowSeasonMetadata.SeasonNumber));
                 });
+
+            modelBuilder.Entity<UserTvShow>()
+            .HasIndex(x => new { x.UserId, x.IsFollowing, x.UpdatedAt })
+            .HasDatabaseName("IX_UserTvShows_UserId_IsFollowing_UpdatedAt")
+            .IsDescending(false, false, true); // Matches: OrderByDescending(x => x.UpdatedAt)
         }
     }
 }
