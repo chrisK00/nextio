@@ -64,7 +64,7 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
         longPressTimer.current = setTimeout(() => {
             didLongPress.current = true
             setModalOpen(true)
-        }, 500)
+        }, 1000)
     }, [])
 
     const cancelLongPress = useCallback(() => {
