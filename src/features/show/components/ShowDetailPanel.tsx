@@ -18,7 +18,7 @@ type ShowDetailPanelProps = {
 export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpisode, onFollowToggle, onToggleMovieWatched, isMovieWatched = false, isTracked, onRefetch }: ShowDetailPanelProps) {
 	const [localShow, setLocalShow] = useState<TvShow | null>(show)
 	const displayShow = localShow ?? show
-	const maxDescriptionLength = 40;
+	const maxDescriptionLength = 36;
 
 	const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
 	const description = show?.description || '';

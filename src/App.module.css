@@ -631,12 +631,12 @@ input:focus-visible {
 
 .seasonsContainer {
 	display: grid;
-	gap: 18px;
+	gap: 24px;
 }
 
 .seasonSection {
 	border-top: 2px solid var(--border);
-	padding-top: 15px;
+	padding-top: 20px;
 }
 
 .seasonSection h3 {
