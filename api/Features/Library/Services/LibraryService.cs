@@ -27,10 +27,14 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
     private readonly ILibrarySyncService _syncService = syncService;
     private readonly IMemoryCache _cache = cache;
     private static readonly TimeSpan EpisodeCacheTtl = TimeSpan.FromHours(6);
+    private string GetTvShowCacheKey(string showId)
+    {
+        return $"{showId}";
+    }
 
     private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"ep:{showId}:{seasonNumber}:{episodeNumber}";
+        var cacheKey = GetTvShowCacheKey(showId);
         if (_cache.TryGetValue(cacheKey, out TvEpisodeItem? cached))
             return cached;
 
@@ -281,6 +285,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         show.IsFollowing = false;
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
+        _cache.Remove(GetTvShowCacheKey(show.ShowId));
     }
 
     public async Task RemoveMovieAsync(Guid userId, string id, CancellationToken cancellationToken = default)
@@ -340,6 +345,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
+        _cache.Remove(GetTvShowCacheKey(show.ShowId));
     }
 
     public async Task SetEpisodesAsync(Guid userId, string id, BulkUpdateEpisodeRequest request, CancellationToken cancellationToken = default)
@@ -378,6 +384,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
+        _cache.Remove(GetTvShowCacheKey(show.ShowId));
     }
 
     public async Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default)
@@ -389,5 +396,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         _db.UserTvShowEpisodes.RemoveRange(show.Episodes);
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
+        _cache.Remove(GetTvShowCacheKey(show.ShowId));
     }
 }
