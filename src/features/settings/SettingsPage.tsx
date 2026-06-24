@@ -53,6 +53,8 @@ export default function SettingsPage() {
       ])
       const data = {
         exportedAt: new Date().toISOString(),
+        totalShows: tvDetails.length,
+        totalMovies: movieLibrary.items.length,
         tvShows: tvDetails.filter(Boolean).map((d) => ({
           id: d!.show.id,
           title: d!.show.title,
@@ -60,8 +62,6 @@ export default function SettingsPage() {
           posterUrl: d!.show.posterUrl,
           episodes: d!.episodes.map((e) => ({ season: e.season, episode: e.episode, watched: e.watched })),
         })),
-        totalShows: tvDetails.length,
-        totalMovies: movieLibrary.items.length,
         movies: movieLibrary.items.map((m) => ({ id: m.id, title: m.title, posterUrl: m.posterUrl, releaseDate: m.releaseDate, watched: m.watched })),
       }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
           await api.addLibraryTvShow(showToAdd)
           const watchedEpisodes = show.episodes?.filter((e) => e.watched) ?? []
-          if (watchedEpisodes.length > 0) {
+          if(watchedEpisodes.length > 0) {
             await api.setLibraryEpisodesWatchedBulk(show.id, watchedEpisodes.map(ep => ({ season: ep.season, episode: ep.episode, watched: true })))
           }
           tvCount++
