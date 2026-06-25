@@ -26,7 +26,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
     private readonly ApplicationDbContext _db = db;
     private readonly ILibrarySyncService _syncService = syncService;
     private readonly IMemoryCache _cache = cache;
-    private static readonly TimeSpan EpisodeCacheTtl = TimeSpan.FromHours(6);
+    private static readonly TimeSpan EpisodeCacheTtlMax = TimeSpan.FromHours(24);
+    private static readonly TimeSpan EpisodeCacheTtlSliding = TimeSpan.FromHours(12);
     private static string GetTvShowCacheKey(string showId) => showId;
 
     private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, SemaphoreSlim tmdbRateLimiter, CancellationToken cancellationToken = default)
@@ -45,7 +46,10 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             DateTime.TryParse(episode.AirDate, out var dt) ? dt : null, false);
 
         _cache.Set(cacheKey, item, new MemoryCacheEntryOptions()
-        .SetAbsoluteExpiration(EpisodeCacheTtl)
+        // Default to 12 hours, extends by 12 hours every time it's accessed
+        .SetSlidingExpiration(EpisodeCacheTtlSliding)
+        // Hard stop at 24 hours total, no matter how many times it's accessed
+        .SetAbsoluteExpiration(EpisodeCacheTtlMax)
         .SetSize(1));
 
         return item;

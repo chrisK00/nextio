@@ -23,11 +23,14 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 	const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
 	const description = show?.description || '';
 
+	// const nextEpisodeDateString = displayShow?.nextAiringEpisode?.releaseDate ? new Date(displayShow?.nextAiringEpisode?.releaseDate)
+	// 	.toLocaleString([], {
+	// 		dateStyle: 'medium',
+	// 		timeStyle: 'short'
+	// 	})
+	// 	: null;
 	const nextEpisodeDateString = displayShow?.nextAiringEpisode?.releaseDate ? new Date(displayShow?.nextAiringEpisode?.releaseDate)
-		.toLocaleString([], {
-			dateStyle: 'medium',
-			timeStyle: 'short'
-		})
+		.toDateString()
 		: null;
 
 	function recomputeCounts(s: TvShow) {

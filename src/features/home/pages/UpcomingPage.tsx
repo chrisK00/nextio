@@ -17,20 +17,27 @@ function UpcomingCard({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
     const countdown = getReleaseCountdown(show)
     const isToday = countdown === 'Today'
 
-    const releaseDate = show.nextAiringEpisode?.releaseDate
-        ? new Date(show.nextAiringEpisode.releaseDate)
-        : null
+    const currentYear = new Date().getFullYear();
+    const airDate = new Date(show.nextAiringEpisode!.releaseDate);
+
+    const displayReleaseDate = airDate.getFullYear() === currentYear
+        ? airDate.toLocaleDateString('en-UK', { weekday: 'short', month: 'short', day: 'numeric' }) // "Thu, Jun 25"
+        : airDate.toLocaleDateString('en-UK', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); // "Sun, Jan 3, 2027"
+
+    // const releaseDate = show.nextAiringEpisode?.releaseDate
+    //     ? new Date(show.nextAiringEpisode.releaseDate).toDateString()
+    //     : null
 
     // Show time only if it's not midnight (i.e. TMDb provided an actual time)
-    const hasTime = releaseDate && (releaseDate.getHours() !== 0 || releaseDate.getMinutes() !== 0)
+    // const hasTime = releaseDate && (releaseDate.getHours() !== 0 || releaseDate.getMinutes() !== 0)
 
-    const dateString = releaseDate
-        ? releaseDate.toLocaleDateString([], { dateStyle: 'medium' })
-        : null
+    // const dateString = releaseDate
+    //     ? releaseDate.toLocaleDateString([], { dateStyle: 'medium' })
+    //     : null
 
-    const timeString = hasTime
-        ? releaseDate!.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : null
+    // const timeString = hasTime
+    //     ? releaseDate!.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    //     : null
 
     return (
         <button type="button" className={styles.upcomingCard} onClick={() => onClick(show)}>
@@ -42,9 +49,10 @@ function UpcomingCard({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
             <div className={styles.upcomingCardInfo}>
                 <strong className={styles.upcomingTitle}>{show.title}</strong>
                 <span>S{show.nextAiringEpisode?.season} E{show.nextAiringEpisode?.episode} · {show.nextAiringEpisode?.title}</span>
-                {dateString && (
+                {displayReleaseDate && (
                     <span className={styles.upcomingNetwork}>
-                        {dateString}{timeString ? ` at ${timeString}` : ''}
+                        {/* {releaseDate}{timeString ? ` at ${timeString}` : ''} */}
+                        {displayReleaseDate}
                     </span>
                 )}
             </div>
@@ -62,7 +70,7 @@ export default function UpcomingPage() {
     const filter = (searchParams.get('filter') as UpcomingFilter | null) ?? 'continue'
 
     const filteredShows = useMemo(() => {
-        if (filter === 'continue') {
+        if(filter === 'continue') {
             // Only shows where the user has already started watching
             return shows.filter((s) => (s.episodesWatched ?? 0) > 0)
         }
@@ -71,7 +79,7 @@ export default function UpcomingPage() {
 
     function setFilter(next: UpcomingFilter) {
         const params = new URLSearchParams(searchParams)
-        if (next === 'continue') {
+        if(next === 'continue') {
             params.delete('filter')
         } else {
             params.set('filter', next)
@@ -79,7 +87,7 @@ export default function UpcomingPage() {
         setSearchParams(params)
     }
 
-    if (loading) {
+    if(loading) {
         return <main className={styles.mainPanel}><div className={styles.loadingBar} /></main>
     }
 
