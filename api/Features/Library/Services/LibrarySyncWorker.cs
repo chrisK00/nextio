@@ -16,46 +16,36 @@ public sealed class LibrarySyncWorker(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            // If we are currently inside the allowed window, run the sync
-            if (IsInsideExecutionWindow(DateTimeOffset.Now))
+
+            var stopwatch = Stopwatch.StartNew();
+            _logger.LogInformation("Starting library sync job...");
+
+            try
             {
-                var stopwatch = Stopwatch.StartNew();
-                _logger.LogInformation("Starting library sync job...");
-
-                try
-                {
-                    await RunSyncAsync(stoppingToken);
-                    _lastRunFailed = false; // Success
-                }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Library sync worker failed during execution.");
-                    _lastRunFailed = true; // Trigger retry logic for next delay calculation
-                }
-                finally
-                {
-                    stopwatch.Stop();
-                    _logger.LogInformation("Library sync execution finished. Duration: {Duration}", stopwatch.Elapsed);
-                }
+                await RunSyncAsync(stoppingToken);
+                _lastRunFailed = false; // Success
             }
-
-            // Calculate delay until the next target window
-            var delay = GetDelayUntilNextRun(DateTimeOffset.Now, _lastRunFailed);
-            _logger.LogInformation("Next library sync scheduled at {NextRun}", DateTimeOffset.Now.Add(delay).ToLocalTime());
-
-            await Task.Delay(delay, stoppingToken);
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Library sync worker failed during execution.");
+                _lastRunFailed = true; // Trigger retry logic for next delay calculation
+            }
+            finally
+            {
+                stopwatch.Stop();
+                _logger.LogInformation("Library sync execution finished. Duration: {Duration}", stopwatch.Elapsed);
+            }
         }
-    }
 
-    private static bool IsInsideExecutionWindow(DateTimeOffset now)
-    {
-        var time = now.ToLocalTime().TimeOfDay;
-        // Allows execution if we land exactly on or slightly after our key targets
-        return time >= TimeSpan.FromMinutes(1) && time <= TimeSpan.FromHours(6);
+        // Calculate delay until the next target window
+        var delay = GetDelayUntilNextRun(DateTimeOffset.Now, _lastRunFailed);
+        _logger.LogInformation("Next library sync scheduled at {NextRun}", DateTimeOffset.Now.Add(delay).ToLocalTime());
+
+        await Task.Delay(delay, stoppingToken);
     }
 
     private static TimeSpan GetDelayUntilNextRun(DateTimeOffset now, bool lastRunFailed)
