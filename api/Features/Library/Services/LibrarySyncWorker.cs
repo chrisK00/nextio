@@ -16,7 +16,6 @@ public sealed class LibrarySyncWorker(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-
             var stopwatch = Stopwatch.StartNew();
             _logger.LogInformation("Starting library sync job...");
 
@@ -39,13 +38,13 @@ public sealed class LibrarySyncWorker(
                 stopwatch.Stop();
                 _logger.LogInformation("Library sync execution finished. Duration: {Duration}", stopwatch.Elapsed);
             }
+
+            // Calculate delay until the next target window
+            var delay = GetDelayUntilNextRun(DateTimeOffset.Now, _lastRunFailed);
+            _logger.LogInformation("Next library sync scheduled at {NextRun}", DateTimeOffset.Now.Add(delay).ToLocalTime());
+
+            await Task.Delay(delay, stoppingToken);
         }
-
-        // Calculate delay until the next target window
-        var delay = GetDelayUntilNextRun(DateTimeOffset.Now, _lastRunFailed);
-        _logger.LogInformation("Next library sync scheduled at {NextRun}", DateTimeOffset.Now.Add(delay).ToLocalTime());
-
-        await Task.Delay(delay, stoppingToken);
     }
 
     private static TimeSpan GetDelayUntilNextRun(DateTimeOffset now, bool lastRunFailed)
