@@ -304,12 +304,15 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    private string ConvertIdToTmdbMovieId(string id) => $"movie:{id}";
     public async Task SetMovieWatchedAsync(Guid userId, string id, bool watched, CancellationToken cancellationToken = default)
     {
-        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && x.MovieId == id, cancellationToken);
+        var tmdbId = ConvertIdToTmdbMovieId(id);
+        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && x.MovieId == tmdbId, cancellationToken);
+        // TODO error result instead
         if (movie is null)
         {
-            return;
+            throw new KeyNotFoundException($"Movie with id {tmdbId} was not found");
         }
 
         movie.IsWatched = watched;

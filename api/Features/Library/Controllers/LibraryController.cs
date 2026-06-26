@@ -80,8 +80,16 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
     public async Task<IActionResult> SetMovieWatched(string id, [FromBody] UpdateMovieWatchStatusRequest request, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-        await _libraryService.SetMovieWatchedAsync(userId, id, request.Watched, cancellationToken);
-        return NoContent();
+        try
+        {
+            await _libraryService.SetMovieWatchedAsync(userId, id, request.Watched, cancellationToken);
+            return NoContent();
+        }
+        catch (KeyNotFoundException e)
+        {
+
+            return NotFound(e.Message);
+        }
     }
 
     [HttpPost("tv/{id}/episodes")]
