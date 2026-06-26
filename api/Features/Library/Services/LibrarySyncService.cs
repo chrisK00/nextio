@@ -76,26 +76,47 @@ public sealed class LibrarySyncService(
                 .ToListAsync(cancellationToken);
 
             var items = new List<Models.LibrarySyncItem>(shows.Count);
+            var errors = new List<string>();
             var succeeded = 0;
 
+            var tmdbRateLimiter = new SemaphoreSlim(50, 50);
             // TODO store synced shows in dict and reuse info so dont make multiple calls to TMDb for same show if multiple users has same show in library
             foreach (var show in shows)
             {
-                await SyncShowAsync(show, cancellationToken);
-                if (show.SyncError is null)
+                try
                 {
-                    items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, true, "Synced successfully.", show.LastSyncedAt!.Value));
-                    succeeded++;
+                    await tmdbRateLimiter.WaitAsync(cancellationToken);
+                    await SyncShowAsync(show, cancellationToken);
+                    if (show.SyncError is null)
+                    {
+                        items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, true, "Synced successfully.", show.LastSyncedAt!.Value));
+                        succeeded++;
+                    }
+                    else
+                    {
+                        items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, false, show.SyncError, show.LastSyncedAt!.Value));
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, false, show.SyncError, show.LastSyncedAt!.Value));
+                    errors.Add($"Failed syncing {show.Id} for user {show.UserId}: {ex.Message}");
                 }
-                await Task.Delay(300, cancellationToken);
+                finally
+                {
+                    tmdbRateLimiter.Release();
+                }
             }
 
             await _db.SaveChangesAsync(cancellationToken);
-            _syncStatusStore.MarkSuccess(DateTime.UtcNow, $"Synced {succeeded} of {shows.Count} shows.");
+
+            if (errors.Count != 0)
+            {
+                _syncStatusStore.MarkFailure(DateTime.UtcNow, string.Join(", ", errors));
+            }
+            else
+            {
+                _syncStatusStore.MarkSuccess(DateTime.UtcNow, $"Synced {succeeded} of {shows.Count} shows.");
+            }
 
             return new Models.LibrarySyncResponse(
                 Total: shows.Count,
