@@ -33,6 +33,8 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 		.toDateString()
 		: null;
 
+	const isMovie = displayShow?.mediaType === 'movie';
+
 	function recomputeCounts(s: TvShow) {
 		const watched = (s.seasons ?? []).reduce((acc, season) => acc + season.episodes.filter((ep) => ep.watched).length, 0)
 		return { ...s, episodesWatched: watched }
@@ -145,15 +147,16 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 			</div>
 
 			<p className={styles.showDescription}>
-				{isDescriptionExpanded || description.length <= maxDescriptionLength ? description : `${description.slice(0, maxDescriptionLength)}... `}
-				{description.length > maxDescriptionLength && (
+				{isMovie || isDescriptionExpanded || description.length <= maxDescriptionLength ? description : `${description.slice(0, maxDescriptionLength)}... `}
+
+				{!isMovie && description.length > maxDescriptionLength && (
 					<button onClick={() => setDescriptionExpanded(!isDescriptionExpanded)} style={{ border: 'none', background: 'none', color: '#0070f3', cursor: 'pointer', fontWeight: 'bold' }}>
 						{isDescriptionExpanded ? 'Less' : 'More'}
 					</button>
 				)}
 			</p>
 
-			{displayShow?.mediaType !== 'movie' && displayShow?.seasons && displayShow.seasons.length > 0 && (
+			{!isMovie && displayShow?.seasons && displayShow.seasons.length > 0 && (
 				<ShowSeasons
 					showId={displayShow.id}
 					seasons={displayShow.seasons}
