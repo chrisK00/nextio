@@ -26,8 +26,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
     private readonly ApplicationDbContext _db = db;
     private readonly ILibrarySyncService _syncService = syncService;
     private readonly IMemoryCache _cache = cache;
-    private static readonly TimeSpan EpisodeCacheTtlMax = TimeSpan.FromHours(24);
-    private static readonly TimeSpan EpisodeCacheTtlSliding = TimeSpan.FromHours(12);
+    private static readonly TimeSpan EpisodeCacheTtlMax = TimeSpan.FromHours(48);
+    private static readonly TimeSpan EpisodeCacheTtlSliding = TimeSpan.FromHours(24);
     private static string GetTvShowCacheKey(string showId) => showId;
 
     private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, SemaphoreSlim tmdbRateLimiter, CancellationToken cancellationToken = default)
