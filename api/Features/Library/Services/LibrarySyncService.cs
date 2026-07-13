@@ -35,7 +35,6 @@ public sealed class LibrarySyncService(
             show.ReleaseDate = details.ReleaseDate;
             show.LastSyncedAt = DateTime.UtcNow;
             show.SyncError = null;
-            show.UpdatedAt = DateTime.UtcNow;
             show.NextEpisodeToAir = details.NextEpisodeToAir is not null ? new UserTvShowNextEpisode
             {
                 Season = details.NextEpisodeToAir.SeasonNumber,
@@ -56,9 +55,9 @@ public sealed class LibrarySyncService(
         }
         catch (Exception ex)
         {
+            // Keep the user's last activity timestamp intact; only record the sync attempt metadata.
             show.SyncError = ex.Message;
             show.LastSyncedAt = DateTime.UtcNow;
-            show.UpdatedAt = DateTime.UtcNow;
             _logger.LogError(ex, "Failed to sync TV show {ShowId}", show.ShowId);
         }
     }
