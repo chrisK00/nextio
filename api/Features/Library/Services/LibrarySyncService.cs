@@ -35,13 +35,19 @@ public sealed class LibrarySyncService(
             show.ReleaseDate = details.ReleaseDate;
             show.LastSyncedAt = DateTime.UtcNow;
             show.SyncError = null;
+            DateTime? parsedAirDate = null;
+            if (!string.IsNullOrWhiteSpace(details.NextEpisodeToAir?.AirDate) && DateTime.TryParse(details.NextEpisodeToAir.AirDate, out var dt))
+            {
+                parsedAirDate = dt.AddMinutes(-1);
+            }
+
             show.NextEpisodeToAir = details.NextEpisodeToAir is not null ? new UserTvShowNextEpisode
             {
                 Season = details.NextEpisodeToAir.SeasonNumber,
                 Episode = details.NextEpisodeToAir.EpisodeNumber,
                 Title = details.NextEpisodeToAir.Name,
                 UpdatedAt = DateTime.UtcNow,
-                AirDate = DateTime.Parse(details.NextEpisodeToAir?.AirDate).AddMinutes(-1) // because we dont get time from tmdb right now, we dont want date 00:00, 23:59 is more accurate
+                AirDate = parsedAirDate
             } : null;
             show.SeasonsMetadata = details.Seasons.Select(x => new ShowSeasonMetadata
             {

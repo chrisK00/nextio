@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ShowMediaType, type LibraryMovie } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
@@ -6,6 +6,7 @@ import styles from '../../../App.module.css'
 import { getLibrary, setLibraryMovieWatched } from '../../../services/api'
 import type { WatchlistItem } from '../../show/utils/show'
 import FilterButton from '../../../components/common/FilterButton'
+import { CiSearch } from "react-icons/ci"
 
 type MovieFilter = 'all' | 'watched' | 'unwatched'
 
@@ -15,19 +16,23 @@ const filters: { key: MovieFilter; label: string; tooltip: string }[] = [
   { key: 'unwatched', label: 'Unwatched', tooltip: 'Movies in your library you haven\'t watched yet.' },
 ]
 
+const cachedMovies: Record<string, WatchlistItem[]> = {}
+
 export default function MoviesPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [movies, setMovies] = useState<WatchlistItem[]>([])
-
   const filter = (searchParams.get('status') as MovieFilter | null) ?? 'all'
+  const [loading, setLoading] = useState(!cachedMovies[filter])
+  const [error, setError] = useState('')
+  const [movies, setMovies] = useState<WatchlistItem[]>(() => cachedMovies[filter] ?? [])
 
   useEffect(() => {
+    let mounted = true
     const fetchMovies = async () => {
       try {
-        setLoading(true)
+        if(!cachedMovies[filter]) {
+          setLoading(true)
+        }
         setError('')
         const response = await getLibrary<LibraryMovie>(ShowMediaType.Movie, filter === 'all' ? undefined : filter)
         const mapped: WatchlistItem[] = response.items.map((movie) => ({
@@ -46,16 +51,27 @@ export default function MoviesPage() {
           lastUpdatedAt: undefined,
         }))
 
-        setMovies(mapped)
+        if(mounted) {
+          cachedMovies[filter] = mapped
+          setMovies(mapped)
+          const savedScroll = sessionStorage.getItem('movies_scroll')
+          if(savedScroll) {
+            sessionStorage.removeItem('movies_scroll')
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: Number(savedScroll), behavior: 'instant' as ScrollBehavior })
+            })
+          }
+        }
       } catch (e: unknown) {
         console.error('Failed to fetch movies:', e)
-        setError(e instanceof Error ? e.message : 'Something went wrong')
+        if(mounted) setError(e instanceof Error ? e.message : 'Something went wrong')
       } finally {
-        setLoading(false)
+        if(mounted) setLoading(false)
       }
     }
 
     void fetchMovies()
+    return () => { mounted = false }
   }, [filter])
 
   async function toggleWatched(movie: WatchlistItem) {
@@ -76,8 +92,22 @@ export default function MoviesPage() {
   }
 
   function openMovie(movieId: string) {
+    sessionStorage.setItem('movies_scroll', String(window.scrollY))
     const normalizedMovieId = movieId.startsWith('movie:') ? movieId.slice('movie:'.length) : movieId
     navigate(`/show/${encodeURIComponent(`movie:${normalizedMovieId}`)}`)
+  }
+
+  const [movieQuery, setMovieQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const filteredMovies = useMemo(() => {
+    if (!movieQuery.trim()) return movies
+    const q = movieQuery.toLowerCase().trim()
+    return movies.filter((m) => m.title.toLowerCase().includes(q))
+  }, [movies, movieQuery])
+
+  function focusSearch() {
+    searchInputRef.current?.focus()
   }
 
   function setFilter(nextFilter: MovieFilter) {
@@ -93,7 +123,7 @@ export default function MoviesPage() {
   if (loading) {
     return (
       <main className={styles.mainPanel}>
-        <div className={styles.emptyState}>Loading movies...</div>
+        <div className={styles.loadingBar} />
       </main>
     )
   }
@@ -109,8 +139,8 @@ export default function MoviesPage() {
   return (
     <main className={styles.mainPanel}>
       <section className={styles.tabContent}>
-        <div className={styles.settingsHeader}>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div className={styles.watchingToolbar}>
+          <div className={styles.sortControls}>
             {filters.map((item) => (
               <FilterButton
                 key={item.key}
@@ -121,11 +151,52 @@ export default function MoviesPage() {
               />
             ))}
           </div>
+          <div className={styles.librarySearchWrap}>
+            <button
+              className={styles.secondaryButton}
+              onClick={focusSearch}
+              type="button"
+              style={{ padding: '8px 12px', minHeight: '36px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              title="Focus Search"
+            >
+              <CiSearch size={18} />
+            </button>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={movieQuery}
+              onChange={(e) => setMovieQuery(e.target.value)}
+              placeholder="Filter by movie name..."
+              className={styles.librarySearchInput}
+            />
+            {movieQuery && (
+              <button
+                onClick={() => setMovieQuery('')}
+                className={styles.librarySearchClear}
+                type="button"
+                title="Clear filter"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
-        {movies.length === 0 ? (
+        {filteredMovies.length === 0 ? (
           <div className={styles.emptyState}>
-            {filter === 'unwatched'
+            {movieQuery ? (
+              <div>
+                <p>No saved movies matching "{movieQuery}" in this view.</p>
+                <button
+                  className={styles.primaryButton}
+                  style={{ marginTop: '12px' }}
+                  onClick={() => navigate(`/search`)}
+                  type="button"
+                >
+                  Search TMDb globally
+                </button>
+              </div>
+            ) : filter === 'unwatched'
               ? 'No unwatched movies yet.'
               : filter === 'watched'
                 ? 'No watched movies yet.'
@@ -133,7 +204,7 @@ export default function MoviesPage() {
           </div>
         ) : (
           <div className={styles.showGrid}>
-            {movies.map((movie) => (
+            {filteredMovies.map((movie) => (
               <ShowCard
                 key={movie.id}
                 show={movie}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import * as api from '../../../services/api'
 import type { SearchResults } from "../../../services/apiTypes"
+import { useAppContext } from '../../../state/AppContext'
 
 /**
  * Debounced search hook.
@@ -18,16 +19,15 @@ import type { SearchResults } from "../../../services/apiTypes"
  * @param query The raw (untrimmed) search string, usually bound to an `<input>`.
  */
 export default function useSearch(query: string) {
+  const { settings } = useAppContext()
   const [results, setResults] = useState<SearchResults | null>(null)
   const [loading, setLoading] = useState(false)
   const trimmedQuery = query.trim()
+  const nsfwEnabled = settings?.nsfwEnabled ?? false
 
   useEffect(() => {
     let mounted = true
     if(!trimmedQuery) {
-      // TODO
-      setResults(null)
-      setLoading(false)
       return () => { mounted = false }
     }
 
@@ -36,7 +36,7 @@ export default function useSearch(query: string) {
       void (async () => {
         setLoading(true)
         try {
-          const res = await api.searchShows(trimmedQuery)
+          const res = await api.searchShows(trimmedQuery, nsfwEnabled)
           if(!mounted) return
           setResults(res)
         } finally {
@@ -50,7 +50,7 @@ export default function useSearch(query: string) {
       mounted = false
       window.clearTimeout(timeout)
     }
-  }, [trimmedQuery])
+  }, [trimmedQuery, nsfwEnabled])
 
   return {
     results: trimmedQuery ? results : null,

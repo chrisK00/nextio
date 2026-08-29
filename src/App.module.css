@@ -206,15 +206,22 @@ input:focus-visible {
 
 .unwatchedGrid {
 	display: grid;
-	gap: 6px;
+	gap: 8px;
 	grid-template-columns: repeat(3, 1fr);
 	width: 100%;
 	box-sizing: border-box;
 }
 
+@media (max-width: 360px) {
+	.unwatchedGrid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
 /* Fixed height on the grid item — every card identical, no inheritance needed */
 .unwatchedGrid .showCardButton {
-	height: 250px;
+	height: auto;
+	min-height: 250px;
 	width: 100%;
 	box-sizing: border-box;
 	overflow: hidden;
@@ -236,12 +243,13 @@ input:focus-visible {
 }
 
 .unwatchedGrid .showCardBody {
-	flex: none;
+	flex: 1;
 	display: flex;
 	flex-direction: column;
-	padding: 6px 5px 6px;
-	gap: 3px;
+	padding: 6px 4px 6px;
+	gap: 4px;
 	overflow: hidden;
+	min-width: 0;
 }
 
 .unwatchedGrid .showCardTitle {
@@ -252,7 +260,7 @@ input:focus-visible {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	max-height: 2.4em;
-	font-size: 0.95rem;
+	font-size: 0.9rem;
 	line-height: 1.2;
 	flex-shrink: 0;
 }
@@ -265,29 +273,38 @@ input:focus-visible {
 .unwatchedGrid .showCardMeta {
 	flex-shrink: 0;
 	margin-top: auto;
+	width: 100%;
 }
 
 /* Footer groups episode title + badge with no gap between them */
 .unwatchedCardFooter {
 	display: flex;
-	align-items:center;
+	align-items: center;
 	justify-content: flex-end;
 	flex-direction: column;
-	gap: 2px;
+	gap: 3px;
+	width: 100%;
+	min-width: 0;
 }
 
 .unwatchedEpTitle {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	font-size: 0.75rem;
-	line-height: 1;
+	font-size: 0.72rem;
+	line-height: 1.2;
 	color: var(--text);
+	width: 100%;
+	text-align: center;
+	display: block;
 }
 
 .unwatchedGrid .badge {
-	padding: 2px 6px;
-	font-size: 1rem;
+	padding: 3px 8px;
+	font-size: 0.8rem;
+	width: auto;
+	max-width: 100%;
+	box-sizing: border-box;
 }
 
 .timelineList {
@@ -319,13 +336,67 @@ input:focus-visible {
 	flex-wrap: wrap;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 12px;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+
+.librarySearchWrap {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	position: relative;
+	max-width: 100%;
+}
+
+.librarySearchInput {
+	padding: 8px 30px 8px 12px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	background: var(--code-bg);
+	color: var(--text-h);
+	font: inherit;
+	font-size: 0.85rem;
+	min-height: 36px;
+	box-sizing: border-box;
+	width: 190px;
+	transition: all 0.2s ease;
+}
+
+.librarySearchInput:focus {
+	width: 230px;
+	border-color: var(--accent);
+}
+
+@media (max-width: 600px) {
+	.librarySearchWrap {
+		width: 100%;
+	}
+
+	.librarySearchInput {
+		flex: 1;
+		width: 100%;
+	}
+
+	.librarySearchInput:focus {
+		width: 100%;
+	}
+}
+
+.librarySearchClear {
+	position: absolute;
+	right: 10px;
+	background: none;
+	border: none;
+	color: var(--text);
+	cursor: pointer;
+	padding: 2px;
+	font-size: 0.8rem;
 }
 
 .sortControls {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10px;
+	gap: 8px;
 }
 
 .sortButton {
@@ -463,6 +534,8 @@ input:focus-visible {
 	box-sizing: border-box;
 	display: block;
 	text-align: left;
+	text-decoration: none;
+	color: inherit;
 }
 
 .showCardImage {
@@ -597,12 +670,12 @@ input:focus-visible {
 }
 
 .detailThumbnail {
-	width: 100px;
-	height: 140px;
-	border-radius: 18px;
-	overflow: hidden;
-	box-shadow: var(--shadow);
+	width: 90px;
+	height: 135px;
 	flex-shrink: 0;
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--code-bg);
 }
 
 .detailThumbnail img {
@@ -610,6 +683,63 @@ input:focus-visible {
 	height: 100%;
 	object-fit: cover;
 	display: block;
+}
+
+.stickyDetailHeader {
+	position: fixed;
+	top: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	width: min(100%, 1126px);
+	padding: 10px 16px;
+	background: var(--bg);
+	border-bottom: 1px solid var(--border);
+	box-shadow: var(--shadow);
+	z-index: 500;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	box-sizing: border-box;
+	cursor: pointer;
+	animation: modalFadeIn 0.2s ease-out;
+}
+
+.stickyTitle {
+	font-weight: 700;
+	color: var(--text-h);
+	font-size: 1rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.stickyScrollHint {
+	font-size: 0.8rem;
+	color: var(--accent);
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.detailHeaderInfo {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+	text-align: left;
+}
+
+.nextUserEpisodeBanner {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 12px;
+	background: var(--accent-bg);
+	border: 1px solid var(--accent-border);
+	border-radius: 12px;
+	margin-top: 4px;
+	flex-wrap: wrap;
 }
 
 .detailHeader h2 {
@@ -700,6 +830,12 @@ input:focus-visible {
 	text-overflow: ellipsis;
 	max-height: 2.4em;
 	line-height: 1.2;
+}
+
+.episodeAirDate {
+	font-size: 0.7rem;
+	color: var(--text);
+	opacity: 0.75;
 }
 
 .badge {
@@ -890,6 +1026,41 @@ input:focus-visible {
 	}
 }
 
+.calendarContainer {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	text-align: left;
+}
+
+.calendarDateGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.calendarDateHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	background: var(--code-bg);
+	border-left: 4px solid var(--accent);
+	border-radius: 8px;
+	font-weight: 700;
+	font-size: 0.95rem;
+	color: var(--text-h);
+}
+
+.calendarCountBadge {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--accent);
+	background: var(--accent-bg);
+	padding: 2px 8px;
+	border-radius: 999px;
+}
+
 .upcomingCard {
 	all: unset;
 	display: flex;
@@ -901,6 +1072,8 @@ input:focus-visible {
 	border-radius: 16px;
 	border: 1px solid var(--border);
 	background: var(--code-bg);
+	color: inherit;
+	text-decoration: none;
 	cursor: pointer;
 	transition: all 0.18s ease;
 }
@@ -928,6 +1101,15 @@ input:focus-visible {
 	min-width: 0;
 	text-align: left;
 	font-size: 0.9rem;
+	overflow: hidden;
+}
+
+.upcomingCardInfo > span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: block;
+	max-width: 100%;
 }
 
 .upcomingItemButton {

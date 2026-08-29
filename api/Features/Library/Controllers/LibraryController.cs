@@ -136,4 +136,61 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
         var result = await syncService.SyncAllAsync(cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("lists")]
+    public async Task<IActionResult> GetLists([FromQuery] string? mediaType, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var lists = await _libraryService.GetUserListsAsync(userId, mediaType, cancellationToken);
+        return Ok(lists);
+    }
+
+    [HttpGet("lists/{id:guid}")]
+    public async Task<IActionResult> GetList(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var list = await _libraryService.GetUserListAsync(userId, id, cancellationToken);
+        return list is null ? NotFound() : Ok(list);
+    }
+
+    [HttpPost("lists")]
+    public async Task<IActionResult> CreateList([FromBody] CreateListRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest("List name is required.");
+        var list = await _libraryService.CreateUserListAsync(userId, request, cancellationToken);
+        return CreatedAtAction(nameof(GetList), new { id = list.Id }, list);
+    }
+
+    [HttpPut("lists/{id:guid}")]
+    public async Task<IActionResult> UpdateList(Guid id, [FromBody] UpdateListRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var list = await _libraryService.UpdateUserListAsync(userId, id, request, cancellationToken);
+        return list is null ? NotFound() : Ok(list);
+    }
+
+    [HttpDelete("lists/{id:guid}")]
+    public async Task<IActionResult> DeleteList(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var success = await _libraryService.DeleteUserListAsync(userId, id, cancellationToken);
+        return success ? NoContent() : NotFound();
+    }
+
+    [HttpPost("lists/{id:guid}/items")]
+    public async Task<IActionResult> AddListItem(Guid id, [FromBody] AddListItemRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var list = await _libraryService.AddItemToUserListAsync(userId, id, request, cancellationToken);
+        return list is null ? NotFound() : Ok(list);
+    }
+
+    [HttpDelete("lists/{id:guid}/items/{itemId}")]
+    public async Task<IActionResult> RemoveListItem(Guid id, string itemId, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var list = await _libraryService.RemoveItemFromUserListAsync(userId, id, itemId, cancellationToken);
+        return list is null ? NotFound() : Ok(list);
+    }
 }

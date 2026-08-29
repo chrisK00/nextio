@@ -89,15 +89,24 @@ function getEmptyState(filter: WatchingFilter) {
 	}
 }
 
+import { useState, useRef } from 'react'
+import { CiSearch } from "react-icons/ci"
+
 export default function WatchingPage() {
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
 	const { shows, loading } = useShows('watching')
 	const watchingFilter = (searchParams.get('filter') as WatchingFilter | null) ?? 'running'
+	const [libraryQuery, setLibraryQuery] = useState('')
+	const searchInputRef = useRef<HTMLInputElement>(null)
 
 	const filteredShows = useMemo(() => {
-		return sortShows(shows.filter((show) => matchesFilter(show, watchingFilter)), watchingFilter)
-	}, [shows, watchingFilter])
+		const base = shows.filter((show) => matchesFilter(show, watchingFilter))
+		const sorted = sortShows(base, watchingFilter)
+		if (!libraryQuery.trim()) return sorted
+		const q = libraryQuery.toLowerCase().trim()
+		return sorted.filter((s) => s.title.toLowerCase().includes(q))
+	}, [shows, watchingFilter, libraryQuery])
 
 	function setWatchingFilter(filter: WatchingFilter) {
 		const params = new URLSearchParams(searchParams)
@@ -111,6 +120,10 @@ export default function WatchingPage() {
 
 	function handleShowClick(show: TvShow) {
 		navigate(`/show/${encodeURIComponent(show.id)}`)
+	}
+
+	function focusSearch() {
+		searchInputRef.current?.focus()
 	}
 
 	if(loading) {
@@ -136,10 +149,55 @@ export default function WatchingPage() {
 							/>
 						))}
 					</div>
+					<div className={styles.librarySearchWrap}>
+						<button
+							className={styles.secondaryButton}
+							onClick={focusSearch}
+							type="button"
+							style={{ padding: '8px 12px', minHeight: '36px', display: 'flex', alignItems: 'center', gap: '4px' }}
+							title="Focus Search"
+						>
+							<CiSearch size={18} />
+						</button>
+						<input
+							ref={searchInputRef}
+							type="text"
+							value={libraryQuery}
+							onChange={(e) => setLibraryQuery(e.target.value)}
+							placeholder="Filter by show name..."
+							className={styles.librarySearchInput}
+						/>
+						{libraryQuery && (
+							<button
+								onClick={() => setLibraryQuery('')}
+								className={styles.librarySearchClear}
+								type="button"
+								title="Clear filter"
+							>
+								✕
+							</button>
+						)}
+					</div>
 				</div>
 
 				{filteredShows.length === 0 ? (
-					<div className={styles.emptyState}>{getEmptyState(watchingFilter)}</div>
+					<div className={styles.emptyState}>
+						{libraryQuery ? (
+							<div>
+								<p>No followed shows matching "{libraryQuery}" in this view.</p>
+								<button
+									className={styles.primaryButton}
+									style={{ marginTop: '12px' }}
+									onClick={() => navigate(`/search`)}
+									type="button"
+								>
+									Search TMDb globally
+								</button>
+							</div>
+						) : (
+							getEmptyState(watchingFilter)
+						)}
+					</div>
 				) : (
 					<div className={styles.showGrid}>
 						{filteredShows.map((show) => (

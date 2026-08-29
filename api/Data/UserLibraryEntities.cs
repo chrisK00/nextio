@@ -63,3 +63,27 @@ public sealed class UserTvShowNextEpisode
     public DateTime? AirDate { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
+
+public sealed class UserList
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string Name { get; set; } = null!;
+    public string? Description { get; set; }
+    public string MediaType { get; set; } = null!; // "tv" or "movie"
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public List<UserListItem> Items { get; set; } = [];
+}
+
+public sealed class UserListItem
+{
+    public Guid Id { get; set; }
+    public Guid UserListId { get; set; }
+    public string ItemId { get; set; } = null!; // e.g. "tv:1399" or "movie:550"
+    public string Title { get; set; } = null!;
+    public string? PosterUrl { get; set; }
+    public string? ReleaseDate { get; set; }
+    public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+    public int Order { get; set; }
+}

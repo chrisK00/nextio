@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import styles from '../../../App.module.css'
 
@@ -37,22 +38,21 @@ function CardInner({ show, action, compact, showReleaseDate, hideEpisodeTitle }:
 }
 
 export default function ShowCard({ show, action, onClick, compact = false, showReleaseDate = false, hideEpisodeTitle = false }: ShowCardProps) {
-    if(!onClick) {
-        return (
-            <div className={styles.showCardButton}>
-                <CardInner show={show} action={action} compact={compact} showReleaseDate={showReleaseDate} hideEpisodeTitle={hideEpisodeTitle} />
-            </div>
-        )
-    }
+    const targetUrl = `/show/${encodeURIComponent(show.id)}`
+
     return (
-        <div
+        <Link
+            to={targetUrl}
             className={styles.showCardButton}
-            role="button"
-            tabIndex={0}
-            onClick={() => onClick(show)}
-            onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(show) } }}
+            onClick={(e) => {
+                // If special modifier keys (Ctrl/Cmd/Shift/Alt) or middle-click aren't used, allow custom handler
+                if(onClick && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && e.button === 0) {
+                    e.preventDefault()
+                    onClick(show)
+                }
+            }}
         >
             <CardInner show={show} action={action} compact={compact} showReleaseDate={showReleaseDate} hideEpisodeTitle={hideEpisodeTitle} />
-        </div>
+        </Link>
     )
 }

@@ -19,6 +19,13 @@ public interface ILibraryService
     Task SetEpisodeAsync(Guid userId, string id, UpdateEpisodeRequest request, CancellationToken cancellationToken = default);
     Task SetEpisodesAsync(Guid userId, string id, BulkUpdateEpisodeRequest request, CancellationToken cancellationToken = default);
     Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<UserListDto>> GetUserListsAsync(Guid userId, string? mediaType = null, CancellationToken cancellationToken = default);
+    Task<UserListDto?> GetUserListAsync(Guid userId, Guid listId, CancellationToken cancellationToken = default);
+    Task<UserListDto> CreateUserListAsync(Guid userId, CreateListRequest request, CancellationToken cancellationToken = default);
+    Task<UserListDto?> UpdateUserListAsync(Guid userId, Guid listId, UpdateListRequest request, CancellationToken cancellationToken = default);
+    Task<bool> DeleteUserListAsync(Guid userId, Guid listId, CancellationToken cancellationToken = default);
+    Task<UserListDto?> AddItemToUserListAsync(Guid userId, Guid listId, AddListItemRequest request, CancellationToken cancellationToken = default);
+    Task<UserListDto?> RemoveItemFromUserListAsync(Guid userId, Guid listId, string itemId, CancellationToken cancellationToken = default);
 }
 
 public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService syncService, TmdbApi tmdbApi, IMemoryCache cache, ILogger<LibraryService> logger) : ILibraryService
@@ -28,11 +35,11 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
     private readonly IMemoryCache _cache = cache;
     private static readonly TimeSpan EpisodeCacheTtlMax = TimeSpan.FromHours(48);
     private static readonly TimeSpan EpisodeCacheTtlSliding = TimeSpan.FromHours(24);
-    private static string GetTvShowCacheKey(string showId) => showId;
+    private static string GetEpisodeCacheKey(string showId, int season, int episode) => $"{showId}:s{season}e{episode}";
 
     private async Task<TvEpisodeItem?> GetEpisodeAsync(string showId, int seasonNumber, int episodeNumber, SemaphoreSlim tmdbRateLimiter, CancellationToken cancellationToken = default)
     {
-        var cacheKey = GetTvShowCacheKey(showId);
+        var cacheKey = GetEpisodeCacheKey(showId, seasonNumber, episodeNumber);
         if (_cache.TryGetValue(cacheKey, out TvEpisodeItem? cached))
             return cached;
 
@@ -124,7 +131,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                             new TvEpisodeItem(
                                 show.NextEpisodeToAir?.Season ?? 0,
                                 show.NextEpisodeToAir?.Episode ?? 0,
-                                show.NextEpisodeToAir?.Title ?? "TODO",
+                                show.NextEpisodeToAir?.Title ?? $"S{show.NextEpisodeToAir?.Season} E{show.NextEpisodeToAir?.Episode}",
                                 show.NextEpisodeToAir?.AirDate,
                                 false
                             ) : null,
@@ -135,13 +142,14 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                             show.Episodes
                                 .OrderBy(e => e.Season)
                                 .ThenBy(e => e.Episode)
-                                .Select(e => new TvEpisodeItem(e.Season, e.Episode, e.Title ?? "TODO", DateTime.MinValue, e.Watched))
+                                .Select(e => new TvEpisodeItem(e.Season, e.Episode, e.Title ?? $"Episode {e.Episode}", e.AirDate ?? DateTime.MinValue, e.Watched))
                                 .ToList());
         });
 
         var awaitedShows = await Task.WhenAll(tvShows);
+        var validShows = awaitedShows.Where(s => s is not null).Select(s => s!).ToList();
 
-        return new LibraryResponse<TvShowItem>(awaitedShows, awaitedShows.Length);
+        return new LibraryResponse<TvShowItem>(validShows, validShows.Count);
     }
 
     public async Task<LibraryResponse<MovieItem>> GetMovieLibraryAsync(Guid userId, string? status = null, CancellationToken cancellationToken = default)
@@ -254,15 +262,16 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             throw new ArgumentException("Request media type must be movie.", nameof(request));
         }
 
+        var normalizedId = ConvertIdToTmdbMovieId(request.Id);
         var now = DateTime.UtcNow;
-        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && x.MovieId == request.Id, cancellationToken);
+        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && (x.MovieId == normalizedId || x.MovieId == request.Id), cancellationToken);
         if (movie is null)
         {
             movie = new UserMovie
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                MovieId = request.Id,
+                MovieId = normalizedId,
                 Title = request.Title,
                 PosterUrl = request.PosterUrl,
                 Description = request.Description,
@@ -273,6 +282,7 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         }
         else
         {
+            movie.MovieId = normalizedId;
             movie.Title = request.Title;
             movie.PosterUrl = request.PosterUrl;
             movie.Description = request.Description;
@@ -294,7 +304,8 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
     public async Task RemoveMovieAsync(Guid userId, string id, CancellationToken cancellationToken = default)
     {
-        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && x.MovieId == id, cancellationToken);
+        var normalizedId = ConvertIdToTmdbMovieId(id);
+        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && (x.MovieId == normalizedId || x.MovieId == id), cancellationToken);
         if (movie is null)
         {
             return;
@@ -304,12 +315,20 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    private string ConvertIdToTmdbMovieId(string id) => $"movie:{id}";
+    private static string ConvertIdToTmdbMovieId(string id)
+    {
+        var raw = id.Trim();
+        while (raw.StartsWith("movie:", StringComparison.OrdinalIgnoreCase))
+        {
+            raw = raw["movie:".Length..];
+        }
+        return $"movie:{raw}";
+    }
+
     public async Task SetMovieWatchedAsync(Guid userId, string id, bool watched, CancellationToken cancellationToken = default)
     {
         var tmdbId = ConvertIdToTmdbMovieId(id);
-        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && x.MovieId == tmdbId, cancellationToken);
-        // TODO error result instead
+        var movie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && (x.MovieId == tmdbId || x.MovieId == id), cancellationToken);
         if (movie is null)
         {
             throw new KeyNotFoundException($"Movie with id {tmdbId} was not found");
@@ -352,7 +371,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
-        _cache.Remove(GetTvShowCacheKey(show.ShowId));
     }
 
     public async Task SetEpisodesAsync(Guid userId, string id, BulkUpdateEpisodeRequest request, CancellationToken cancellationToken = default)
@@ -391,7 +409,6 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
 
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
-        _cache.Remove(GetTvShowCacheKey(show.ShowId));
     }
 
     public async Task ClearProgressAsync(Guid userId, string id, CancellationToken cancellationToken = default)
@@ -403,6 +420,185 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
         _db.UserTvShowEpisodes.RemoveRange(show.Episodes);
         show.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
-        _cache.Remove(GetTvShowCacheKey(show.ShowId));
+    }
+
+    public async Task<IReadOnlyList<UserListDto>> GetUserListsAsync(Guid userId, string? mediaType = null, CancellationToken cancellationToken = default)
+    {
+        var query = _db.UserLists
+            .Include(x => x.Items)
+            .Where(x => x.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(mediaType))
+        {
+            var norm = mediaType.ToLower();
+            query = query.Where(x => x.MediaType == norm);
+        }
+
+        var lists = await query.OrderByDescending(x => x.UpdatedAt).ToListAsync(cancellationToken);
+        return lists.Select(MapListToDto).ToList();
+    }
+
+    public async Task<UserListDto?> GetUserListAsync(Guid userId, Guid listId, CancellationToken cancellationToken = default)
+    {
+        var list = await _db.UserLists
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == listId, cancellationToken);
+        return list is null ? null : MapListToDto(list);
+    }
+
+    public async Task<UserListDto> CreateUserListAsync(Guid userId, CreateListRequest request, CancellationToken cancellationToken = default)
+    {
+        var mediaType = request.MediaType?.ToLower() == "movie" ? "movie" : "tv";
+        var userList = new UserList
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Name = request.Name.Trim(),
+            Description = request.Description?.Trim(),
+            MediaType = mediaType,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Items = []
+        };
+
+        _db.UserLists.Add(userList);
+        await _db.SaveChangesAsync(cancellationToken);
+        return MapListToDto(userList);
+    }
+
+    public async Task<UserListDto?> UpdateUserListAsync(Guid userId, Guid listId, UpdateListRequest request, CancellationToken cancellationToken = default)
+    {
+        var list = await _db.UserLists
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == listId, cancellationToken);
+        if (list is null) return null;
+
+        list.Name = request.Name.Trim();
+        list.Description = request.Description?.Trim();
+        list.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+        return MapListToDto(list);
+    }
+
+    public async Task<bool> DeleteUserListAsync(Guid userId, Guid listId, CancellationToken cancellationToken = default)
+    {
+        var list = await _db.UserLists.FirstOrDefaultAsync(x => x.UserId == userId && x.Id == listId, cancellationToken);
+        if (list is null) return false;
+
+        _db.UserLists.Remove(list);
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<UserListDto?> AddItemToUserListAsync(Guid userId, Guid listId, AddListItemRequest request, CancellationToken cancellationToken = default)
+    {
+        var list = await _db.UserLists
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == listId, cancellationToken);
+        if (list is null) return null;
+
+        // Automatically follow/track item in main library if not already tracked
+        if (list.MediaType == "tv")
+        {
+            var existingTv = await _db.UserTvShows.FirstOrDefaultAsync(x => x.UserId == userId && x.ShowId == request.ItemId, cancellationToken);
+            if (existingTv is null)
+            {
+                await UpsertTvShowAsync(userId, new UpsertTrackedShowRequest(
+                    Id: request.ItemId,
+                    Title: request.Title,
+                    PosterUrl: request.PosterUrl,
+                    Network: null,
+                    Status: "Tracked",
+                    Description: null,
+                    NextReleaseDate: null,
+                    ReleaseDate: request.ReleaseDate,
+                    MediaType: "tv"
+                ), cancellationToken);
+            }
+            else if (!existingTv.IsFollowing)
+            {
+                existingTv.IsFollowing = true;
+                existingTv.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+        }
+        else if (list.MediaType == "movie")
+        {
+            var existingMovie = await _db.UserMovies.FirstOrDefaultAsync(x => x.UserId == userId && x.MovieId == request.ItemId, cancellationToken);
+            if (existingMovie is null)
+            {
+                await UpsertMovieAsync(userId, new UpsertTrackedShowRequest(
+                    Id: request.ItemId,
+                    Title: request.Title,
+                    PosterUrl: request.PosterUrl,
+                    Network: null,
+                    Status: "Released",
+                    Description: null,
+                    NextReleaseDate: null,
+                    ReleaseDate: request.ReleaseDate,
+                    MediaType: "movie"
+                ), cancellationToken);
+            }
+        }
+
+        var existingItem = list.Items.FirstOrDefault(x => x.ItemId == request.ItemId);
+        if (existingItem is null)
+        {
+            var maxOrder = list.Items.Count > 0 ? list.Items.Max(x => x.Order) : 0;
+            list.Items.Add(new UserListItem
+            {
+                Id = Guid.NewGuid(),
+                UserListId = list.Id,
+                ItemId = request.ItemId,
+                Title = request.Title,
+                PosterUrl = request.PosterUrl,
+                ReleaseDate = request.ReleaseDate,
+                Order = maxOrder + 1,
+                AddedAt = DateTime.UtcNow
+            });
+            list.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return MapListToDto(list);
+    }
+
+    public async Task<UserListDto?> RemoveItemFromUserListAsync(Guid userId, Guid listId, string itemId, CancellationToken cancellationToken = default)
+    {
+        var list = await _db.UserLists
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == listId, cancellationToken);
+        if (list is null) return null;
+
+        var item = list.Items.FirstOrDefault(x => x.ItemId == itemId);
+        if (item is not null)
+        {
+            list.Items.Remove(item);
+            list.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return MapListToDto(list);
+    }
+
+    private static UserListDto MapListToDto(UserList list)
+    {
+        return new UserListDto(
+            Id: list.Id,
+            Name: list.Name,
+            Description: list.Description,
+            MediaType: list.MediaType,
+            CreatedAt: list.CreatedAt,
+            UpdatedAt: list.UpdatedAt,
+            Items: list.Items.OrderBy(i => i.Order).Select(i => new UserListItemDto(
+                Id: i.Id,
+                ItemId: i.ItemId,
+                Title: i.Title,
+                PosterUrl: i.PosterUrl,
+                ReleaseDate: i.ReleaseDate,
+                AddedAt: i.AddedAt,
+                Order: i.Order
+            )).ToList()
+        );
     }
 }

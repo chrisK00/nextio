@@ -20,6 +20,7 @@ public sealed class SearchDetailResponse
     public string? Status { get; init; }
     public double? VoteAverage { get; init; }
     public int? VoteCount { get; init; }
+    public int? Runtime { get; init; }
 
     public TmdbSeason[] Seasons { get; init; } = [];
     public string MediaType { get; set; }

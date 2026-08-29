@@ -12,6 +12,8 @@ namespace Data
         public DbSet<UserTvShow> UserTvShows { get; set; } = null!;
         public DbSet<UserMovie> UserMovies { get; set; } = null!;
         public DbSet<UserTvShowEpisode> UserTvShowEpisodes { get; set; } = null!;
+        public DbSet<UserList> UserLists { get; set; } = null!;
+        public DbSet<UserListItem> UserListItems { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -21,6 +23,15 @@ namespace Data
             modelBuilder.Entity<UserTvShow>().HasIndex(x => new { x.UserId, x.ShowId }).IsUnique();
             modelBuilder.Entity<UserMovie>().HasIndex(x => new { x.UserId, x.MovieId }).IsUnique();
             modelBuilder.Entity<UserTvShowEpisode>().HasIndex(x => new { x.UserTvShowId, x.Season, x.Episode }).IsUnique();
+            modelBuilder.Entity<UserList>().HasIndex(x => new { x.UserId, x.Name }).IsUnique();
+            modelBuilder.Entity<UserListItem>().HasIndex(x => new { x.UserListId, x.ItemId }).IsUnique();
+
+            modelBuilder.Entity<UserList>()
+                .HasMany(x => x.Items)
+                .WithOne()
+                .HasForeignKey(x => x.UserListId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<UserTvShow>()
                 .HasMany(x => x.Episodes)
                 .WithOne()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import SearchPanel from './components/SearchPanel'
 import type { TvShow } from "../../services/apiTypes"
 import { useAppContext } from '../../state/AppContext'
@@ -9,22 +9,17 @@ import useSearch from './hooks/useSearch'
 export default function SearchPage() {
   useAppContext()
   const [searchParams, setSearchParams] = useSearchParams()
-  // Query lives in the URL so browser back/forward restores the last search.
-  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const navigate = useNavigate()
-  const { results, loading } = useSearch(query)
+  const nextQuery = searchParams.get('q') ?? ''
+  const [query, setQuery] = useState(nextQuery)
+  const [prevNextQuery, setPrevNextQuery] = useState(nextQuery)
 
-/*
-// TODO Error: Calling setState synchronously within an effect can trigger cascading renders
-effects run after render
-updating state triggers another render
-this can cause render → effect → setState → render → effect → setState loops
-*/
-const nextQuery = searchParams.get('q') ?? ''
-  useEffect(() => {
-    // Keep local input state aligned with URL navigation.
-    setQuery((current) => current === nextQuery ? current : nextQuery)
-  }, [nextQuery]) 
+  if (nextQuery !== prevNextQuery) {
+    setPrevNextQuery(nextQuery)
+    setQuery(nextQuery)
+  }
+
+  const { results, loading } = useSearch(query) 
 
   const updateQuery = (value: string) => {
     setQuery(value)

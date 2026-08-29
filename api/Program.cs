@@ -45,6 +45,8 @@ builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddSingleton<ILibrarySyncStatusStore, LibrarySyncStatusStore>();
 builder.Services.AddScoped<ILibrarySyncService, LibrarySyncService>();
 builder.Services.AddHostedService<LibrarySyncWorker>();
+builder.Services.AddSingleton<IBackupService, BackupService>();
+builder.Services.AddHostedService<BackupWorker>();
 builder.Services.AddHttpClient<TmdbApi>(client =>
 {
     client.BaseAddress = new Uri("https://api.themoviedb.org/3/");

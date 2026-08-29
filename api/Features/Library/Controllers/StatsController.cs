@@ -33,4 +33,18 @@ public sealed class StatsController(ApplicationDbContext db, ILibrarySyncStatusS
             LastSyncSucceeded: LastSyncSucceeded,
             LastSyncMessage: LastSyncMessage));
     }
+
+    [HttpPost("backup")]
+    public async Task<IActionResult> TriggerBackup([FromServices] BackupService backupService, CancellationToken cancellationToken)
+    {
+        var path = await backupService.CreateBackupAsync(cancellationToken);
+        return Ok(new { success = true, backupFile = Path.GetFileName(path) });
+    }
+
+    [HttpGet("backups")]
+    public IActionResult GetBackups([FromServices] BackupService backupService)
+    {
+        var backups = backupService.GetBackups();
+        return Ok(backups);
+    }
 }

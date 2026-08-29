@@ -114,6 +114,10 @@ public sealed class TmdbDetailResponse
     public double? VoteAverage { get; init; }
     [JsonPropertyName("vote_count")]
     public int? VoteCount { get; init; }
+    [JsonPropertyName("runtime")]
+    public int? Runtime { get; init; }
+    [JsonPropertyName("episode_run_time")]
+    public int[]? EpisodeRunTime { get; init; }
 
     [JsonPropertyName("seasons")]
     public TmdbSeason[] Seasons { get => field.Where(x => x.SeasonNumber != 0).ToArray(); init; } = [];
