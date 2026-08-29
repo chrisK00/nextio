@@ -11,7 +11,10 @@ using nextio.Api.Features.Library.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // JWT configuration (reads from appsettings.json)
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "change_this_development_key_to_a_long_random_value";
+var configuredJwtKey = builder.Configuration["Jwt:Key"];
+if (!builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(configuredJwtKey))
+    throw new InvalidOperationException("Jwt:Key must be configured outside development.");
+var jwtKey = configuredJwtKey ?? "change_this_development_key_to_a_long_random_value";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "nextio";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "nextio_clients";
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "nextio.db");
@@ -45,7 +48,8 @@ builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddSingleton<ILibrarySyncStatusStore, LibrarySyncStatusStore>();
 builder.Services.AddScoped<ILibrarySyncService, LibrarySyncService>();
 builder.Services.AddHostedService<LibrarySyncWorker>();
-builder.Services.AddSingleton<IBackupService, BackupService>();
+builder.Services.AddSingleton<BackupService>();
+builder.Services.AddSingleton<IBackupService>(services => services.GetRequiredService<BackupService>());
 builder.Services.AddHostedService<BackupWorker>();
 builder.Services.AddHttpClient<TmdbApi>(client =>
 {

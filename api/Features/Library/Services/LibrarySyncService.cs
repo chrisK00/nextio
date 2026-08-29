@@ -84,13 +84,10 @@ public sealed class LibrarySyncService(
             var errors = new List<string>();
             var succeeded = 0;
 
-            var tmdbRateLimiter = new SemaphoreSlim(50, 50);
-            // TODO store synced shows in dict and reuse info so dont make multiple calls to TMDb for same show if multiple users has same show in library
             foreach (var show in shows)
             {
                 try
                 {
-                    await tmdbRateLimiter.WaitAsync(cancellationToken);
                     await SyncShowAsync(show, cancellationToken);
                     if (show.SyncError is null)
                     {
@@ -105,10 +102,6 @@ public sealed class LibrarySyncService(
                 catch (Exception ex)
                 {
                     errors.Add($"Failed syncing {show.Id} for user {show.UserId}: {ex.Message}");
-                }
-                finally
-                {
-                    tmdbRateLimiter.Release();
                 }
             }
 

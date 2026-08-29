@@ -1,6 +1,5 @@
 namespace Data;
 
-// TODO normalize to have a tvshow in order to avoid duplication of data and requests etc
 public sealed class UserTvShow
 {
     public Guid Id { get; set; }

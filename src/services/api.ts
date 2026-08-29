@@ -102,7 +102,6 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 type TmdbSeasonEpisode = { episodeNumber: number; name: string; airDate?: string }
 type TmdbSeason = { seasonNumber: number; name: string; episodes: TmdbSeasonEpisode[] }
 
-// TODO cache on backend not frontend :D
 let cachedShow: { showId: string; seasons: Season[]; expiresAt: number } | null = null;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -281,6 +280,20 @@ export async function triggerBackup(): Promise<{ success: boolean; backupFile: s
 	const res = await fetchWithAuth('/stats/backup', { method: 'POST' })
 	if(!res.ok) throw new Error(await res.text())
 	return res.json()
+}
+
+const EXPORT_REMINDER_PREFIX = 'nextio:last-library-export:'
+const EXPORT_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
+
+export function hasRecentLibraryExport(username: string | null): boolean {
+	if (!username) return true
+	const value = localStorage.getItem(`${EXPORT_REMINDER_PREFIX}${username.toLowerCase()}`)
+	const timestamp = value ? Number(value) : NaN
+	return Number.isFinite(timestamp) && Date.now() - timestamp < EXPORT_REMINDER_INTERVAL_MS
+}
+
+export function recordLibraryExport(username: string | null): void {
+	if (username) localStorage.setItem(`${EXPORT_REMINDER_PREFIX}${username.toLowerCase()}`, String(Date.now()))
 }
 
 export async function getBackups(): Promise<import('./apiTypes').BackupInfo[]> {

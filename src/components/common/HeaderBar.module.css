@@ -51,7 +51,6 @@
 	align-items: center;
 }
 
-/*TODO can this be a shared width px*/
 @media (min-width: 860px) {
 	.appBar {
 		flex-direction: row;

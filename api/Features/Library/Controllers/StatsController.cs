@@ -42,9 +42,6 @@ public sealed class StatsController(ApplicationDbContext db, ILibrarySyncStatusS
     }
 
     [HttpGet("backups")]
-    public IActionResult GetBackups([FromServices] BackupService backupService)
-    {
-        var backups = backupService.GetBackups();
-        return Ok(backups);
-    }
+    public IActionResult GetBackups([FromServices] BackupService backupService) => Ok(backupService.GetBackups());
+
 }

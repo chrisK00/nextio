@@ -6,10 +6,11 @@ namespace Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IUserService userService, JwtService jwtService) : ControllerBase
+    public class AuthController(IUserService userService, JwtService jwtService, IWebHostEnvironment environment) : ControllerBase
     {
         private readonly IUserService _userService = userService;
         private readonly JwtService _jwtService = jwtService;
+        private readonly IWebHostEnvironment _environment = environment;
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest req)
@@ -82,7 +83,7 @@ namespace Controllers
                 HttpOnly = true,
                 Expires = expires,
                 SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
-                Secure = false // set true in production over HTTPS
+                Secure = !_environment.IsDevelopment()
             });
         }
     }

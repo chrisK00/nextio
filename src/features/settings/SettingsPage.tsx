@@ -19,7 +19,7 @@ export default function SettingsPage() {
     api.getLibraryStats().then(setStats)
   }, [])
 
-  const handleSync = async () => {
+  const handleSync = async (throwOnFailure = false): Promise<LibrarySyncResponse | null> => {
     setSyncLoading(true)
     setSyncError(null)
     try {
@@ -28,8 +28,14 @@ export default function SettingsPage() {
       await refresh()
       const nextStats = await api.getLibraryStats()
       setStats(nextStats)
+      if (throwOnFailure && result.failed > 0) {
+        throw new Error(`Metadata sync failed for ${result.failed} of ${result.total} shows.`)
+      }
+      return result
     } catch(error) {
       setSyncError(error instanceof Error ? error.message : 'Sync failed')
+      if (throwOnFailure) throw error
+      return null
     } finally {
       setSyncLoading(false)
     }
@@ -69,6 +75,7 @@ export default function SettingsPage() {
         a.download = `nextio-letterboxd-${dateStr}.csv`
         a.click()
         URL.revokeObjectURL(url)
+        api.recordLibraryExport(localStorage.getItem('username'))
         return
       }
 
@@ -93,6 +100,7 @@ export default function SettingsPage() {
         a.download = `nextio-recommendations-${dateStr}.csv`
         a.click()
         URL.revokeObjectURL(url)
+        api.recordLibraryExport(localStorage.getItem('username'))
         return
       }
 
@@ -116,6 +124,7 @@ export default function SettingsPage() {
       a.download = `nextio-export-${dateStr}.json`
       a.click()
       URL.revokeObjectURL(url)
+      api.recordLibraryExport(localStorage.getItem('username'))
     } finally {
       setExportLoading(false)
     }
@@ -151,7 +160,6 @@ export default function SettingsPage() {
           tvCount++
         }
 
-        // TODO lite broken eftersom vi inte har synk i backend
         for(const movie of data.movies ?? []) {
           await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', posterUrl: movie.posterUrl, releaseDate: movie.releaseDate, status: waitForSyncMessage, episodesWatched: 0, episodesTotal: 0, description: waitForSyncMessage })
           if(movie.watched === true) {
@@ -161,11 +169,9 @@ export default function SettingsPage() {
         }
 
         await refresh()
-        setImportResult(`Imported ${tvCount} TV show${tvCount !== 1 ? 's' : ''} and ${movieCount} movie${movieCount !== 1 ? 's' : ''}. Please wait for sync`)
-
-        setTimeout(async () => {
-          await handleSync()
-        }, 500);
+        const sync = await handleSync(true)
+        if (!sync) throw new Error('Metadata sync did not complete.')
+        setImportResult(`Imported ${tvCount} TV show${tvCount !== 1 ? 's' : ''} and ${movieCount} movie${movieCount !== 1 ? 's' : ''}; metadata synced for ${sync.succeeded} of ${sync.total} shows.`)
       } catch(e) {
         setImportResult(`Import failed: ${e instanceof Error ? e.message : 'Invalid file'}`)
       } finally {
@@ -283,7 +289,7 @@ export default function SettingsPage() {
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
             <strong>Server SQLite Backups</strong>
-            <p>Automated rolling backups run weekly (keeping the latest 4 snapshots in <code>/backups</code>). You can also trigger an immediate server backup snapshot.</p>
+            <p>Automated rolling backups run weekly (keeping the latest 2 snapshots in <code>/backups</code>). You can also trigger an immediate server backup snapshot.</p>
           </div>
           <button
             className={appStyles.secondaryButton}

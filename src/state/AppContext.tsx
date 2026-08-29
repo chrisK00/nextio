@@ -135,7 +135,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // validate token on startup
   useEffect(() => {
 
-    // TODO check if pattern is common
     let mounted = true
     void (async () => {
       if(!token) return

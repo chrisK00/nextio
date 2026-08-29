@@ -31,7 +31,6 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
         }
     }
 
-    // TODO copy this so that we can fetch movies instead of fetching whole library on showdetails page
     [HttpGet("tv/{id}")]
     public async Task<IActionResult> GetTvShow(string id, CancellationToken cancellationToken)
     {
