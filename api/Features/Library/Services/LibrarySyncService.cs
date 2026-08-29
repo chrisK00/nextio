@@ -1,4 +1,5 @@
 using Data;
+using Features.Search.Models;
 using Features.Search.Services;
 using Microsoft.EntityFrameworkCore;
 using nextio.Api.Features.Library.Services;
@@ -17,6 +18,7 @@ public sealed class LibrarySyncService(
     ILogger<LibrarySyncService> logger,
     ILibrarySyncStatusStore syncStatusStore) : ILibrarySyncService
 {
+    private const int MaxConcurrentSyncs = 5;
     private readonly ApplicationDbContext _db = db;
     private readonly TmdbApi _tmdbSearchService = tmdbSearchService;
     private readonly ILogger<LibrarySyncService> _logger = logger;
@@ -26,7 +28,26 @@ public sealed class LibrarySyncService(
     {
         try
         {
-            var details = await _tmdbSearchService.GetDetailsAsync("tv", show.ShowId, cancellationToken) ?? throw new InvalidOperationException("TMDb returned no details.");
+            var details = await FetchShowDetailsAsync(show.ShowId, cancellationToken);
+            ApplyShowDetails(show, details);
+        }
+        catch (Exception ex)
+        {
+            // Keep the user's last activity timestamp intact; only record the sync attempt metadata.
+            show.SyncError = ex.Message;
+            show.LastSyncedAt = DateTime.UtcNow;
+            _logger.LogError(ex, "Failed to sync TV show {ShowId}", show.ShowId);
+        }
+    }
+
+    private async Task<SearchDetailResponse> FetchShowDetailsAsync(string showId, CancellationToken cancellationToken)
+    {
+        return await _tmdbSearchService.GetDetailsAsync("tv", showId, cancellationToken)
+            ?? throw new InvalidOperationException("TMDb returned no details.");
+    }
+
+    private static void ApplyShowDetails(UserTvShow show, SearchDetailResponse details)
+    {
 
             show.Title = details.Name;
             show.PosterUrl = details.PosterUrl;
@@ -58,13 +79,26 @@ public sealed class LibrarySyncService(
             }).ToList();
             show.NumberOfEpisodes = details.NumberOfEpisodes;
             show.NumberOfSeasons = details.NumberOfSeasons;
+    }
+
+    private sealed record SyncFetchResult(UserTvShow Show, SearchDetailResponse? Details, Exception? Error);
+
+    private async Task<SyncFetchResult> FetchSyncResultAsync(UserTvShow show, SemaphoreSlim concurrencyGate, CancellationToken cancellationToken)
+    {
+        await concurrencyGate.WaitAsync(cancellationToken);
+        try
+        {
+            return new SyncFetchResult(show, await FetchShowDetailsAsync(show.ShowId, cancellationToken), null);
         }
         catch (Exception ex)
         {
-            // Keep the user's last activity timestamp intact; only record the sync attempt metadata.
-            show.SyncError = ex.Message;
-            show.LastSyncedAt = DateTime.UtcNow;
-            _logger.LogError(ex, "Failed to sync TV show {ShowId}", show.ShowId);
+            if (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
+                throw;
+            return new SyncFetchResult(show, null, ex);
+        }
+        finally
+        {
+            concurrencyGate.Release();
         }
     }
 
@@ -84,11 +118,19 @@ public sealed class LibrarySyncService(
             var errors = new List<string>();
             var succeeded = 0;
 
-            foreach (var show in shows)
+            using var concurrencyGate = new SemaphoreSlim(MaxConcurrentSyncs, MaxConcurrentSyncs);
+            var fetchTasks = shows.Select(show => FetchSyncResultAsync(show, concurrencyGate, cancellationToken));
+            var fetchResults = await Task.WhenAll(fetchTasks);
+
+            foreach (var result in fetchResults)
             {
+                var show = result.Show;
                 try
                 {
-                    await SyncShowAsync(show, cancellationToken);
+                    if (result.Error is not null)
+                        throw result.Error;
+
+                    ApplyShowDetails(show, result.Details!);
                     if (show.SyncError is null)
                     {
                         items.Add(new Models.LibrarySyncItem(show.ShowId, show.Title, true, "Synced successfully.", show.LastSyncedAt!.Value));
