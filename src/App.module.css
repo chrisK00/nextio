@@ -1545,6 +1545,42 @@ input:focus-visible {
 	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
 	.watchingToolbar .sortControls > * { flex: 0 0 auto; }
 
+	.myShowsToolbar .sortControls {
+		flex-wrap: wrap;
+		overflow: visible;
+	}
+
+	.myShowsToolbar .sortControls .sortButton {
+		padding: 7px 10px;
+		font-size: 0.78rem;
+	}
+
+	.myShowsToolbar .librarySearchIconButton {
+		width: 32px;
+		height: 32px;
+		font-size: 19px;
+	}
+
+	.myShowsToolbar .sortControls .genreDropdown,
+	.myShowsToolbar .sortControls .genreDropdown .genreButton {
+		flex-basis: 90px;
+		width: 90px !important;
+		min-width: 90px !important;
+		max-width: 90px !important;
+	}
+
+	.myShowsToolbar .sortControls .genreDropdown .genreButton {
+		padding-left: 7px !important;
+		padding-right: 7px !important;
+	}
+
+	/* My Shows: put All beside Completed, then keep search + genre on row two. */
+	.myShowsToolbar .sortControls > :nth-child(6) { order: 4; }
+	.myShowsToolbar .sortControls > :nth-child(4) { order: 5; }
+	.myShowsToolbar .sortControls > :nth-child(5) { order: 6; }
+	.myShowsToolbar .sortControls > :nth-child(7) { order: 7; }
+	.myShowsToolbar .sortControls > :nth-child(8) { order: 8; }
+
 	.watchingToolbar .sortControls {
 		display: flex;
 		align-items: center;

@@ -142,7 +142,7 @@ export default function WatchingPage() {
 	return (
 		<main className={styles.mainPanel}>
 			<section className={styles.tabContent}>
-				<div className={styles.watchingToolbar}>
+				<div className={`${styles.watchingToolbar} ${styles.myShowsToolbar}`}>
 					<div className={styles.sortControls}>
 						{watchingFilters.map((filter) => (
 							<FilterButton
