@@ -1540,6 +1540,17 @@ input:focus-visible {
 		scrollbar-width: none;
 	}
 
+	.watchingToolbar .sortControls {
+		display: flex;
+		align-items: center;
+		width: 100%;
+	}
+
+	.watchingToolbar .sortControls .genreDropdown {
+		flex: 0 0 120px;
+		width: 120px;
+	}
+
 	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
 	.watchingToolbar .sortControls .sortButton { padding: 8px 12px; font-size: 0.86rem; white-space: nowrap; }
 

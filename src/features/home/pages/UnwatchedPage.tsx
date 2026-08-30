@@ -35,8 +35,9 @@ export default function UnwatchedPage() {
 	const { shows, loading } = useShows('unwatched')
 	useAppContext()
 	const [lastExportAt, setLastExportAt] = useState<string | null>(null)
+	const [exportStatusLoaded, setExportStatusLoaded] = useState(false)
 	const [showBackupReminder, setShowBackupReminder] = useState(true)
-	useEffect(() => { void getLastLibraryExport().then(setLastExportAt) }, [])
+	useEffect(() => { void getLastLibraryExport().then(setLastExportAt).finally(() => setExportStatusLoaded(true)) }, [])
 	const filter = (searchParams.get('filter') as UnwatchedFilter | null) ?? 'continue'
 	const [genre, setGenre] = useState('')
 
@@ -79,7 +80,7 @@ export default function UnwatchedPage() {
 
 	return (
 		<main className={styles.mainPanel}>
-			{showBackupReminder && !hasRecentLibraryExport(lastExportAt) && (
+			{exportStatusLoaded && showBackupReminder && !hasRecentLibraryExport(lastExportAt) && (
 				<div className={styles.backupReminder} role="status">
 					<div className={styles.backupReminderHeader}>
 						<strong>Keep your library safe</strong>
