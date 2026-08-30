@@ -1544,6 +1544,13 @@ input:focus-visible {
 
 	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
 	.watchingToolbar .sortControls > * { flex: 0 0 auto; }
+	.watchingToolbar:not(.myShowsToolbar) .sortControls {
+		overflow: visible;
+	}
+	.watchingToolbar .genreMenu {
+		left: auto;
+		right: 0;
+	}
 
 	.myShowsToolbar .sortControls {
 		flex-wrap: wrap;
