@@ -1,17 +1,19 @@
 .bottomNav {
-	position: fixed;
+	position: fixed !important;
 	left: 12px;
 	right: 12px;
-	bottom: env(safe-area-inset-bottom, 12px);
+	bottom: 0;
+	transform: translateZ(0);
+	visibility: visible;
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 8px;
-	padding: 10px;
+	padding: 10px 10px max(10px, env(safe-area-inset-bottom, 0px));
 	max-width: 720px;
 	margin: 0 auto;
 	box-sizing: border-box;
 	z-index: 60;
-	background: var(--bg);
+	background: color-mix(in srgb, var(--bg) 94%, transparent);
 	border: 1px solid var(--border);
 	border-radius: 999px;
 	box-shadow: 0 8px 20px rgba(0,0,0,0.08);
@@ -39,8 +41,8 @@
 
 @media (max-width: 520px) {
 	.bottomNav {
-		padding: 4px;
-		bottom: env(safe-area-inset-bottom, 4px);
+		padding: 4px 4px max(4px, env(safe-area-inset-bottom, 0px));
+		bottom: 0;
 		left: 6px;
 		right: 6px;
 	}

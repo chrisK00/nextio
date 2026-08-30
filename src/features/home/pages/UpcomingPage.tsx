@@ -3,14 +3,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
-import { getReleaseCountdown } from '../../show/utils/show'
+import { getReleaseCountdown, parseReleaseDate } from '../../show/utils/show'
 import FilterButton from '../../../components/common/FilterButton'
 import { useAppContext } from '../../../state/AppContext'
 import useGenreFilter from '../../../hooks/useGenreFilter'
 import GenreSelect from '../../../components/common/GenreSelect'
 
 type UpcomingFilter = 'continue' | 'all'
-type ViewMode = 'list' | 'calendar'
 
 const upcomingFilters: Array<{ key: UpcomingFilter; label: string; tooltip: string }> = [
     { key: 'continue', label: 'Continue', tooltip: 'Upcoming episodes only for shows you\'ve already started watching at least 1 episode.' },
@@ -18,11 +17,12 @@ const upcomingFilters: Array<{ key: UpcomingFilter; label: string; tooltip: stri
 ]
 
 function UpcomingCard({ show, onClick }: { show: TvShow; onClick: (show: TvShow) => void }) {
+    const episode = show.nextAiringEpisode
     const countdown = getReleaseCountdown(show)
     const isToday = countdown === 'Today'
 
     const currentYear = new Date().getFullYear();
-    const airDate = new Date(show.nextAiringEpisode!.releaseDate);
+    const airDate = parseReleaseDate(episode!.releaseDate);
 
     const displayReleaseDate = airDate.getFullYear() === currentYear
         ? airDate.toLocaleDateString('en-UK', { weekday: 'short', month: 'short', day: 'numeric' }) // "Thu, Jun 25"
@@ -46,7 +46,7 @@ function UpcomingCard({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
             </div>
             <div className={styles.upcomingCardInfo}>
                 <strong className={styles.upcomingTitle}>{show.title}</strong>
-                <span>S{show.nextAiringEpisode?.season} E{show.nextAiringEpisode?.episode} · {show.nextAiringEpisode?.title}</span>
+                <span>S{episode?.season} E{episode?.episode} · {episode?.title}</span>
                 {displayReleaseDate && (
                     <span className={styles.upcomingNetwork}>
                         {displayReleaseDate}
@@ -65,15 +65,8 @@ export default function UpcomingPage() {
     const [searchParams, setSearchParams] = useSearchParams()
     const { shows, loading } = useShows('upcoming')
     const { settings } = useAppContext()
-    const defaultView = settings?.defaultUpcomingView ?? 'list'
-    const [viewMode, setViewMode] = useState<ViewMode>(defaultView)
-    const [prevDefaultView, setPrevDefaultView] = useState(defaultView)
+    const viewMode = settings?.defaultUpcomingView ?? 'list'
     const [genre, setGenre] = useState('')
-
-    if (defaultView !== prevDefaultView) {
-        setPrevDefaultView(defaultView)
-        setViewMode(defaultView)
-    }
 
     const filter = (searchParams.get('filter') as UpcomingFilter | null) ?? 'continue'
 
@@ -89,9 +82,18 @@ export default function UpcomingPage() {
     const calendarGroups = useMemo(() => {
         const groups: Record<string, TvShow[]> = {}
         for (const show of visibleShows) {
-            if (!show.nextAiringEpisode?.releaseDate) continue
-            const date = new Date(show.nextAiringEpisode.releaseDate)
-            const dateKey = date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric' })
+            const episode = show.nextAiringEpisode
+            if (!episode?.releaseDate) continue
+            const date = parseReleaseDate(episode.releaseDate)
+            const today = new Date()
+            const todayKey = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+            const dateKeyValue = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+            const dayOffset = Math.round((dateKeyValue - todayKey) / (1000 * 60 * 60 * 24))
+            const dateKey = dayOffset === 0
+                ? 'Today'
+                : dayOffset === 1
+                    ? 'Tomorrow'
+                    : date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric' })
             if (!groups[dateKey]) groups[dateKey] = []
             groups[dateKey].push(show)
         }
@@ -128,10 +130,10 @@ export default function UpcomingPage() {
                         ))}
 						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
                     </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    {false && <div style={{ display: 'flex', gap: '6px' }}>
                         <button
                             className={`${styles.secondaryButton} ${viewMode === 'list' ? styles.primaryButton : ''}`}
-                            onClick={() => setViewMode('list')}
+                            onClick={() => undefined}
                             type="button"
                             style={{ padding: '6px 12px', minHeight: '34px', fontSize: '0.82rem' }}
                         >
@@ -139,13 +141,13 @@ export default function UpcomingPage() {
                         </button>
                         <button
                             className={`${styles.secondaryButton} ${viewMode === 'calendar' ? styles.primaryButton : ''}`}
-                            onClick={() => setViewMode('calendar')}
+                            onClick={() => undefined}
                             type="button"
                             style={{ padding: '6px 12px', minHeight: '34px', fontSize: '0.82rem' }}
                         >
                             📅 Calendar
                         </button>
-                    </div>
+                    </div>}
                 </div>
 
                 {visibleShows.length === 0 ? (

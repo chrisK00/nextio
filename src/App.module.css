@@ -60,6 +60,13 @@ input:focus-visible {
 	margin-top: 14px;
 }
 
+.settingsHeader {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
 .globalSearchButton {
 	display: block;
 	margin: 12px auto 0;
@@ -81,14 +88,27 @@ input:focus-visible {
 
 .backupReminder {
 	display: flex;
-	align-items: center;
-	gap: 10px;
-	flex-wrap: wrap;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 4px;
 	margin-bottom: 14px;
 	padding: 12px 16px;
 	border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
 	border-radius: 14px;
 	background: color-mix(in srgb, var(--accent) 10%, var(--code-bg));
+}
+
+.backupReminderHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.backupReminderActions {
+	display: flex;
+	align-items: center;
+	gap: 14px;
 }
 
 .backupReminderLink {
@@ -100,6 +120,18 @@ input:focus-visible {
 	font-weight: 700;
 	cursor: pointer;
 }
+
+.backupReminderDismiss {
+	border: 0;
+	padding: 0 2px;
+	background: transparent;
+	color: var(--text);
+	font-size: 24px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.backupReminderDismiss:hover { color: var(--text-h); }
 
 .searchField {
 	display: grid;
@@ -117,8 +149,9 @@ input:focus-visible {
 .searchField input {
 	width: 100%;
 	box-sizing: border-box;
-	padding: 14px 16px;
-	border-radius: 16px;
+	padding: 8px 12px;
+	min-height: 36px;
+	border-radius: 999px;
 	border: 1px solid var(--border);
 	background: var(--code-bg);
 	min-height: 48px;
@@ -240,9 +273,15 @@ input:focus-visible {
 	justify-content: center;
 }
 
+.searchField .globalSearchInputWrap {
+	min-width: 0;
+}
+
 @media (max-width: 520px) {
-	.searchField { grid-template-columns: 1fr; }
+	.searchField { grid-template-columns: minmax(0, 1fr) 132px; }
 	.searchField label { grid-column: auto; }
+	.searchField label { grid-column: 1 / -1; }
+	.searchField .genreDropdown { width: 132px; }
 }
 
 .genreDropdown { position: relative; width: 100%; min-width: 0; }
@@ -348,10 +387,12 @@ input:focus-visible {
 }
 
 .unwatchedGrid .showCardImageWrap {
-	height: auto;
-	aspect-ratio: 2 / 3;
+	height: 160px;
+	aspect-ratio: auto;
 	flex-shrink: 0;
-	max-height: none;
+	max-height: 160px;
+	border: 1px solid var(--border);
+	border-radius: 12px;
 }
 
 .unwatchedGrid .showCardBody {
@@ -394,6 +435,7 @@ input:focus-visible {
 	align-items: center;
 	justify-content: flex-end;
 	flex-direction: column;
+	margin-top: auto;
 	gap: 3px;
 	width: 100%;
 	min-width: 0;
@@ -404,7 +446,8 @@ input:focus-visible {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	font-size: 0.72rem;
-	line-height: 1.2;
+	line-height: 1.35;
+	padding-bottom: 2px;
 	color: var(--text);
 	width: 100%;
 	text-align: center;
@@ -470,7 +513,8 @@ input:focus-visible {
 	font-size: 0.85rem;
 	min-height: 36px;
 	box-sizing: border-box;
-	width: 230px;
+	width: 190px;
+	min-height: 36px;
 }
 
 .unwatchedGrid .showCardImage {
@@ -490,18 +534,37 @@ input:focus-visible {
 }
 
 @media (max-width: 600px) {
+	.watchingToolbar {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		align-items: stretch;
+	}
+
+	.watchingToolbar .sortControls {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		padding-bottom: 2px;
+		scrollbar-width: none;
+	}
+
+	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
+	.watchingToolbar .sortControls > * { flex: 0 0 auto; }
+
 	.librarySearchWrap {
 		width: 100%;
 	}
 
 	.librarySearchInput {
-		flex: 1;
-		width: 100%;
+		flex: 0 1 190px;
+		width: 190px;
+		max-width: 190px;
 	}
 
 	.librarySearchInput:focus {
-		width: 100%;
+		width: 190px;
 	}
+
+	.librarySearchWrap .genreDropdown { flex: 0 0 132px; width: 132px; }
 }
 
 .librarySearchClear {
@@ -587,6 +650,17 @@ input:focus-visible {
 	height: 100%
 }
 
+/* Search results use portrait artwork, so keep the full poster visible. */
+.searchResults .showCardImageWrap {
+	aspect-ratio: 2 / 3;
+	max-height: 180px;
+}
+
+.searchResults .showCardImage,
+.unwatchedGrid .showCardImage {
+	object-fit: cover;
+}
+
 .showCard {
 	display: flex;
 	flex-direction: column;
@@ -626,6 +700,7 @@ input:focus-visible {
 	align-items: center;
 	justify-content: center;
 }
+
 
 .showCardImageWrapCompact {
 	width: 100%;
@@ -684,6 +759,11 @@ input:focus-visible {
 	flex-direction: column;
 	gap: 6px;
 	flex: 1;
+}
+
+.searchResults .showCardBody {
+	min-height: 0;
+	gap: 3px;
 }
 
 .showCardTitle {
@@ -785,6 +865,7 @@ input:focus-visible {
 	gap: 12px;
 	flex-wrap: wrap;
 }
+
 
 .detailHeaderMain {
 	display: flex;
@@ -1188,11 +1269,12 @@ input:focus-visible {
 .upcomingCard {
 	all: unset;
 	display: flex;
-	align-items: center;
+	align-items: stretch;
 	gap: 12px;
 	width: 100%;
 	box-sizing: border-box;
-	padding: 12px 10px;
+	min-width: 0;
+	padding: 0;
 	border-radius: 16px;
 	border: 1px solid var(--border);
 	background: var(--code-bg);
@@ -1209,12 +1291,19 @@ input:focus-visible {
 }
 
 .upcomingCardPoster {
-	width: 56px;
-	height: 82px;
+	width: 72px;
+	height: auto;
 	flex-shrink: 0;
-	border-radius: 8px;
+	border-radius: 16px 0 0 16px;
 	overflow: hidden;
 	background: var(--border);
+}
+
+.upcomingCardPoster .showCardImage {
+	width: 100%;
+	height: 100%;
+	max-height: none;
+	object-fit: cover;
 }
 
 .upcomingCardInfo {
@@ -1226,6 +1315,8 @@ input:focus-visible {
 	text-align: left;
 	font-size: 0.9rem;
 	overflow: hidden;
+	min-width: 0;
+	padding: 8px 0;
 }
 
 .upcomingCardInfo > span {
@@ -1234,6 +1325,8 @@ input:focus-visible {
 	text-overflow: ellipsis;
 	display: block;
 	max-width: 100%;
+	line-height: 1.3;
+	padding-bottom: 2px;
 }
 
 .upcomingItemButton {
@@ -1305,8 +1398,14 @@ input:focus-visible {
 
 .upcomingCountdown {
 	flex-shrink: 0;
-	font-size: 1.1rem;
-	font-weight: 800;
+	max-width: 30%;
+	padding: 0 10px 0 0;
+	align-self: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 0.95rem;
+	font-weight: 700;
 	color: #d97706;
 	text-align: right;
 	white-space: nowrap;
@@ -1391,8 +1490,27 @@ input:focus-visible {
 	}
 }
 
+
 /* The clear action belongs to the text field, not the adjacent genre select. */
 .librarySearchWrap .librarySearchClear {
 	right: 156px;
+}
+
+@media (max-width: 600px) {
+	.watchingToolbar {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		align-items: stretch;
+	}
+
+	.watchingToolbar .sortControls {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		padding-bottom: 2px;
+		scrollbar-width: none;
+	}
+
+	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
+	.watchingToolbar .sortControls > * { flex: 0 0 auto; }
 }
 .searchInputWrap .librarySearchClear { right: 10px; }

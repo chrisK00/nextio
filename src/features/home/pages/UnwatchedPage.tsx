@@ -35,6 +35,7 @@ export default function UnwatchedPage() {
 	const { shows, loading } = useShows('unwatched')
 	useAppContext()
 	const [lastExportAt, setLastExportAt] = useState<string | null>(null)
+	const [showBackupReminder, setShowBackupReminder] = useState(true)
 	useEffect(() => { void getLastLibraryExport().then(setLastExportAt) }, [])
 	const filter = (searchParams.get('filter') as UnwatchedFilter | null) ?? 'continue'
 	const [genre, setGenre] = useState('')
@@ -78,11 +79,16 @@ export default function UnwatchedPage() {
 
 	return (
 		<main className={styles.mainPanel}>
-			{!hasRecentLibraryExport(lastExportAt) && (
+			{showBackupReminder && !hasRecentLibraryExport(lastExportAt) && (
 				<div className={styles.backupReminder} role="status">
-					<strong>Keep your library safe</strong>
+					<div className={styles.backupReminderHeader}>
+						<strong>Keep your library safe</strong>
+						<div className={styles.backupReminderActions}>
+							<button className={styles.backupReminderLink} onClick={() => navigate('/settings')} type="button">Export now</button>
+							<button className={styles.backupReminderDismiss} onClick={() => setShowBackupReminder(false)} type="button" aria-label="Dismiss backup reminder">×</button>
+						</div>
+					</div>
 					<span>You haven’t exported a library backup in the last 30 days.</span>
-					<button className={styles.backupReminderLink} onClick={() => navigate('/settings')} type="button">Export now</button>
 				</div>
 			)}
 			<section className={styles.tabContent}>

@@ -6,13 +6,19 @@ export type WatchlistItem = TvShow & {
 
 export const isRunningShow = (show: TvShow) => Boolean(show?.nextAiringEpisode?.releaseDate)
 
+export const parseReleaseDate = (value: string) => {
+    return new Date(value)
+}
+
 export const getReleaseCountdown = (show: TvShow) => {
     if(!show?.nextAiringEpisode?.releaseDate) return 'TBD'
     const now = new Date()
-    const release = new Date(show?.nextAiringEpisode?.releaseDate)
-    const msPerDay = 1000 * 60 * 60 * 24
-    const days = Math.ceil((release.getTime() - now.getTime()) / msPerDay)
-    if(days <= 0) return 'Today'
+    const release = parseReleaseDate(show.nextAiringEpisode.releaseDate)
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+    const releaseUtc = Date.UTC(release.getFullYear(), release.getMonth(), release.getDate())
+    const days = Math.round((releaseUtc - todayUtc) / (1000 * 60 * 60 * 24))
+    if(days === 0) return 'Today'
+    if(days < 0) return 'Past'
     return `In ${days} day${days === 1 ? '' : 's'}`
 }
 

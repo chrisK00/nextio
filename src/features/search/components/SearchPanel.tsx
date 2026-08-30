@@ -24,7 +24,6 @@ export default function SearchPanel({ searchQuery, searchResults, isLoading = fa
   return (
     <section className={styles.searchPanel}>
       <div className={styles.searchField}>
-        <label htmlFor="show-search">Find shows to add</label>
         <div className={styles.globalSearchInputWrap}>
           <input
             id="show-search"

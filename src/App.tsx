@@ -26,6 +26,7 @@ function AppRouter() {
 	}, [settings])
 
 	return (
+		<>
 		<div className={styles.appShell}>
 			<HeaderBar />
 			<Routes>
@@ -45,8 +46,9 @@ function AppRouter() {
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/register" element={<RegisterPage />} />
 			</Routes>
-			<BottomNav />
 		</div>
+		<BottomNav />
+		</>
 	)
 }
 
