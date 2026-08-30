@@ -44,6 +44,9 @@ export default function HeaderBar() {
 					<CiVideoOn style={{ marginRight: '0.2rem' }} />
 					Movies
 				</button>
+				<button className={appStyles.secondaryButton} onClick={() => navigateTo('/lists')} type="button">
+					Lists
+				</button>
 				<button className={appStyles.secondaryButton} onClick={() => navigateTo('/settings')} type="button">
 					<CiSettings style={{ marginRight: '0.2rem' }} />
 					Settings

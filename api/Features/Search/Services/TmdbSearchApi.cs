@@ -8,9 +8,14 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
     private readonly HttpClient _httpClient = httpClient;
     private readonly IConfiguration _configuration = configuration;
 
+    private string? GetApiKey()
+    {
+        return _configuration["Tmdb:ApiKey"] ?? Environment.GetEnvironmentVariable("TMDB_API_KEY");
+    }
+
     private string AppendApiKey(string url)
     {
-        var apiKey = _configuration["Tmdb:ApiKey"] ?? Environment.GetEnvironmentVariable("TMDB_API_KEY");
+        var apiKey = GetApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             throw new InvalidOperationException("TMDb API key is not configured.");
@@ -20,56 +25,113 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         return $"{url}{separator}api_key={Uri.EscapeDataString(apiKey)}";
     }
 
-    public async Task<SearchResponse> SearchAsync(string query, CancellationToken cancellationToken = default)
+    private static readonly SemaphoreSlim _globalRateLimiter = new(10, 10);
+
+    public async Task<SearchResponse> SearchAsync(string query, bool includeAdult = false, CancellationToken cancellationToken = default)
     {
         var trimmedQuery = query.Trim();
-        if (string.IsNullOrWhiteSpace(trimmedQuery))
+        if (string.IsNullOrWhiteSpace(trimmedQuery) || string.IsNullOrWhiteSpace(GetApiKey()))
         {
             return new SearchResponse(Array.Empty<SearchItem>(), Array.Empty<SearchItem>());
         }
 
-        var url = $"search/multi?query={Uri.EscapeDataString(trimmedQuery)}&include_adult=true&language=en-US&page=1";
+        var adultParam = includeAdult ? "true" : "false";
+        var url = $"search/multi?query={Uri.EscapeDataString(trimmedQuery)}&include_adult={adultParam}&language=en-US&page=1";
 
-        var response = await _httpClient.GetFromJsonAsync<TmdbMultiSearchResponse>(AppendApiKey(url), cancellationToken);
-
-        if (response?.Results is null || response.Results.Count == 0)
+        try
         {
+            await _globalRateLimiter.WaitAsync(cancellationToken);
+            TmdbMultiSearchResponse? response;
+            try
+            {
+                response = await _httpClient.GetFromJsonAsync<TmdbMultiSearchResponse>(AppendApiKey(url), cancellationToken);
+            }
+            finally
+            {
+                _globalRateLimiter.Release();
+            }
+
+            if (response?.Results is null || response.Results.Count == 0)
+            {
+                return new SearchResponse(Array.Empty<SearchItem>(), Array.Empty<SearchItem>());
+            }
+
+            var tvShows = response.Results
+                .Where(r => string.Equals(r.MediaType, "tv", StringComparison.OrdinalIgnoreCase))
+                .Select(MapTvShow)
+                .ToList();
+
+            var movies = response.Results
+                .Where(r => string.Equals(r.MediaType, "movie", StringComparison.OrdinalIgnoreCase))
+                .Select(MapMovie)
+                .ToList();
+
+            return new SearchResponse(tvShows, movies);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Search failed for query {Query}", query);
             return new SearchResponse(Array.Empty<SearchItem>(), Array.Empty<SearchItem>());
         }
-
-        var tvShows = response.Results
-            .Where(r => string.Equals(r.MediaType, "tv", StringComparison.OrdinalIgnoreCase))
-            .Select(MapTvShow)
-            .ToList();
-
-        var movies = response.Results
-            .Where(r => string.Equals(r.MediaType, "movie", StringComparison.OrdinalIgnoreCase))
-            .Select(MapMovie)
-            .ToList();
-
-        return new SearchResponse(tvShows, movies);
     }
 
-    public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, SemaphoreSlim tmdbRateLimiter, CancellationToken cancellationToken = default)
+    public async Task<SearchResponse> TrendingAsync(bool includeAdult = false, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(GetApiKey()))
+        {
+            return new SearchResponse(Array.Empty<SearchItem>(), Array.Empty<SearchItem>());
+        }
+
+        try
+        {
+            await _globalRateLimiter.WaitAsync(cancellationToken);
+            TmdbMultiSearchResponse? response;
+            try
+            {
+                response = await _httpClient.GetFromJsonAsync<TmdbMultiSearchResponse>(
+                    AppendApiKey("trending/all/week?language=en-US&page=1"), cancellationToken);
+            }
+            finally
+            {
+                _globalRateLimiter.Release();
+            }
+
+            var results = response?.Results ?? [];
+            if (!includeAdult) results = results.Where(r => !r.Adult).ToList();
+
+            return new SearchResponse(
+                results.Where(r => r.MediaType == "tv").Select(MapTvShow).ToList(),
+                results.Where(r => r.MediaType == "movie").Select(MapMovie).ToList());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Trending request failed");
+            return new SearchResponse(Array.Empty<SearchItem>(), Array.Empty<SearchItem>());
+        }
+    }
+
+    public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, SemaphoreSlim? tmdbRateLimiter = null, CancellationToken cancellationToken = default)
     {
         var parsedShowId = TmdbShowIdExtractor.Extract(showId);
         var url = $"tv/{parsedShowId}/season/{season}";
+        var limiter = tmdbRateLimiter ?? _globalRateLimiter;
         try
         {
-            await tmdbRateLimiter.WaitAsync(cancellationToken);
-            var response = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(AppendApiKey(url), cancellationToken);
-
-            return response;
-
+            await limiter.WaitAsync(cancellationToken);
+            try
+            {
+                var response = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(AppendApiKey(url), cancellationToken);
+                return response;
+            }
+            finally
+            {
+                limiter.Release();
+            }
         }
         catch (Exception ex)
         {
             logger.LogError("Failed to fetch season info for show: {showId}, season: {season}. Url: {url}. Error: {error}", parsedShowId, season, url, ex.Message);
             return null;
-        }
-        finally
-        {
-            tmdbRateLimiter.Release();
         }
     }
 
@@ -79,7 +141,15 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         var url = $"tv/{parsedShowId}/season/{season}/episode/{episode}?language=en-US";
         try
         {
-            return await _httpClient.GetFromJsonAsync<TmdbEpisode>(AppendApiKey(url), cancellationToken);
+            await _globalRateLimiter.WaitAsync(cancellationToken);
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<TmdbEpisode>(AppendApiKey(url), cancellationToken);
+            }
+            finally
+            {
+                _globalRateLimiter.Release();
+            }
         }
         catch (Exception ex)
         {
@@ -96,7 +166,17 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
 
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse?>(AppendApiKey(url), cancellationToken);
+            await _globalRateLimiter.WaitAsync(cancellationToken);
+            TmdbDetailResponse? response;
+            try
+            {
+                response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse?>(AppendApiKey(url), cancellationToken);
+            }
+            finally
+            {
+                _globalRateLimiter.Release();
+            }
+
             if (response == null)
             {
                 logger.LogInformation("TMDB could not find: {mediaType} {showId}", mediaType, showId);
@@ -121,6 +201,11 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
                 Status = response.Status,
                 VoteAverage = response.VoteAverage,
                 VoteCount = response.VoteCount,
+                Runtime = response.Runtime ?? response.EpisodeRunTime?.FirstOrDefault(),
+                Genres = (response.Genres ?? Array.Empty<TmdbGenre>())
+                    .Select(g => g.Name)
+                    .Where(g => !string.IsNullOrWhiteSpace(g))
+                    .ToArray(),
             };
         }
         catch (Exception)
@@ -128,10 +213,8 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             logger.LogError("Failed to fetch details for showid: {showId}. Url: {url}", parsedShowId, endpoint);
             throw;
         }
-
     }
 
-    // TODO
     private static SearchItem MapTvShow(TmdbMultiSearchResult result)
     {
         var title = result.Name ?? "Untitled";
@@ -139,7 +222,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             Id: $"{result.Id}",
             Title: title,
             MediaType: "tv",
-            Status: "TODO",
+            Status: "Tracked",
             EpisodesWatched: 0,
             EpisodesTotal: 1,
             NextEpisodeTitle: null,
@@ -157,7 +240,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
             Id: $"{result.Id}",
             Title: title,
             MediaType: "movie",
-            Status: "TODO",
+            Status: "Released",
             EpisodesWatched: 0,
             EpisodesTotal: 1,
             null,
@@ -177,7 +260,15 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         TmdbTvDetailsResponse? tvDetails = null;
         try
         {
-            tvDetails = await _httpClient.GetFromJsonAsync<TmdbTvDetailsResponse>(AppendApiKey(detailsUrl), cancellationToken);
+            await _globalRateLimiter.WaitAsync(cancellationToken);
+            try
+            {
+                tvDetails = await _httpClient.GetFromJsonAsync<TmdbTvDetailsResponse>(AppendApiKey(detailsUrl), cancellationToken);
+            }
+            finally
+            {
+                _globalRateLimiter.Release();
+            }
 
             if (tvDetails is null)
             {
@@ -186,7 +277,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         }
         catch (Exception e)
         {
-            logger.LogError("Failed to fetch seasons for showid: {showId}. Url: {url}", parsedShowId, detailsUrl);
+            logger.LogError(e, "Failed to fetch seasons for showid: {showId}. Url: {url}", parsedShowId, detailsUrl);
             return Array.Empty<SeasonItem>();
         }
 
@@ -199,8 +290,16 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         var seasonTasks = seasonNumbers.Select(async num =>
         {
             var url = AppendApiKey($"tv/{parsedShowId}/season/{num}?language=en-US");
-            var season = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(url, cancellationToken);
-            return season;
+            await _globalRateLimiter.WaitAsync(cancellationToken);
+            try
+            {
+                var season = await _httpClient.GetFromJsonAsync<TmdbSeasonResponse>(url, cancellationToken);
+                return season;
+            }
+            finally
+            {
+                _globalRateLimiter.Release();
+            }
         });
 
         var seasons = await Task.WhenAll(seasonTasks);

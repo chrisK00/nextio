@@ -33,6 +33,10 @@ export type TvShow = {
     seasons?: Season[]
     posterUrl?: string
     releaseDate?: string
+    voteAverage?: number
+    voteCount?: number
+    runtime?: number
+    genres?: string[]
 }
 
 export type SearchResults = {
@@ -99,6 +103,8 @@ export type LibrarySyncResponse = {
 export type Settings = {
     notificationsEnabled: boolean
     darkMode: boolean
+    nsfwEnabled: boolean
+    defaultUpcomingView?: 'list' | 'calendar'
     preferredGenres: string[]
 }
 
@@ -109,4 +115,30 @@ export type LibraryStats = {
     lastSyncAt: string | null
     lastSyncSucceeded: boolean | null
     lastSyncMessage: string | null
+}
+
+export type UserListItem = {
+    id: string
+    itemId: string
+    title: string
+    posterUrl?: string
+    releaseDate?: string
+    addedAt: string
+    order: number
+}
+
+export type UserList = {
+    id: string
+    name: string
+    description?: string
+    mediaType: 'tv' | 'movie'
+    createdAt: string
+    updatedAt: string
+    items: UserListItem[]
+}
+
+export type BackupInfo = {
+    fileName: string
+    sizeBytes: number
+    createdAt: string
 }

@@ -100,9 +100,11 @@ function EpisodeButton({ ep, showId, seasonNum, onToggleEpisode, isTracked = tru
             >
                 <span className={styles.episodeNumber}>E{ep.episode}</span>
                 <span className={styles.episodeTitle}>{loading ? 'Updating…' : ep.title}</span>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.4)' }}>
-                    {ep?.airDate}
-                </span>
+                {ep?.airDate && (
+                    <span className={styles.episodeAirDate}>
+                        {ep.airDate}
+                    </span>
+                )}
             </button>
         </>
     )

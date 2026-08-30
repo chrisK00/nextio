@@ -8,7 +8,7 @@ import type { LibrarySyncResponse, LibrarySyncItem, TvShow, LibraryMovie } from 
 import { ShowMediaType } from '../../services/apiTypes'
 
 export default function SettingsPage() {
-  const { settings, toggleSetting, tvShows, refresh } = useAppContext()
+  const { settings, toggleSetting, updateSetting, tvShows, refresh } = useAppContext()
   const navigate = useNavigate()
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncResult, setSyncResult] = useState<LibrarySyncResponse | null>(null)
@@ -19,7 +19,7 @@ export default function SettingsPage() {
     api.getLibraryStats().then(setStats)
   }, [])
 
-  const handleSync = async () => {
+  const handleSync = async (throwOnFailure = false): Promise<LibrarySyncResponse | null> => {
     setSyncLoading(true)
     setSyncError(null)
     try {
@@ -28,8 +28,14 @@ export default function SettingsPage() {
       await refresh()
       const nextStats = await api.getLibraryStats()
       setStats(nextStats)
+      if(throwOnFailure && result.failed > 0) {
+        throw new Error(`Metadata sync failed for ${result.failed} of ${result.total} shows.`)
+      }
+      return result
     } catch(error) {
       setSyncError(error instanceof Error ? error.message : 'Sync failed')
+      if(throwOnFailure) throw error
+      return null
     } finally {
       setSyncLoading(false)
     }
@@ -44,13 +50,60 @@ export default function SettingsPage() {
   type ExportMovie = { id: string; title: string; posterUrl?: string, releaseDate?: string, watched?: boolean }
   type ExportFile = { tvShows: ExportShow[]; movies: ExportMovie[] }
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'json' | 'couchmoney-csv' | 'letterboxd-csv' = 'json') => {
     setExportLoading(true)
     try {
       const [tvDetails, movieLibrary] = await Promise.all([
         Promise.all(tvShows.map((s) => api.getLibraryTvShow(s.id))),
         api.getLibrary<LibraryMovie>(ShowMediaType.Movie),
       ])
+
+      const dateStr = new Date().toISOString().slice(0, 10)
+
+      if(format === 'letterboxd-csv') {
+        // Letterboxd format: Title,Year,WatchedDate
+        let csv = 'Title,Year\n'
+        for(const movie of movieLibrary.items) {
+          const year = movie.releaseDate ? movie.releaseDate.slice(0, 4) : ''
+          const escapedTitle = `"${movie.title.replace(/"/g, '""')}"`
+          csv += `${escapedTitle},${year}\n`
+        }
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `nextio-letterboxd-${dateStr}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+        await api.recordLibraryExport()
+        return
+      }
+
+      if(format === 'couchmoney-csv') {
+        // Trakt / Couchmoney compatible history: tmdb_id,title,type,watched
+        let csv = 'tmdb_id,title,type,watched\n'
+        for(const m of movieLibrary.items) {
+          const rawId = m.id.includes(':') ? m.id.split(':')[1] : m.id
+          const title = `"${m.title.replace(/"/g, '""')}"`
+          csv += `${rawId},${title},movie,${m.watched ? 1 : 0}\n`
+        }
+        for(const show of tvDetails.filter(Boolean)) {
+          const rawId = show!.show.id.includes(':') ? show!.show.id.split(':')[1] : show!.show.id
+          const title = `"${show!.show.title.replace(/"/g, '""')}"`
+          const hasWatchedEp = show!.episodes.some(e => e.watched)
+          csv += `${rawId},${title},show,${hasWatchedEp ? 1 : 0}\n`
+        }
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `nextio-recommendations-${dateStr}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+        await api.recordLibraryExport()
+        return
+      }
+
       const data = {
         exportedAt: new Date().toISOString(),
         totalShows: tvDetails.length,
@@ -68,9 +121,10 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `nextio-export-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `nextio-export-${dateStr}.json`
       a.click()
       URL.revokeObjectURL(url)
+      await api.recordLibraryExport()
     } finally {
       setExportLoading(false)
     }
@@ -106,7 +160,6 @@ export default function SettingsPage() {
           tvCount++
         }
 
-        // TODO lite broken eftersom vi inte har synk i backend
         for(const movie of data.movies ?? []) {
           await api.addLibraryMovie({ id: movie.id, title: movie.title, mediaType: 'movie', posterUrl: movie.posterUrl, releaseDate: movie.releaseDate, status: waitForSyncMessage, episodesWatched: 0, episodesTotal: 0, description: waitForSyncMessage })
           if(movie.watched === true) {
@@ -116,11 +169,9 @@ export default function SettingsPage() {
         }
 
         await refresh()
-        setImportResult(`Imported ${tvCount} TV show${tvCount !== 1 ? 's' : ''} and ${movieCount} movie${movieCount !== 1 ? 's' : ''}. Please wait for sync`)
-
-        setTimeout(async () => {
-          await handleSync()
-        }, 500);
+        const sync = await handleSync(true)
+        if(!sync) throw new Error('Metadata sync did not complete.')
+        setImportResult(`Imported ${tvCount} TV show${tvCount !== 1 ? 's' : ''} and ${movieCount} movie${movieCount !== 1 ? 's' : ''}; metadata synced for ${sync.succeeded} of ${sync.total} shows.`)
       } catch(e) {
         setImportResult(`Import failed: ${e instanceof Error ? e.message : 'Invalid file'}`)
       } finally {
@@ -157,37 +208,83 @@ export default function SettingsPage() {
 
         <label className={styles.settingsCard}>
           <div>
-            <strong>Notifications</strong>
-            <p>Receive alerts when new episodes are coming soon.</p>
-          </div>
-          <button className={appStyles.primaryButton} onClick={() => void toggleSetting('notificationsEnabled')} type="button">
-            {settings?.notificationsEnabled ? 'Enabled' : 'Disabled'}
-          </button>
-        </label>
-
-        <label className={styles.settingsCard}>
-          <div>
             <strong>Dark mode</strong>
-            <p>Use a darker theme when available.</p>
           </div>
           <button className={appStyles.primaryButton} onClick={() => void toggleSetting('darkMode')} type="button">
             {settings?.darkMode ? 'On' : 'Off'}
           </button>
         </label>
 
-        <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
+        <label className={styles.settingsCard}>
           <div>
-            <strong>Preferred genres</strong>
-            <p>{settings?.preferredGenres.join(', ') || 'No genres selected'}</p>
+            <strong>NSFW Content</strong>
+            <p>Include adult / 18+ items in TMDb search results.</p>
+          </div>
+          <button className={appStyles.primaryButton} onClick={() => void toggleSetting('nsfwEnabled')} type="button">
+            {settings?.nsfwEnabled ? 'Enabled' : 'Disabled'}
+          </button>
+        </label>
+
+        <section className={styles.settingsCard}>
+          <div>
+            <strong>Upcoming view</strong>
+            <p>Default layout mode when viewing upcoming releases.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              className={settings?.defaultUpcomingView === 'calendar' ? appStyles.secondaryButton : appStyles.primaryButton}
+              onClick={() => void updateSetting('defaultUpcomingView', 'list')}
+              type="button"
+              style={{ minHeight: '38px', padding: '8px 14px' }}
+            >
+              List
+            </button>
+            <button
+              className={settings?.defaultUpcomingView === 'calendar' ? appStyles.primaryButton : appStyles.secondaryButton}
+              onClick={() => void updateSetting('defaultUpcomingView', 'calendar')}
+              type="button"
+              style={{ minHeight: '38px', padding: '8px 14px' }}
+            >
+              📅 Calendar
+            </button>
           </div>
         </section>
 
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
-            <strong>Export library</strong>
+            <strong>Export & Backup</strong>
           </div>
-          <button className={appStyles.secondaryButton} onClick={() => void handleExport()} type="button" disabled={exportLoading}>
-            {exportLoading ? 'Exporting…' : 'Export JSON'}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button className={appStyles.secondaryButton} onClick={() => void handleExport('json')} type="button" disabled={exportLoading}>
+              {exportLoading ? 'Exporting…' : 'Export JSON Backup'}
+            </button>
+            <button className={appStyles.secondaryButton} onClick={() => void handleExport('couchmoney-csv')} type="button" disabled={exportLoading} title="Optimized for Couchmoney, Trakt, and Simkl recommendation feeds">
+              📊 Couchmoney / Trakt CSV
+            </button>
+            <button className={appStyles.secondaryButton} onClick={() => void handleExport('letterboxd-csv')} type="button" disabled={exportLoading} title="Letterboxd compatible diary/watchlist CSV">
+              🎬 Letterboxd CSV
+            </button>
+          </div>
+        </section>
+
+        <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
+          <div>
+            <strong>Server SQLite Backups</strong>
+            <p>Automated rolling backups run weekly (keeping the latest 2 snapshots in <code>/backups</code>). You can also trigger an immediate server backup snapshot.</p>
+          </div>
+          <button
+            className={appStyles.secondaryButton}
+            onClick={async () => {
+              try {
+                const res = await api.triggerBackup()
+                alert(`Backup created successfully: ${res.backupFile}`)
+              } catch(e) {
+                alert(`Backup failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
+              }
+            }}
+            type="button"
+          >
+            💾 Create Server Snapshot Now
           </button>
         </section>
 
@@ -205,7 +302,7 @@ export default function SettingsPage() {
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
             <strong>Library sync</strong>
-            <p>Force a manual TMDb refresh for tracked shows and inspect the result log.</p>
+            <p>Force a manual TMDb refresh for tracked shows</p>
             {stats && (
               <div style={{ marginTop: '10px', fontSize: '0.9rem', borderLeft: '3px solid ' + (stats.lastSyncSucceeded ? '#22c55e' : stats.lastSyncSucceeded === false ? '#ef4444' : 'var(--border)'), paddingLeft: '10px' }}>
                 <strong>Last sync status:</strong>{' '}

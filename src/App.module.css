@@ -1,5 +1,3 @@
-/* TODO: split css files*/
-
 .appShell {
 	width: min(100%, 1180px);
 	margin: 0 auto;
@@ -62,11 +60,55 @@ input:focus-visible {
 	margin-top: 14px;
 }
 
+.globalSearchButton {
+	display: block;
+	margin: 12px auto 0;
+	padding: 7px 12px;
+	min-height: 34px;
+	background: transparent;
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	font: inherit;
+	font-size: 0.82rem;
+	cursor: pointer;
+}
+
+.globalSearchButton:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+.backupReminder {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-bottom: 14px;
+	padding: 12px 16px;
+	border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--accent) 10%, var(--code-bg));
+}
+
+.backupReminderLink {
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: var(--accent);
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+}
+
 .searchField {
 	display: grid;
 	gap: 10px;
 	margin-bottom: 22px;
+	grid-template-columns: minmax(0, 1fr) 180px;
 }
+
+.searchField label { grid-column: 1 / -1; }
 
 .searchField label {
 	font-weight: 600;
@@ -194,7 +236,76 @@ input:focus-visible {
 .showGrid {
 	display: grid;
 	gap: 12px;
-	grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(112px, 190px));
+	justify-content: center;
+}
+
+@media (max-width: 520px) {
+	.searchField { grid-template-columns: 1fr; }
+	.searchField label { grid-column: auto; }
+}
+
+.genreDropdown { position: relative; width: 100%; min-width: 0; }
+.genreButton { width: 100%; min-height: 48px; height: 48px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--code-bg); color: var(--text-h); font: inherit; cursor: pointer; white-space: nowrap; }
+.genreButton:disabled { opacity: .7; cursor: wait; }
+.genreButtonActive { background: var(--accent); border-color: var(--accent); color: white; }
+.searchField .genreButton { border-radius: 999px; background: transparent; padding: 0 16px; }
+.searchField .genreButton.genreButtonActive { background: var(--accent); border-color: var(--accent); color: white; }
+.genreChevron { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.genreMenu { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: auto; width: 230px; max-width: calc(100vw - 32px); max-height: 260px; overflow-y: auto; overflow-x: hidden; padding: 6px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); box-shadow: var(--shadow); }
+.genreOption { display: block; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text-h); font: inherit; text-align: left; cursor: pointer; }
+.genreOption { white-space: nowrap; }
+.genreOption { overflow: hidden; text-overflow: ellipsis; }
+.genreOption:hover, .genreOption:focus-visible { background: var(--accent-bg); color: var(--accent); outline: none; }
+
+.globalSearchInputWrap { position: relative; }
+.globalSearchInputWrap input { padding-right: 42px; }
+.globalSearchClear { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); border: 0; padding: 4px; background: transparent; color: var(--text); cursor: pointer; line-height: 1; }
+
+.genreButton:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+	border-color: var(--accent);
+}
+
+.sortControls .genreDropdown {
+	width: 120px !important;
+	max-width: 120px !important;
+	flex: 0 0 120px !important;
+}
+
+.sortControls .genreDropdown .genreButton {
+	all: unset;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 120px !important;
+	min-width: 120px !important;
+	max-width: 120px !important;
+	height: 40px !important;
+	min-height: 40px !important;
+	padding: 0 12px !important;
+	font-size: 0.9rem !important;
+	line-height: 1 !important;
+	box-sizing: border-box;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--text-h);
+	cursor: pointer;
+}
+.sortControls .genreDropdown .genreButton.genreButtonActive {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: white;
+}
+
+.sortControls .genreMenu { width: 230px; }
+
+.librarySearchWrap .genreButton {
+	min-height: 36px;
+	padding: 8px 12px;
+	font-size: 0.85rem;
 }
 
 .showGridCompact {
@@ -206,15 +317,22 @@ input:focus-visible {
 
 .unwatchedGrid {
 	display: grid;
-	gap: 6px;
+	gap: 8px;
 	grid-template-columns: repeat(3, 1fr);
 	width: 100%;
 	box-sizing: border-box;
 }
 
+@media (max-width: 360px) {
+	.unwatchedGrid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
 /* Fixed height on the grid item — every card identical, no inheritance needed */
 .unwatchedGrid .showCardButton {
-	height: 250px;
+	height: auto;
+	min-height: 250px;
 	width: 100%;
 	box-sizing: border-box;
 	overflow: hidden;
@@ -230,18 +348,20 @@ input:focus-visible {
 }
 
 .unwatchedGrid .showCardImageWrap {
-	height: 160px;
+	height: auto;
+	aspect-ratio: 2 / 3;
 	flex-shrink: 0;
 	max-height: none;
 }
 
 .unwatchedGrid .showCardBody {
-	flex: none;
+	flex: 1;
 	display: flex;
 	flex-direction: column;
-	padding: 6px 5px 6px;
-	gap: 3px;
+	padding: 6px 4px 6px;
+	gap: 4px;
 	overflow: hidden;
+	min-width: 0;
 }
 
 .unwatchedGrid .showCardTitle {
@@ -252,7 +372,7 @@ input:focus-visible {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	max-height: 2.4em;
-	font-size: 0.95rem;
+	font-size: 0.9rem;
 	line-height: 1.2;
 	flex-shrink: 0;
 }
@@ -265,29 +385,38 @@ input:focus-visible {
 .unwatchedGrid .showCardMeta {
 	flex-shrink: 0;
 	margin-top: auto;
+	width: 100%;
 }
 
 /* Footer groups episode title + badge with no gap between them */
 .unwatchedCardFooter {
 	display: flex;
-	align-items:center;
+	align-items: center;
 	justify-content: flex-end;
 	flex-direction: column;
-	gap: 2px;
+	gap: 3px;
+	width: 100%;
+	min-width: 0;
 }
 
 .unwatchedEpTitle {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	font-size: 0.75rem;
-	line-height: 1;
+	font-size: 0.72rem;
+	line-height: 1.2;
 	color: var(--text);
+	width: 100%;
+	text-align: center;
+	display: block;
 }
 
 .unwatchedGrid .badge {
-	padding: 2px 6px;
-	font-size: 1rem;
+	padding: 3px 8px;
+	font-size: 0.8rem;
+	width: auto;
+	max-width: 100%;
+	box-sizing: border-box;
 }
 
 .timelineList {
@@ -319,13 +448,79 @@ input:focus-visible {
 	flex-wrap: wrap;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 12px;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+
+.librarySearchWrap {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	position: relative;
+	max-width: 100%;
+}
+
+.librarySearchInput {
+	padding: 8px 30px 8px 12px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	background: var(--code-bg);
+	color: var(--text-h);
+	font: inherit;
+	font-size: 0.85rem;
+	min-height: 36px;
+	box-sizing: border-box;
+	width: 230px;
+}
+
+.unwatchedGrid .showCardImage {
+	object-fit: cover;
+	background: var(--code-bg);
+}
+
+.librarySearchInput:focus {
+	border-color: var(--accent);
+}
+
+.searchInputWrap { position: relative; flex: 0 0 190px; }
+.librarySearchWrap > .librarySearchClear { display: none; }
+
+.librarySearchInput:focus-visible {
+	outline: none;
+}
+
+@media (max-width: 600px) {
+	.librarySearchWrap {
+		width: 100%;
+	}
+
+	.librarySearchInput {
+		flex: 1;
+		width: 100%;
+	}
+
+	.librarySearchInput:focus {
+		width: 100%;
+	}
+}
+
+.librarySearchClear {
+	position: absolute;
+	right: 10px;
+	background: none;
+	border: none;
+	color: var(--text);
+	cursor: pointer;
+	padding: 2px;
+	font-size: 0.8rem;
+	top: 50%;
+	transform: translateY(-50%);
 }
 
 .sortControls {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10px;
+	gap: 8px;
 }
 
 .sortButton {
@@ -463,6 +658,8 @@ input:focus-visible {
 	box-sizing: border-box;
 	display: block;
 	text-align: left;
+	text-decoration: none;
+	color: inherit;
 }
 
 .showCardImage {
@@ -597,12 +794,12 @@ input:focus-visible {
 }
 
 .detailThumbnail {
-	width: 100px;
-	height: 140px;
-	border-radius: 18px;
-	overflow: hidden;
-	box-shadow: var(--shadow);
+	width: 90px;
+	height: 135px;
 	flex-shrink: 0;
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--code-bg);
 }
 
 .detailThumbnail img {
@@ -610,6 +807,63 @@ input:focus-visible {
 	height: 100%;
 	object-fit: cover;
 	display: block;
+}
+
+.stickyDetailHeader {
+	position: fixed;
+	top: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	width: min(100%, 1126px);
+	padding: 10px 16px;
+	background: var(--bg);
+	border-bottom: 1px solid var(--border);
+	box-shadow: var(--shadow);
+	z-index: 500;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	box-sizing: border-box;
+	cursor: pointer;
+	animation: modalFadeIn 0.2s ease-out;
+}
+
+.stickyTitle {
+	font-weight: 700;
+	color: var(--text-h);
+	font-size: 1rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.stickyScrollHint {
+	font-size: 0.8rem;
+	color: var(--accent);
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.detailHeaderInfo {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+	text-align: left;
+}
+
+.nextUserEpisodeBanner {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 12px;
+	background: var(--accent-bg);
+	border: 1px solid var(--accent-border);
+	border-radius: 12px;
+	margin-top: 4px;
+	flex-wrap: wrap;
 }
 
 .detailHeader h2 {
@@ -700,6 +954,12 @@ input:focus-visible {
 	text-overflow: ellipsis;
 	max-height: 2.4em;
 	line-height: 1.2;
+}
+
+.episodeAirDate {
+	font-size: 0.7rem;
+	color: var(--text);
+	opacity: 0.75;
 }
 
 .badge {
@@ -890,6 +1150,41 @@ input:focus-visible {
 	}
 }
 
+.calendarContainer {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	text-align: left;
+}
+
+.calendarDateGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.calendarDateHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	background: var(--code-bg);
+	border-left: 4px solid var(--accent);
+	border-radius: 8px;
+	font-weight: 700;
+	font-size: 0.95rem;
+	color: var(--text-h);
+}
+
+.calendarCountBadge {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--accent);
+	background: var(--accent-bg);
+	padding: 2px 8px;
+	border-radius: 999px;
+}
+
 .upcomingCard {
 	all: unset;
 	display: flex;
@@ -901,6 +1196,8 @@ input:focus-visible {
 	border-radius: 16px;
 	border: 1px solid var(--border);
 	background: var(--code-bg);
+	color: inherit;
+	text-decoration: none;
 	cursor: pointer;
 	transition: all 0.18s ease;
 }
@@ -928,6 +1225,15 @@ input:focus-visible {
 	min-width: 0;
 	text-align: left;
 	font-size: 0.9rem;
+	overflow: hidden;
+}
+
+.upcomingCardInfo > span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: block;
+	max-width: 100%;
 }
 
 .upcomingItemButton {
@@ -1084,3 +1390,9 @@ input:focus-visible {
 		transform: scale(1);
 	}
 }
+
+/* The clear action belongs to the text field, not the adjacent genre select. */
+.librarySearchWrap .librarySearchClear {
+	right: 156px;
+}
+.searchInputWrap .librarySearchClear { right: 10px; }

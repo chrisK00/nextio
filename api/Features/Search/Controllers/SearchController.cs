@@ -11,10 +11,16 @@ public sealed class SearchController(TmdbApi tmdbSearchService) : ControllerBase
     private readonly TmdbApi _tmdbSearchService = tmdbSearchService;
 
     [HttpGet]
-    public async Task<IActionResult> Search([FromQuery] string query, CancellationToken cancellationToken)
+    public async Task<IActionResult> Search([FromQuery] string query, [FromQuery] bool includeAdult = false, CancellationToken cancellationToken = default)
     {
-        var response = await _tmdbSearchService.SearchAsync(query, cancellationToken);
+        var response = await _tmdbSearchService.SearchAsync(query, includeAdult, cancellationToken);
         return Ok(response);
+    }
+
+    [HttpGet("trending")]
+    public async Task<IActionResult> Trending([FromQuery] bool includeAdult = false, CancellationToken cancellationToken = default)
+    {
+        return Ok(await _tmdbSearchService.TrendingAsync(includeAdult, cancellationToken));
     }
 
     [HttpGet("{mediaType}/{id}")]

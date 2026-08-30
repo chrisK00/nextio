@@ -76,12 +76,19 @@ export default function useShow(id?: string) {
       const isTrackedTv = tracked?.mediaType === 'tv'
 
       if(isTrackedTv) {
-        const [library, tmdbSeasons] = await Promise.all([
+        const [library, tmdbSeasons, tmdbDetails] = await Promise.all([
           api.getLibraryTvShow(showId),
           api.getShowSeasons(showId),
+          api.getShowDetails(showId),
         ])
-        if(!library) return api.getShowDetails(showId)
-        return mapLibraryShowDetails(library, tmdbSeasons)
+        if(!library) return tmdbDetails
+        const show = mapLibraryShowDetails(library, tmdbSeasons)
+        if(tmdbDetails) {
+          show.voteAverage = tmdbDetails.voteAverage
+          show.voteCount = tmdbDetails.voteCount
+          show.runtime = tmdbDetails.runtime
+        }
+        return show
       }
 
       const [details, seasons] = await Promise.all([

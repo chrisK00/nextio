@@ -79,3 +79,25 @@ public sealed record LibraryStatsResponse(
     DateTime? LastSyncAt,
     bool? LastSyncSucceeded,
     string? LastSyncMessage);
+
+public sealed record UserListItemDto(
+    Guid Id,
+    string ItemId,
+    string Title,
+    string? PosterUrl,
+    string? ReleaseDate,
+    DateTime AddedAt,
+    int Order);
+
+public sealed record UserListDto(
+    Guid Id,
+    string Name,
+    string? Description,
+    string MediaType,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    IReadOnlyList<UserListItemDto> Items);
+
+public sealed record CreateListRequest(string Name, string? Description, string MediaType);
+public sealed record UpdateListRequest(string Name, string? Description);
+public sealed record AddListItemRequest(string ItemId, string Title, string? PosterUrl, string? ReleaseDate);

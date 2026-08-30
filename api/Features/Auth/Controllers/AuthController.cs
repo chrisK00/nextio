@@ -1,17 +1,19 @@
-using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services;
+using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IUserService userService, JwtService jwtService) : ControllerBase
+    public class AuthController(IUserService userService, JwtService jwtService, IWebHostEnvironment environment) : ControllerBase
     {
         private readonly IUserService _userService = userService;
         private readonly JwtService _jwtService = jwtService;
+        private readonly IWebHostEnvironment _environment = environment;
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest req)
@@ -21,15 +23,8 @@ namespace Controllers
                 return Conflict(new { error = "User already exists" });
 
             var user = await _userService.CreateAsync(req.Username, req.Password);
-
             var token = _jwtService.CreateToken(user.Id.ToString(), user.Username);
-            var refresh = GenerateRefreshToken();
-
-            // persist refresh token
-            // TODO move to service layer and handle cleanup of old tokens. controller should not be aware of db context. add that to ai instructions aswell
-            var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
-            db.RefreshTokens.Add(new RefreshToken { Id = Guid.NewGuid(), UserId = user.Id, Token = refresh.Token, CreatedAt = refresh.CreatedAt, ExpiresAt = refresh.ExpiresAt });
-            await db.SaveChangesAsync();
+            var refresh = await _userService.CreateRefreshTokenAsync(user.Id);
 
             SetRefreshTokenCookie(refresh.Token, refresh.ExpiresAt);
 
@@ -47,11 +42,7 @@ namespace Controllers
             if (user is null) return Unauthorized();
 
             var token = _jwtService.CreateToken(user.Id.ToString(), user.Username);
-            var refresh = GenerateRefreshToken();
-
-            var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
-            db.RefreshTokens.Add(new Models.RefreshToken { Id = Guid.NewGuid(), UserId = user.Id, Token = refresh.Token, CreatedAt = refresh.CreatedAt, ExpiresAt = refresh.ExpiresAt });
-            await db.SaveChangesAsync();
+            var refresh = await _userService.CreateRefreshTokenAsync(user.Id);
 
             SetRefreshTokenCookie(refresh.Token, refresh.ExpiresAt);
 
@@ -65,23 +56,12 @@ namespace Controllers
             var refreshToken = Request.Cookies["refreshToken"] ?? (await HttpContext.Request.ReadFromJsonAsync<RefreshRequest>())?.RefreshToken;
             if (string.IsNullOrEmpty(refreshToken)) return Unauthorized();
 
-            var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
-            var stored = await db.RefreshTokens.FirstOrDefaultAsync(r => r.Token == refreshToken && !r.IsRevoked && r.ExpiresAt > DateTime.UtcNow);
-            if (stored is null) return Unauthorized();
-
-            var user = await db.Users.FindAsync(stored.UserId);
-            if (user is null) return Unauthorized();
-
-            // rotate refresh token
-            stored.IsRevoked = true;
-            var newRefresh = GenerateRefreshToken();
-            db.RefreshTokens.Add(new Models.RefreshToken { Id = Guid.NewGuid(), UserId = user.Id, Token = newRefresh.Token, CreatedAt = newRefresh.CreatedAt, ExpiresAt = newRefresh.ExpiresAt, ReplacedByToken = null });
-            await db.SaveChangesAsync();
+            var (user, newRefresh) = await _userService.RotateRefreshTokenAsync(refreshToken);
+            if (user is null || newRefresh is null) return Unauthorized();
 
             SetRefreshTokenCookie(newRefresh.Token, newRefresh.ExpiresAt);
 
             var newAccess = _jwtService.CreateToken(user.Id.ToString(), user.Username);
-            // TODO check if safe enough instead of cookie (due to future mobile client)
             var returnRefreshRefresh = Request.Headers.TryGetValue("X-Return-RefreshToken", out var rrv) && string.Equals(rrv.ToString(), "true", StringComparison.OrdinalIgnoreCase);
             return Ok(new AuthResponse(newAccess, (long)TimeSpan.FromHours(1).TotalSeconds, returnRefreshRefresh ? newRefresh.Token : null));
         }
@@ -92,17 +72,28 @@ namespace Controllers
             var refreshToken = Request.Cookies["refreshToken"];
             if (!string.IsNullOrEmpty(refreshToken))
             {
-                var db = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
-                var stored = await db.RefreshTokens.FirstOrDefaultAsync(r => r.Token == refreshToken);
-                if (stored != null)
-                {
-                    stored.IsRevoked = true;
-                    await db.SaveChangesAsync();
-                }
+                await _userService.RevokeRefreshTokenAsync(refreshToken);
             }
 
             Response.Cookies.Delete("refreshToken");
             return Ok();
+        }
+
+        [Authorize]
+        [HttpGet("library-export")]
+        public async Task<IActionResult> GetLibraryExport()
+        {
+            if (!Guid.TryParse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
+            return Ok(new { lastExportAt = await _userService.GetLastLibraryExportAtAsync(userId) });
+        }
+
+        [Authorize]
+        [HttpPost("library-export")]
+        public async Task<IActionResult> RecordLibraryExport()
+        {
+            if (!Guid.TryParse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
+            await _userService.RecordLibraryExportAsync(userId);
+            return NoContent();
         }
 
         private void SetRefreshTokenCookie(string token, DateTime expires)
@@ -112,17 +103,8 @@ namespace Controllers
                 HttpOnly = true,
                 Expires = expires,
                 SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
-                Secure = false // set true in production over HTTPS
+                Secure = !_environment.IsDevelopment()
             });
-        }
-
-        // TODO does not belong in controller
-        private (string Token, DateTime CreatedAt, DateTime ExpiresAt) GenerateRefreshToken()
-        {
-            var random = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-            var created = DateTime.UtcNow;
-            var expires = created.AddDays(7);
-            return (random, created, expires);
         }
     }
 

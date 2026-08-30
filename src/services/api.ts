@@ -29,8 +29,18 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 	const title = String(result.title ?? result.Title ?? result.name ?? result.Name ?? 'Untitled')
 	const id = String(result.id ?? result.Id ?? title)
 	const posterPath = String(result.posterUrl ?? result.PosterUrl ?? result.poster_path ?? result.PosterPath ?? '')
-	const releaseDate = String(result.releaseDate);
-	const status = String(result.status);
+	const releaseDate = String(result.releaseDate ?? result.ReleaseDate ?? '');
+	const status = String(result.status ?? result.Status ?? '');
+	const rawVoteAverage = result.voteAverage ?? result.VoteAverage ?? result.vote_average;
+	const voteAverage = typeof rawVoteAverage === 'number' ? rawVoteAverage : undefined;
+	const rawGenres = result.genres ?? result.Genres;
+	const genres = Array.isArray(rawGenres)
+		? rawGenres.map((genre) => typeof genre === 'string' ? genre : String((genre as Record<string, unknown>).name ?? '')).filter(Boolean)
+		: undefined;
+	const rawVoteCount = result.voteCount ?? result.VoteCount ?? result.vote_count;
+	const voteCount = typeof rawVoteCount === 'number' ? rawVoteCount : undefined;
+	const rawRuntime = result.runtime ?? result.Runtime;
+	const runtime = typeof rawRuntime === 'number' ? rawRuntime : undefined;
 
 	return {
 		id: `${mediaType}:${id}`,
@@ -39,13 +49,17 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 		status: status,
 		episodesWatched: 0,
 		episodesTotal: 1,
-		releaseDate: releaseDate,
+		releaseDate: releaseDate || undefined,
 		description: String(result.description ?? result.Description ?? `Search result for ${title}`),
 		posterUrl: posterPath.startsWith('http') ? posterPath : (posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : undefined),
+		voteAverage,
+		genres,
+		voteCount,
+		runtime,
 	}
 }
 
-export async function searchShows(query: string): Promise<SearchResults> {
+export async function searchShows(query: string, includeAdult: boolean = false): Promise<SearchResults> {
 	const trimmed = query.toLowerCase().trim()
 	if(!trimmed) {
 		return emptySearchResults
@@ -53,6 +67,7 @@ export async function searchShows(query: string): Promise<SearchResults> {
 
 	const params = new URLSearchParams({
 		query: trimmed,
+		includeAdult: String(includeAdult),
 	})
 
 	try {
@@ -82,7 +97,7 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 		}
 
 		const result = data as Record<string, unknown>
-		const show = mapSearchItem(result)
+	const show = mapSearchItem(result)
 		return show
 	} catch {
 		return null
@@ -92,7 +107,6 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 type TmdbSeasonEpisode = { episodeNumber: number; name: string; airDate?: string }
 type TmdbSeason = { seasonNumber: number; name: string; episodes: TmdbSeasonEpisode[] }
 
-// TODO cache on backend not frontend :D
 let cachedShow: { showId: string; seasons: Season[]; expiresAt: number } | null = null;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -143,9 +157,19 @@ export async function getEpisodeDetail(showId: string, season: number, episode: 
 }
 
 export async function getAppSettings(): Promise<Settings> {
+	const saved = localStorage.getItem('settings')
+	if (saved) {
+		try {
+			return JSON.parse(saved) as Settings
+		} catch {
+			// fallback
+		}
+	}
 	return Promise.resolve({
 		notificationsEnabled: true,
 		darkMode: false,
+		nsfwEnabled: false,
+		defaultUpcomingView: 'list',
 		preferredGenres: ['Drama', 'Sci-Fi', 'Mystery'],
 	})
 }
@@ -257,6 +281,98 @@ export async function getLibraryStats(): Promise<import('./apiTypes').LibrarySta
 	return res.json() as Promise<import('./apiTypes').LibraryStats>
 }
 
+export async function triggerBackup(): Promise<{ success: boolean; backupFile: string }> {
+	const res = await fetchWithAuth('/stats/backup', { method: 'POST' })
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
+}
+
+export async function getTrendingShows(includeAdult: boolean = false): Promise<SearchResults> {
+	try {
+		const response = await fetch(`${API_BASE}/search/trending?${new URLSearchParams({ includeAdult: String(includeAdult) })}`)
+		if(!response.ok) return emptySearchResults
+		const data = await response.json() as Partial<SearchResults>
+		return normalizeSearchResults({
+			tvShows: Array.isArray(data.tvShows) ? data.tvShows.map((item) => mapSearchItem(item as unknown as Record<string, unknown>)) : [],
+			movies: Array.isArray(data.movies) ? data.movies.map((item) => mapSearchItem(item as unknown as Record<string, unknown>)) : [],
+		})
+	} catch {
+		return emptySearchResults
+	}
+}
+
+const EXPORT_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
+
+export function hasRecentLibraryExport(lastExportAt?: string | null): boolean {
+	if (!lastExportAt) return false
+	return Date.now() - Date.parse(lastExportAt) < EXPORT_REMINDER_INTERVAL_MS
+}
+
+export async function recordLibraryExport(): Promise<void> {
+	await fetchWithAuth('/auth/library-export', { method: 'POST' })
+}
+
+export async function getLastLibraryExport(): Promise<string | null> {
+	try {
+		const response = await fetchWithAuth('/auth/library-export')
+		if (!response.ok) return null
+		return (await response.json() as { lastExportAt?: string | null }).lastExportAt ?? null
+	} catch {
+		return null
+	}
+}
+
+export async function getBackups(): Promise<import('./apiTypes').BackupInfo[]> {
+	const res = await fetchWithAuth('/stats/backups')
+	if(!res.ok) return []
+	return res.json()
+}
+
+export async function getUserLists(mediaType?: string): Promise<import('./apiTypes').UserList[]> {
+	const query = mediaType ? `?mediaType=${encodeURIComponent(mediaType)}` : ''
+	const res = await fetchWithAuth(`/library/lists${query}`)
+	if(!res.ok) return []
+	return res.json()
+}
+
+export async function getUserList(id: string): Promise<import('./apiTypes').UserList> {
+	const res = await fetchWithAuth(`/library/lists/${encodeURIComponent(id)}`)
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
+}
+
+export async function createUserList(name: string, description?: string, mediaType: 'tv' | 'movie' = 'tv'): Promise<import('./apiTypes').UserList> {
+	const res = await fetchWithAuth('/library/lists', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ name, description, mediaType }),
+	})
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
+}
+
+export async function deleteUserList(id: string): Promise<void> {
+	await fetchWithAuth(`/library/lists/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function addListItem(listId: string, item: { itemId: string; title: string; posterUrl?: string; releaseDate?: string }): Promise<import('./apiTypes').UserList> {
+	const res = await fetchWithAuth(`/library/lists/${encodeURIComponent(listId)}/items`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(item),
+	})
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
+}
+
+export async function removeListItem(listId: string, itemId: string): Promise<import('./apiTypes').UserList> {
+	const res = await fetchWithAuth(`/library/lists/${encodeURIComponent(listId)}/items/${encodeURIComponent(itemId)}`, {
+		method: 'DELETE',
+	})
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
+}
+
 export async function syncLibrary(): Promise<import('./apiTypes').LibrarySyncResponse> {
 	const res = await fetchWithAuth('/library/sync', { method: 'POST' })
 	if(!res.ok) throw new Error(await res.text())
@@ -301,15 +417,23 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 
 	if(res.status === 401) {
 		// attempt refresh
-		const r = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
-		if(r.ok) {
-			const data = await r.json() as AuthResponse
-			localStorage.setItem('token', data.token)
-			// retry original request once
-			const retryHeaders = new Headers(opts.headers || {})
-			retryHeaders.set('Authorization', `Bearer ${data.token}`)
-			const retryUrl = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
-			return fetch(retryUrl, { ...opts, credentials: 'include', headers: retryHeaders })
+		try {
+			const r = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+			if(r.ok) {
+				const data = await r.json() as AuthResponse
+				localStorage.setItem('token', data.token)
+				// retry original request once
+				const retryHeaders = new Headers(opts.headers || {})
+				retryHeaders.set('Authorization', `Bearer ${data.token}`)
+				const retryUrl = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
+				return fetch(retryUrl, { ...opts, credentials: 'include', headers: retryHeaders })
+			} else {
+				localStorage.removeItem('token')
+				localStorage.removeItem('username')
+			}
+		} catch {
+			localStorage.removeItem('token')
+			localStorage.removeItem('username')
 		}
 	}
 

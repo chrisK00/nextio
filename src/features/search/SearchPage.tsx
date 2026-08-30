@@ -1,30 +1,33 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import SearchPanel from './components/SearchPanel'
 import type { TvShow } from "../../services/apiTypes"
 import { useAppContext } from '../../state/AppContext'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import styles from '../../App.module.css'
 import useSearch from './hooks/useSearch'
+import useGenreFilter from '../../hooks/useGenreFilter'
 
 export default function SearchPage() {
   useAppContext()
   const [searchParams, setSearchParams] = useSearchParams()
-  // Query lives in the URL so browser back/forward restores the last search.
-  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const navigate = useNavigate()
-  const { results, loading } = useSearch(query)
+  const nextQuery = searchParams.get('q') ?? ''
+  const [query, setQuery] = useState(nextQuery)
+  const [prevNextQuery, setPrevNextQuery] = useState(nextQuery)
 
-/*
-// TODO Error: Calling setState synchronously within an effect can trigger cascading renders
-effects run after render
-updating state triggers another render
-this can cause render → effect → setState → render → effect → setState loops
-*/
-const nextQuery = searchParams.get('q') ?? ''
-  useEffect(() => {
-    // Keep local input state aligned with URL navigation.
-    setQuery((current) => current === nextQuery ? current : nextQuery)
-  }, [nextQuery]) 
+  if (nextQuery !== prevNextQuery) {
+    setPrevNextQuery(nextQuery)
+    setQuery(nextQuery)
+  }
+
+  const { results, loading } = useSearch(query) 
+  const allResults = useMemo(() => [...(results?.tvShows ?? []), ...(results?.movies ?? [])], [results])
+  const { genres, counts, filter } = useGenreFilter(allResults)
+  const [genre, setGenre] = useState('')
+  const filteredResults = useMemo(() => {
+    const filtered = new Set(filter('', genre).map((show) => show.id))
+    return results ? { tvShows: results.tvShows.filter((show) => filtered.has(show.id)), movies: results.movies.filter((show) => filtered.has(show.id)) } : null
+  }, [results, filter, genre])
 
   const updateQuery = (value: string) => {
     setQuery(value)
@@ -50,10 +53,14 @@ const nextQuery = searchParams.get('q') ?? ''
 
       <SearchPanel
         searchQuery={query}
-        searchResults={results}
+        searchResults={filteredResults}
         isLoading={loading}
         onQueryChange={updateQuery}
         onShowClick={openShow}
+        genres={genres}
+        genreCounts={counts}
+        genre={genre}
+        onGenreChange={setGenre}
       />
     </main>
   )

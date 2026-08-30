@@ -53,7 +53,8 @@ type AppContextType = {
   followShow: (show: TvShow) => Promise<void>
   unfollowShow: (showId: string, mediaType?: 'tv' | 'movie') => Promise<void>
   toggleEpisode: (showId: string, season: number, episode: number) => Promise<void>
-  toggleSetting: (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => Promise<void>
+  toggleSetting: (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode' | 'nsfwEnabled'>) => Promise<void>
+  updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => Promise<void>
   isAuthenticated: boolean
   authLoading: boolean
   username: string | null
@@ -134,7 +135,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // validate token on startup
   useEffect(() => {
 
-    // TODO check if pattern is common
     let mounted = true
     void (async () => {
       if(!token) return
@@ -184,9 +184,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([loadSettings(), loadLibrary()])
   }, [loadSettings, loadLibrary])
 
-  const toggleSetting = useCallback(async (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode'>) => {
+  const toggleSetting = useCallback(async (key: keyof Pick<Settings, 'notificationsEnabled' | 'darkMode' | 'nsfwEnabled'>) => {
     if(!settings) return
     const updated = { ...settings, [key]: !settings[key] }
+    const saved = await api.saveAppSettings(updated)
+    setSettings(saved)
+  }, [settings])
+
+  const updateSetting = useCallback(async <K extends keyof Settings>(key: K, value: Settings[K]) => {
+    if(!settings) return
+    const updated = { ...settings, [key]: value }
     const saved = await api.saveAppSettings(updated)
     setSettings(saved)
   }, [settings])
@@ -201,6 +208,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     unfollowShow,
     toggleEpisode,
     toggleSetting,
+    updateSetting,
     isAuthenticated: !!token,
     authLoading: authLoading,
     username,
@@ -233,7 +241,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, loadLibrary, authLoading])
+  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, updateSetting, loadLibrary, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
