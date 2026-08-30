@@ -46,9 +46,18 @@
 
 .headerActions button {
 	flex: 1;
+	min-width: 0;
+	padding-left: 8px;
+	padding-right: 8px;
+	white-space: nowrap;
 	justify-content: center;
 	display: inline-flex;
 	align-items: center;
+}
+
+@media (max-width: 600px) {
+	.headerActions { gap: 5px; }
+	.headerActions button { font-size: 0.78rem; }
 }
 
 @media (min-width: 860px) {

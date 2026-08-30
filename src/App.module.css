@@ -387,10 +387,10 @@ input:focus-visible {
 }
 
 .unwatchedGrid .showCardImageWrap {
-	height: 160px;
+	height: 170px;
 	aspect-ratio: auto;
 	flex-shrink: 0;
-	max-height: 160px;
+	max-height: 170px;
 	border: 1px solid var(--border);
 	border-radius: 12px;
 }
@@ -538,11 +538,15 @@ input:focus-visible {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		align-items: stretch;
+		min-width: 0;
+		max-width: 100%;
 	}
 
 	.watchingToolbar .sortControls {
-		flex-wrap: nowrap;
-		overflow-x: auto;
+		flex-wrap: wrap;
+		overflow-x: visible;
+		min-width: 0;
+		max-width: 100%;
 		padding-bottom: 2px;
 		scrollbar-width: none;
 	}
@@ -864,6 +868,10 @@ input:focus-visible {
 	justify-content: space-between;
 	gap: 12px;
 	flex-wrap: wrap;
+}
+
+.detailHeaderActions > div {
+	min-width: 0;
 }
 
 
@@ -1291,7 +1299,7 @@ input:focus-visible {
 }
 
 .upcomingCardPoster {
-	width: 72px;
+	width: 76px;
 	height: auto;
 	flex-shrink: 0;
 	border-radius: 16px 0 0 16px;
@@ -1510,7 +1518,6 @@ input:focus-visible {
 		scrollbar-width: none;
 	}
 
-	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
 	.watchingToolbar .sortControls > * { flex: 0 0 auto; }
 }
 .searchInputWrap .librarySearchClear { right: 10px; }
