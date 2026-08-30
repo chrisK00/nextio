@@ -26,6 +26,7 @@ export default function ListDetailPage() {
   }, [id])
 
   const genres = useMemo(() => [...new Set(displayItems.flatMap((item) => item.genres))].sort(), [displayItems])
+  const genreCounts = useMemo(() => Object.fromEntries(genres.map((itemGenre) => [itemGenre, displayItems.filter((item) => item.genres.includes(itemGenre)).length])), [genres, displayItems])
   const items = useMemo(() => displayItems.filter((item) => item.title.toLowerCase().includes(query.toLowerCase().trim()) && (!genre || item.genres.includes(genre))), [displayItems, query, genre])
 
   if (error) return <main className={appStyles.mainPanel}><div className={styles.emptyState}>{error}</div></main>
@@ -35,7 +36,7 @@ export default function ListDetailPage() {
     <button className={styles.backButton} type="button" onClick={() => navigate('/lists')}>← Back to lists</button>
     <h1 className={styles.detailTitle}>{list.name}</h1>
     <p className={styles.detailDescription}>{list.description || '\u00a0'}</p>
-    <div className={styles.listFilters}><input className={styles.input} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search this list..." /><select className={styles.input} value={genre} onChange={(e) => setGenre(e.target.value)}><option value="">All genres</option>{genres.map((itemGenre) => <option key={itemGenre} value={itemGenre}>{itemGenre}</option>)}</select></div>
+    <div className={styles.listFilters}><input className={styles.input} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search this list..." /><select className={styles.input} value={genre} onChange={(e) => setGenre(e.target.value)}><option value="">All genres</option>{genres.map((itemGenre) => <option key={itemGenre} value={itemGenre}>{itemGenre} ({genreCounts[itemGenre]})</option>)}</select></div>
     {items.length === 0 ? <div className={styles.emptyState}>{query ? 'No matching items.' : 'This list is empty.'}</div> : <div className={styles.itemGrid}>
       {items.map((item) => <div className={styles.itemCard} key={item.id} onClick={() => navigate(`/show/${encodeURIComponent(item.itemId)}`)}>
         {item.posterUrl && <img src={item.posterUrl} alt="" className={styles.itemPoster} />}

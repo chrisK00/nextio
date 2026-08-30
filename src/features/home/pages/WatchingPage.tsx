@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
@@ -91,8 +91,6 @@ function getEmptyState(filter: WatchingFilter) {
 	}
 }
 
-import { useState, useRef, useEffect } from 'react'
-
 export default function WatchingPage() {
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
@@ -100,12 +98,17 @@ export default function WatchingPage() {
 	const watchingFilter = (searchParams.get('filter') as WatchingFilter | null) ?? 'running'
 	const [libraryQuery, setLibraryQuery] = useState(() => sessionStorage.getItem('watching_search') ?? '')
 	const [genre, setGenre] = useState('')
+	const [searchOpen, setSearchOpen] = useState(Boolean(libraryQuery))
 	const searchInputRef = useRef<HTMLInputElement>(null)
 	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(shows)
 
 	useEffect(() => {
 		sessionStorage.setItem('watching_search', libraryQuery)
 	}, [libraryQuery])
+
+	useEffect(() => {
+		if (searchOpen) searchInputRef.current?.focus()
+	}, [searchOpen])
 
 	const filteredShows = useMemo(() => {
 		const base = shows.filter((show) => matchesFilter(show, watchingFilter))
@@ -150,8 +153,14 @@ export default function WatchingPage() {
 								onClick={() => setWatchingFilter(filter.key)}
 							/>
 						))}
+						{!searchOpen && (
+							<>
+								<button className={styles.librarySearchIconButton} onClick={() => setSearchOpen(true)} type="button" aria-label="Search my shows">⌕</button>
+								<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
+							</>
+						)}
 					</div>
-					<div className={styles.librarySearchWrap}>
+					{searchOpen && <div className={styles.librarySearchWrap}>
 						<div className={styles.searchInputWrap}>
 						<input
 							ref={searchInputRef}
@@ -174,7 +183,7 @@ export default function WatchingPage() {
 								✕
 							</button>
 						)}
-					</div>
+					</div>}
 				</div>
 
 				{filteredShows.length === 0 ? (

@@ -493,6 +493,8 @@ input:focus-visible {
 	align-items: center;
 	gap: 10px;
 	margin-bottom: 14px;
+	position: relative;
+	z-index: 40;
 }
 
 .librarySearchWrap {
@@ -535,16 +537,15 @@ input:focus-visible {
 
 @media (max-width: 600px) {
 	.watchingToolbar {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
+		display: block;
 		align-items: stretch;
 		min-width: 0;
 		max-width: 100%;
 	}
 
 	.watchingToolbar .sortControls {
-		flex-wrap: wrap;
-		overflow-x: visible;
+		flex-wrap: nowrap;
+		overflow-x: auto;
 		min-width: 0;
 		max-width: 100%;
 		padding-bottom: 2px;
@@ -556,6 +557,7 @@ input:focus-visible {
 
 	.librarySearchWrap {
 		width: 100%;
+		margin-top: 8px;
 	}
 
 	.librarySearchInput {
@@ -588,6 +590,24 @@ input:focus-visible {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
+}
+
+.librarySearchIconButton {
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: 1px solid var(--border);
+	border-radius: 50%;
+	background: transparent;
+	color: var(--text-h);
+	font-size: 22px;
+	cursor: pointer;
+}
+
+.watchingToolbar .sortControls,
+.watchingToolbar .genreDropdown {
+	position: relative;
+	z-index: 30;
 }
 
 .sortButton {
@@ -1512,11 +1532,16 @@ input:focus-visible {
 	}
 
 	.watchingToolbar .sortControls {
-		flex-wrap: nowrap;
-		overflow-x: auto;
+		flex-wrap: wrap;
+		overflow-x: visible;
+		min-width: 0;
+		max-width: 100%;
 		padding-bottom: 2px;
 		scrollbar-width: none;
 	}
+
+	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
+	.watchingToolbar .sortControls .sortButton { padding: 8px 12px; font-size: 0.86rem; white-space: nowrap; }
 
 	.watchingToolbar .sortControls > * { flex: 0 0 auto; }
 }
