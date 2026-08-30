@@ -192,14 +192,14 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 							}}
 							type="button"
 						>
-							➕ Add to List
+							Lists
 						</button>
 						<button
 							className={styles.secondaryButton}
 							onClick={() => show && onFollowToggle(show, isTracked)}
 							type="button"
 						>
-							{isTracked ? 'Unfollow' : 'Add'}
+							{isTracked ? 'Unfollow' : 'Follow'}
 						</button>
 					</div>
 				</div>
