@@ -1547,8 +1547,17 @@ input:focus-visible {
 	}
 
 	.watchingToolbar .sortControls .genreDropdown {
-		flex: 0 0 120px;
-		width: 120px;
+		flex: 0 0 104px;
+		width: 104px;
+		max-width: 104px;
+	}
+
+	.watchingToolbar .sortControls .genreDropdown .genreButton {
+		width: 104px !important;
+		min-width: 104px !important;
+		max-width: 104px !important;
+		padding-left: 9px !important;
+		padding-right: 9px !important;
 	}
 
 	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
