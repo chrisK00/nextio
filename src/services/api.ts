@@ -287,6 +287,20 @@ export async function triggerBackup(): Promise<{ success: boolean; backupFile: s
 	return res.json()
 }
 
+export async function getTrendingShows(includeAdult: boolean = false): Promise<SearchResults> {
+	try {
+		const response = await fetch(`${API_BASE}/search/trending?${new URLSearchParams({ includeAdult: String(includeAdult) })}`)
+		if(!response.ok) return emptySearchResults
+		const data = await response.json() as Partial<SearchResults>
+		return normalizeSearchResults({
+			tvShows: Array.isArray(data.tvShows) ? data.tvShows.map((item) => mapSearchItem(item as unknown as Record<string, unknown>)) : [],
+			movies: Array.isArray(data.movies) ? data.movies.map((item) => mapSearchItem(item as unknown as Record<string, unknown>)) : [],
+		})
+	} catch {
+		return emptySearchResults
+	}
+}
+
 const EXPORT_REMINDER_PREFIX = 'nextio:last-library-export:'
 const EXPORT_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
 

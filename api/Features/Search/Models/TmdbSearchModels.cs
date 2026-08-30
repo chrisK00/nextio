@@ -57,6 +57,9 @@ public sealed class TmdbMultiSearchResult
 
     [JsonPropertyName("vote_average")]
     public double? VoteAverage { get; init; }
+
+    [JsonPropertyName("adult")]
+    public bool Adult { get; init; }
 }
 
 public sealed class TmdbDetailResponse
@@ -65,7 +68,7 @@ public sealed class TmdbDetailResponse
     public int Id { get; init; }
 
     [JsonPropertyName("genres")]
-    public IReadOnlyList<TmdbGenre> Genres { get; init; } = [];
+    public IReadOnlyList<TmdbGenre>? Genres { get; init; } = [];
 
     [JsonPropertyName("title")]
     public string? TmdbMovieTitle { get; init; }

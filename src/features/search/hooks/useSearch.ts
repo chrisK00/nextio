@@ -28,6 +28,10 @@ export default function useSearch(query: string) {
   useEffect(() => {
     let mounted = true
     if(!trimmedQuery) {
+      setLoading(true)
+      void api.getTrendingShows(nsfwEnabled).then((res) => {
+        if(mounted) setResults(res)
+      }).finally(() => { if(mounted) setLoading(false) })
       return () => { mounted = false }
     }
 
@@ -53,7 +57,7 @@ export default function useSearch(query: string) {
   }, [trimmedQuery, nsfwEnabled])
 
   return {
-    results: trimmedQuery ? results : null,
-    loading: trimmedQuery.length > 0 && loading,
+    results,
+    loading,
   }
 }

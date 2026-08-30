@@ -17,6 +17,12 @@ public sealed class SearchController(TmdbApi tmdbSearchService) : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("trending")]
+    public async Task<IActionResult> Trending([FromQuery] bool includeAdult = false, CancellationToken cancellationToken = default)
+    {
+        return Ok(await _tmdbSearchService.TrendingAsync(includeAdult, cancellationToken));
+    }
+
     [HttpGet("{mediaType}/{id}")]
     public async Task<ActionResult<SearchDetailResponse>> Details(string mediaType, string id, CancellationToken cancellationToken)
     {

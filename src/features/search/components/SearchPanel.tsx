@@ -38,15 +38,21 @@ export default function SearchPanel({ searchQuery, searchResults, isLoading = fa
       </div>
 
       <div className={styles.searchResults}>
-        {searchQuery.trim().length === 0 && (
-          <div className={styles.emptyState}>Enter a search term to discover shows.</div>
+        {searchQuery.trim().length === 0 && !isLoading && !hasResults && (
+          <div className={styles.emptyState}>No trending shows found right now.</div>
         )}
 
-        {isLoading && searchQuery.trim().length > 0 && (
+        {searchQuery.trim().length === 0 && hasResults && (
+          <div className={styles.searchSection}>
+            <h2 className={styles.searchSectionTitle}>Trending this week</h2>
+          </div>
+        )}
+
+        {isLoading && (
           <div className={styles.loadingBar} />
         )}
 
-        {searchResults !== null && !hasResults && (
+        {searchQuery.trim().length > 0 && searchResults !== null && !hasResults && (
           <div className={styles.emptyState}>No shows found for "{searchQuery}". Try another keyword.</div>
         )}
 

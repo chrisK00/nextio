@@ -75,6 +75,41 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
         }
     }
 
+    public async Task<SearchResponse> TrendingAsync(bool includeAdult = false, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(GetApiKey()))
+        {
+            return new SearchResponse(Array.Empty<SearchItem>(), Array.Empty<SearchItem>());
+        }
+
+        try
+        {
+            await _globalRateLimiter.WaitAsync(cancellationToken);
+            TmdbMultiSearchResponse? response;
+            try
+            {
+                response = await _httpClient.GetFromJsonAsync<TmdbMultiSearchResponse>(
+                    AppendApiKey("trending/all/week?language=en-US&page=1"), cancellationToken);
+            }
+            finally
+            {
+                _globalRateLimiter.Release();
+            }
+
+            var results = response?.Results ?? [];
+            if (!includeAdult) results = results.Where(r => !r.Adult).ToList();
+
+            return new SearchResponse(
+                results.Where(r => r.MediaType == "tv").Select(MapTvShow).ToList(),
+                results.Where(r => r.MediaType == "movie").Select(MapMovie).ToList());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Trending request failed");
+            return new SearchResponse(Array.Empty<SearchItem>(), Array.Empty<SearchItem>());
+        }
+    }
+
     public async Task<TmdbSeasonResponse?> GetSeasonInfoAsync(string showId, int season, SemaphoreSlim? tmdbRateLimiter = null, CancellationToken cancellationToken = default)
     {
         var parsedShowId = TmdbShowIdExtractor.Extract(showId);
@@ -167,7 +202,10 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
                 VoteAverage = response.VoteAverage,
                 VoteCount = response.VoteCount,
                 Runtime = response.Runtime ?? response.EpisodeRunTime?.FirstOrDefault(),
-                Genres = response.Genres.Select(g => g.Name).Where(g => !string.IsNullOrWhiteSpace(g)).ToArray(),
+                Genres = (response.Genres ?? Array.Empty<TmdbGenre>())
+                    .Select(g => g.Name)
+                    .Where(g => !string.IsNullOrWhiteSpace(g))
+                    .ToArray(),
             };
         }
         catch (Exception)
