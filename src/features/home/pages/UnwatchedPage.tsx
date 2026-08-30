@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import FilterButton from '../../../components/common/FilterButton'
-import { hasRecentLibraryExport } from '../../../services/api'
+import { getLastLibraryExport, hasRecentLibraryExport } from '../../../services/api'
 import { useAppContext } from '../../../state/AppContext'
 import useGenreFilter from '../../../hooks/useGenreFilter'
 import GenreSelect from '../../../components/common/GenreSelect'
@@ -33,7 +33,9 @@ export default function UnwatchedPage() {
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
 	const { shows, loading } = useShows('unwatched')
-	const { username } = useAppContext()
+	useAppContext()
+	const [lastExportAt, setLastExportAt] = useState<string | null>(null)
+	useEffect(() => { void getLastLibraryExport().then(setLastExportAt) }, [])
 	const filter = (searchParams.get('filter') as UnwatchedFilter | null) ?? 'continue'
 	const [genre, setGenre] = useState('')
 
@@ -76,7 +78,7 @@ export default function UnwatchedPage() {
 
 	return (
 		<main className={styles.mainPanel}>
-			{!hasRecentLibraryExport(username) && (
+			{!hasRecentLibraryExport(lastExportAt) && (
 				<div className={styles.backupReminder} role="status">
 					<strong>Keep your library safe</strong>
 					<span>You haven’t exported a library backup in the last 30 days.</span>

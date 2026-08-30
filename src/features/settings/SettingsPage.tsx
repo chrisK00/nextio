@@ -28,13 +28,13 @@ export default function SettingsPage() {
       await refresh()
       const nextStats = await api.getLibraryStats()
       setStats(nextStats)
-      if (throwOnFailure && result.failed > 0) {
+      if(throwOnFailure && result.failed > 0) {
         throw new Error(`Metadata sync failed for ${result.failed} of ${result.total} shows.`)
       }
       return result
     } catch(error) {
       setSyncError(error instanceof Error ? error.message : 'Sync failed')
-      if (throwOnFailure) throw error
+      if(throwOnFailure) throw error
       return null
     } finally {
       setSyncLoading(false)
@@ -60,10 +60,10 @@ export default function SettingsPage() {
 
       const dateStr = new Date().toISOString().slice(0, 10)
 
-      if (format === 'letterboxd-csv') {
+      if(format === 'letterboxd-csv') {
         // Letterboxd format: Title,Year,WatchedDate
         let csv = 'Title,Year\n'
-        for (const movie of movieLibrary.items) {
+        for(const movie of movieLibrary.items) {
           const year = movie.releaseDate ? movie.releaseDate.slice(0, 4) : ''
           const escapedTitle = `"${movie.title.replace(/"/g, '""')}"`
           csv += `${escapedTitle},${year}\n`
@@ -75,19 +75,19 @@ export default function SettingsPage() {
         a.download = `nextio-letterboxd-${dateStr}.csv`
         a.click()
         URL.revokeObjectURL(url)
-        api.recordLibraryExport(localStorage.getItem('username'))
+        await api.recordLibraryExport()
         return
       }
 
-      if (format === 'couchmoney-csv') {
+      if(format === 'couchmoney-csv') {
         // Trakt / Couchmoney compatible history: tmdb_id,title,type,watched
         let csv = 'tmdb_id,title,type,watched\n'
-        for (const m of movieLibrary.items) {
+        for(const m of movieLibrary.items) {
           const rawId = m.id.includes(':') ? m.id.split(':')[1] : m.id
           const title = `"${m.title.replace(/"/g, '""')}"`
           csv += `${rawId},${title},movie,${m.watched ? 1 : 0}\n`
         }
-        for (const show of tvDetails.filter(Boolean)) {
+        for(const show of tvDetails.filter(Boolean)) {
           const rawId = show!.show.id.includes(':') ? show!.show.id.split(':')[1] : show!.show.id
           const title = `"${show!.show.title.replace(/"/g, '""')}"`
           const hasWatchedEp = show!.episodes.some(e => e.watched)
@@ -100,7 +100,7 @@ export default function SettingsPage() {
         a.download = `nextio-recommendations-${dateStr}.csv`
         a.click()
         URL.revokeObjectURL(url)
-        api.recordLibraryExport(localStorage.getItem('username'))
+        await api.recordLibraryExport()
         return
       }
 
@@ -124,7 +124,7 @@ export default function SettingsPage() {
       a.download = `nextio-export-${dateStr}.json`
       a.click()
       URL.revokeObjectURL(url)
-      api.recordLibraryExport(localStorage.getItem('username'))
+      await api.recordLibraryExport()
     } finally {
       setExportLoading(false)
     }
@@ -170,7 +170,7 @@ export default function SettingsPage() {
 
         await refresh()
         const sync = await handleSync(true)
-        if (!sync) throw new Error('Metadata sync did not complete.')
+        if(!sync) throw new Error('Metadata sync did not complete.')
         setImportResult(`Imported ${tvCount} TV show${tvCount !== 1 ? 's' : ''} and ${movieCount} movie${movieCount !== 1 ? 's' : ''}; metadata synced for ${sync.succeeded} of ${sync.total} shows.`)
       } catch(e) {
         setImportResult(`Import failed: ${e instanceof Error ? e.message : 'Invalid file'}`)
@@ -209,7 +209,6 @@ export default function SettingsPage() {
         <label className={styles.settingsCard}>
           <div>
             <strong>Dark mode</strong>
-            <p>Use a darker theme when available.</p>
           </div>
           <button className={appStyles.primaryButton} onClick={() => void toggleSetting('darkMode')} type="button">
             {settings?.darkMode ? 'On' : 'Off'}
@@ -253,19 +252,11 @@ export default function SettingsPage() {
 
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
-            <strong>Preferred genres</strong>
-            <p>{settings?.preferredGenres.join(', ') || 'No genres selected'}</p>
-          </div>
-        </section>
-
-        <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
-          <div>
-            <strong>Export library & recommendations</strong>
-            <p>Export your watch history and library formatted for recommendations (Couchmoney, Simkl, Trakt) or Letterboxd.</p>
+            <strong>Export & Backup</strong>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button className={appStyles.secondaryButton} onClick={() => void handleExport('json')} type="button" disabled={exportLoading}>
-              {exportLoading ? 'Exporting…' : 'Export JSON'}
+              {exportLoading ? 'Exporting…' : 'Export JSON Backup'}
             </button>
             <button className={appStyles.secondaryButton} onClick={() => void handleExport('couchmoney-csv')} type="button" disabled={exportLoading} title="Optimized for Couchmoney, Trakt, and Simkl recommendation feeds">
               📊 Couchmoney / Trakt CSV
@@ -311,7 +302,7 @@ export default function SettingsPage() {
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
             <strong>Library sync</strong>
-            <p>Force a manual TMDb refresh for tracked shows and inspect the result log.</p>
+            <p>Force a manual TMDb refresh for tracked shows</p>
             {stats && (
               <div style={{ marginTop: '10px', fontSize: '0.9rem', borderLeft: '3px solid ' + (stats.lastSyncSucceeded ? '#22c55e' : stats.lastSyncSucceeded === false ? '#ef4444' : 'var(--border)'), paddingLeft: '10px' }}>
                 <strong>Last sync status:</strong>{' '}

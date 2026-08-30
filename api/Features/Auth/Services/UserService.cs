@@ -107,6 +107,19 @@ public class UserService : IUserService
         }
     }
 
+    public async Task<DateTime?> GetLastLibraryExportAtAsync(Guid userId)
+    {
+        return await _db.Users.Where(u => u.Id == userId).Select(u => u.LastLibraryExportAt).FirstOrDefaultAsync();
+    }
+
+    public async Task RecordLibraryExportAsync(Guid userId)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null) return;
+        user.LastLibraryExportAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+
     private async Task CleanupOldTokensAsync(Guid userId)
     {
         var cutoff = DateTime.UtcNow.AddDays(-14);

@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services;
+using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Controllers
 {
@@ -74,6 +77,23 @@ namespace Controllers
 
             Response.Cookies.Delete("refreshToken");
             return Ok();
+        }
+
+        [Authorize]
+        [HttpGet("library-export")]
+        public async Task<IActionResult> GetLibraryExport()
+        {
+            if (!Guid.TryParse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
+            return Ok(new { lastExportAt = await _userService.GetLastLibraryExportAtAsync(userId) });
+        }
+
+        [Authorize]
+        [HttpPost("library-export")]
+        public async Task<IActionResult> RecordLibraryExport()
+        {
+            if (!Guid.TryParse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
+            await _userService.RecordLibraryExportAsync(userId);
+            return NoContent();
         }
 
         private void SetRefreshTokenCookie(string token, DateTime expires)

@@ -301,18 +301,25 @@ export async function getTrendingShows(includeAdult: boolean = false): Promise<S
 	}
 }
 
-const EXPORT_REMINDER_PREFIX = 'nextio:last-library-export:'
 const EXPORT_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
 
-export function hasRecentLibraryExport(username: string | null): boolean {
-	if (!username) return true
-	const value = localStorage.getItem(`${EXPORT_REMINDER_PREFIX}${username.toLowerCase()}`)
-	const timestamp = value ? Number(value) : NaN
-	return Number.isFinite(timestamp) && Date.now() - timestamp < EXPORT_REMINDER_INTERVAL_MS
+export function hasRecentLibraryExport(lastExportAt?: string | null): boolean {
+	if (!lastExportAt) return false
+	return Date.now() - Date.parse(lastExportAt) < EXPORT_REMINDER_INTERVAL_MS
 }
 
-export function recordLibraryExport(username: string | null): void {
-	if (username) localStorage.setItem(`${EXPORT_REMINDER_PREFIX}${username.toLowerCase()}`, String(Date.now()))
+export async function recordLibraryExport(): Promise<void> {
+	await fetchWithAuth('/auth/library-export', { method: 'POST' })
+}
+
+export async function getLastLibraryExport(): Promise<string | null> {
+	try {
+		const response = await fetchWithAuth('/auth/library-export')
+		if (!response.ok) return null
+		return (await response.json() as { lastExportAt?: string | null }).lastExportAt ?? null
+	} catch {
+		return null
+	}
 }
 
 export async function getBackups(): Promise<import('./apiTypes').BackupInfo[]> {
