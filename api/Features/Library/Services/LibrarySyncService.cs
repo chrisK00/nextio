@@ -59,7 +59,9 @@ public sealed class LibrarySyncService(
             DateTime? parsedAirDate = null;
             if (!string.IsNullOrWhiteSpace(details.NextEpisodeToAir?.AirDate) && DateTime.TryParse(details.NextEpisodeToAir.AirDate, out var dt))
             {
-                parsedAirDate = dt.AddMinutes(-1);
+                // TMDB provides a calendar date. Keep it intact instead of
+                // shifting it into the previous day.
+                parsedAirDate = dt;
             }
 
             show.NextEpisodeToAir = details.NextEpisodeToAir is not null ? new UserTvShowNextEpisode

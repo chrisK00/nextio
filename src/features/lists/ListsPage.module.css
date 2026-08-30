@@ -25,5 +25,5 @@
 .listMeta, .description { margin-top: 5px; color: var(--text); font-size: .9rem; }
 .deleteButton { flex: 0 0 auto; min-height: 38px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-h); font: inherit; cursor: pointer; }
 .deleteButton:hover { border-color: var(--accent); color: var(--accent); }
-.emptyState { padding: 28px; border: 1px dashed var(--border); border-radius: 16px; color: var(--text); text-align: center; }
+.emptyState { margin-top:10px; padding: 28px; border: 1px dashed var(--border); border-radius: 16px; color: var(--text); text-align: center; }
 @media (max-width: 520px) { .listCard { align-items: flex-start; } }
