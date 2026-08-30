@@ -6,6 +6,8 @@ import useShows from '../hooks/useShows'
 import { getReleaseCountdown } from '../../show/utils/show'
 import FilterButton from '../../../components/common/FilterButton'
 import { useAppContext } from '../../../state/AppContext'
+import useGenreFilter from '../../../hooks/useGenreFilter'
+import GenreSelect from '../../../components/common/GenreSelect'
 
 type UpcomingFilter = 'continue' | 'all'
 type ViewMode = 'list' | 'calendar'
@@ -66,6 +68,7 @@ export default function UpcomingPage() {
     const defaultView = settings?.defaultUpcomingView ?? 'list'
     const [viewMode, setViewMode] = useState<ViewMode>(defaultView)
     const [prevDefaultView, setPrevDefaultView] = useState(defaultView)
+    const [genre, setGenre] = useState('')
 
     if (defaultView !== prevDefaultView) {
         setPrevDefaultView(defaultView)
@@ -80,10 +83,12 @@ export default function UpcomingPage() {
         }
         return shows
     }, [shows, filter])
+	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(filteredShows)
+	const visibleShows = filterByGenre('', genre)
 
     const calendarGroups = useMemo(() => {
         const groups: Record<string, TvShow[]> = {}
-        for (const show of filteredShows) {
+        for (const show of visibleShows) {
             if (!show.nextAiringEpisode?.releaseDate) continue
             const date = new Date(show.nextAiringEpisode.releaseDate)
             const dateKey = date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -91,7 +96,7 @@ export default function UpcomingPage() {
             groups[dateKey].push(show)
         }
         return Object.entries(groups)
-    }, [filteredShows])
+    }, [visibleShows])
 
     function setFilter(next: UpcomingFilter) {
         const params = new URLSearchParams(searchParams)
@@ -121,6 +126,7 @@ export default function UpcomingPage() {
                                 onClick={() => setFilter(f.key)}
                             />
                         ))}
+						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                         <button
@@ -142,7 +148,7 @@ export default function UpcomingPage() {
                     </div>
                 </div>
 
-                {filteredShows.length === 0 ? (
+                {visibleShows.length === 0 ? (
                     <div className={styles.emptyState}>
                         {filter === 'continue'
                             ? 'No upcoming episodes for shows you\'re watching. Switch to All to see everything.'
@@ -150,7 +156,7 @@ export default function UpcomingPage() {
                     </div>
                 ) : viewMode === 'list' ? (
                     <div className={styles.upcomingGrid}>
-                        {filteredShows.map((show) => (
+                        {visibleShows.map((show) => (
                             <UpcomingCard
                                 key={show.id}
                                 show={show}

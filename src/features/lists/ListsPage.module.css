@@ -1,0 +1,29 @@
+.page { max-width: 760px; margin: 0 auto; padding: 8px 0 40px; }
+.page h1 { margin: 0; color: var(--text-h); text-align: center; font-size: 1.5rem; }
+.subtitle { margin: 8px 0 24px; text-align: center; color: var(--text); }
+.mediaFilters { display: flex; justify-content: center; gap: 10px; margin: 0 auto 20px; }
+.createToggle { display: block; min-height: 46px; margin: 0 auto 20px; padding: 10px 22px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-h); font: inherit; font-weight: 600; cursor: pointer; }
+.createToggle:hover { border-color: var(--accent); color: var(--accent); }
+.createToggle:focus-visible { outline-offset: -1px; }
+.detailTitle { margin: 0 0 6px !important; font-size: 1.5rem !important; line-height: 1.2; text-align: center; }
+.detailDescription { min-height: 1.4em; margin: 0 0 20px; text-align: center; color: var(--text); }
+.form { display: grid; gap: 10px; max-width: 520px; margin: 0 auto 28px; }
+.input { width: 100%; box-sizing: border-box; min-height: 46px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--code-bg); color: var(--text-h); font: inherit; }
+.input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.createButton { min-height: 46px; border: 0; border-radius: 14px; background: var(--accent); color: white; font: inherit; font-weight: 600; cursor: pointer; }
+.listGrid { display: grid; gap: 12px; }
+.listCard { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--code-bg); color: var(--text); box-shadow: var(--shadow); }
+.listCard { cursor: pointer; }
+.backButton { margin-bottom: 18px; border: 0; background: transparent; color: var(--accent); font: inherit; cursor: pointer; }
+.itemGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 18px; }
+.listFilters { display: grid; grid-template-columns: 1fr 180px; gap: 10px; }
+.itemGenres { color: var(--text); font-size: .78rem; }
+.itemCard { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--code-bg); color: var(--text-h); cursor: pointer; }
+.itemCard:hover { border-color: var(--accent); transform: translateY(-2px); }
+.itemPoster { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 10px; }
+.listName { color: var(--text-h); font-size: 1.05rem; }
+.listMeta, .description { margin-top: 5px; color: var(--text); font-size: .9rem; }
+.deleteButton { flex: 0 0 auto; min-height: 38px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-h); font: inherit; cursor: pointer; }
+.deleteButton:hover { border-color: var(--accent); color: var(--accent); }
+.emptyState { padding: 28px; border: 1px dashed var(--border); border-radius: 16px; color: var(--text); text-align: center; }
+@media (max-width: 520px) { .listCard { align-items: flex-start; } }

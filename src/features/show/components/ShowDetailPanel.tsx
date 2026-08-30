@@ -26,6 +26,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 	const [showListModal, setShowListModal] = useState(false);
 	const [availableLists, setAvailableLists] = useState<UserList[]>([]);
 	const [listMsg, setListMsg] = useState<string | null>(null);
+	const [newListName, setNewListName] = useState('');
 	const seasonsRef = useRef<HTMLDivElement>(null);
 	const description = show?.description || '';
 
@@ -191,7 +192,7 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 					</div>
 				</div>
 
-				{showListModal && (
+							{showListModal && (
 					<div
 						style={{
 							position: 'fixed',
@@ -225,6 +226,36 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 							</div>
 
 							{listMsg && <p style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{listMsg}</p>}
+							<div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+								<input
+									value={newListName}
+									onChange={(e) => setNewListName(e.target.value)}
+									placeholder="New list name"
+									style={{ flex: 1, minWidth: 0, padding: '9px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', font: 'inherit' }}
+								/>
+								<button
+									className={styles.primaryButton}
+									type="button"
+									disabled={!newListName.trim()}
+									onClick={async () => {
+										if (!displayShow || !newListName.trim()) return
+																	try {
+																		const created = await api.createUserList(newListName.trim(), undefined, displayShow.mediaType === 'movie' ? 'movie' : 'tv')
+																		const updated = await api.addListItem(created.id, {
+																			itemId: displayShow.id,
+																			title: displayShow.title,
+																			posterUrl: displayShow.posterUrl,
+																			releaseDate: displayShow.releaseDate,
+																		})
+																		setNewListName('')
+																		setAvailableLists((current) => [...current, updated])
+																		setListMsg(`Created "${updated.name}" and added ${displayShow.title}`)
+										} catch (error) {
+											setListMsg(error instanceof Error ? error.message : 'Could not create list')
+										}
+									}}
+								>Create</button>
+							</div>
 
 							{availableLists.length === 0 ? (
 								<p style={{ color: 'var(--text-muted)' }}>
@@ -253,23 +284,27 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 												</div>
 												<button
 													className={inList ? styles.secondaryButton : styles.primaryButton}
-													onClick={async () => {
-														if (!displayShow) return
-														if (inList) {
-															await api.removeListItem(l.id, displayShow.id)
-															setListMsg(`Removed from "${l.name}"`)
-														} else {
-															await api.addListItem(l.id, {
-																itemId: displayShow.id,
-																title: displayShow.title,
-																posterUrl: displayShow.posterUrl,
-																releaseDate: displayShow.releaseDate,
-															})
-															setListMsg(`Added to "${l.name}"!`)
-														}
-														const refreshed = await api.getUserLists(displayShow.mediaType === 'movie' ? 'movie' : 'tv')
-														setAvailableLists(refreshed)
-													}}
+															 onClick={async () => {
+																if (!displayShow) return
+									try {
+										if (inList) {
+											const updated = await api.removeListItem(l.id, displayShow.id)
+											setListMsg(`Removed from "${l.name}"`)
+											setAvailableLists((current) => current.map((list) => list.id === updated.id ? updated : list))
+										} else {
+											const updated = await api.addListItem(l.id, {
+												itemId: displayShow.id,
+												title: displayShow.title,
+												posterUrl: displayShow.posterUrl,
+												releaseDate: displayShow.releaseDate,
+											})
+											setListMsg(`Added to "${l.name}"!`)
+											setAvailableLists((current) => current.map((list) => list.id === updated.id ? updated : list))
+										}
+									} catch (error) {
+																	setListMsg(error instanceof Error ? error.message : 'Could not update list')
+																}
+															}}
 													type="button"
 												>
 													{inList ? 'Remove' : 'Add'}

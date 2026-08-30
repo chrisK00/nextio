@@ -64,6 +64,9 @@ public sealed class TmdbDetailResponse
     [JsonPropertyName("id")]
     public int Id { get; init; }
 
+    [JsonPropertyName("genres")]
+    public IReadOnlyList<TmdbGenre> Genres { get; init; } = [];
+
     [JsonPropertyName("title")]
     public string? TmdbMovieTitle { get; init; }
 
@@ -121,6 +124,12 @@ public sealed class TmdbDetailResponse
 
     [JsonPropertyName("seasons")]
     public TmdbSeason[] Seasons { get => field.Where(x => x.SeasonNumber != 0).ToArray(); init; } = [];
+}
+
+public sealed class TmdbGenre
+{
+    [JsonPropertyName("name")]
+    public string Name { get; init; } = string.Empty;
 }
 
 public sealed class TmdbSeason

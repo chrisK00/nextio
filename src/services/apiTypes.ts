@@ -36,6 +36,7 @@ export type TvShow = {
     voteAverage?: number
     voteCount?: number
     runtime?: number
+    genres?: string[]
 }
 
 export type SearchResults = {

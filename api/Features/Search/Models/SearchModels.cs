@@ -21,6 +21,7 @@ public sealed class SearchDetailResponse
     public double? VoteAverage { get; init; }
     public int? VoteCount { get; init; }
     public int? Runtime { get; init; }
+    public IReadOnlyList<string> Genres { get; init; } = [];
 
     public TmdbSeason[] Seasons { get; init; } = [];
     public string MediaType { get; set; }

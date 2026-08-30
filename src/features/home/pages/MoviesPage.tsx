@@ -6,7 +6,8 @@ import styles from '../../../App.module.css'
 import { getLibrary, setLibraryMovieWatched } from '../../../services/api'
 import type { WatchlistItem } from '../../show/utils/show'
 import FilterButton from '../../../components/common/FilterButton'
-import { CiSearch } from "react-icons/ci"
+import useGenreFilter from '../../../hooks/useGenreFilter'
+import GenreSelect from '../../../components/common/GenreSelect'
 
 type MovieFilter = 'all' | 'watched' | 'unwatched'
 
@@ -97,18 +98,18 @@ export default function MoviesPage() {
     navigate(`/show/${encodeURIComponent(`movie:${normalizedMovieId}`)}`)
   }
 
-  const [movieQuery, setMovieQuery] = useState('')
+  const [movieQuery, setMovieQuery] = useState(() => sessionStorage.getItem('movies_search') ?? '')
+  const [genre, setGenre] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { genres, counts, loading: genresLoading, filter: filterMovies } = useGenreFilter(movies)
+
+  useEffect(() => {
+    sessionStorage.setItem('movies_search', movieQuery)
+  }, [movieQuery])
 
   const filteredMovies = useMemo(() => {
-    if (!movieQuery.trim()) return movies
-    const q = movieQuery.toLowerCase().trim()
-    return movies.filter((m) => m.title.toLowerCase().includes(q))
-  }, [movies, movieQuery])
-
-  function focusSearch() {
-    searchInputRef.current?.focus()
-  }
+    return filterMovies(movieQuery, genre)
+  }, [filterMovies, movieQuery, genre])
 
   function setFilter(nextFilter: MovieFilter) {
     const params = new URLSearchParams(searchParams)
@@ -152,15 +153,7 @@ export default function MoviesPage() {
             ))}
           </div>
           <div className={styles.librarySearchWrap}>
-            <button
-              className={styles.secondaryButton}
-              onClick={focusSearch}
-              type="button"
-              style={{ padding: '8px 12px', minHeight: '36px', display: 'flex', alignItems: 'center', gap: '4px' }}
-              title="Focus Search"
-            >
-              <CiSearch size={18} />
-            </button>
+            <div className={styles.searchInputWrap}>
             <input
               ref={searchInputRef}
               type="text"
@@ -169,6 +162,9 @@ export default function MoviesPage() {
               placeholder="Filter by movie name..."
               className={styles.librarySearchInput}
             />
+            {movieQuery && <button onClick={() => setMovieQuery('')} className={styles.librarySearchClear} type="button" title="Clear filter">✕</button>}
+            </div>
+            <GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
             {movieQuery && (
               <button
                 onClick={() => setMovieQuery('')}
@@ -188,9 +184,8 @@ export default function MoviesPage() {
               <div>
                 <p>No saved movies matching "{movieQuery}" in this view.</p>
                 <button
-                  className={styles.primaryButton}
-                  style={{ marginTop: '12px' }}
-                  onClick={() => navigate(`/search`)}
+                  className={styles.globalSearchButton}
+                  onClick={() => navigate(`/search?q=${encodeURIComponent(movieQuery)}`)}
                   type="button"
                 >
                   Search TMDb globally
@@ -203,7 +198,7 @@ export default function MoviesPage() {
                 : 'No movies in your library yet.'}
           </div>
         ) : (
-          <div className={styles.showGrid}>
+          <div className={styles.showGridCompact}>
             {filteredMovies.map((movie) => (
               <ShowCard
                 key={movie.id}

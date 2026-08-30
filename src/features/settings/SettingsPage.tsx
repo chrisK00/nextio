@@ -208,16 +208,6 @@ export default function SettingsPage() {
 
         <label className={styles.settingsCard}>
           <div>
-            <strong>Notifications</strong>
-            <p>Receive alerts when new episodes are coming soon.</p>
-          </div>
-          <button className={appStyles.primaryButton} onClick={() => void toggleSetting('notificationsEnabled')} type="button">
-            {settings?.notificationsEnabled ? 'Enabled' : 'Disabled'}
-          </button>
-        </label>
-
-        <label className={styles.settingsCard}>
-          <div>
             <strong>Dark mode</strong>
             <p>Use a darker theme when available.</p>
           </div>

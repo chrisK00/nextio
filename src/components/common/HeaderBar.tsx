@@ -45,7 +45,7 @@ export default function HeaderBar() {
 					Movies
 				</button>
 				<button className={appStyles.secondaryButton} onClick={() => navigateTo('/lists')} type="button">
-					📋 Lists
+					Lists
 				</button>
 				<button className={appStyles.secondaryButton} onClick={() => navigateTo('/settings')} type="button">
 					<CiSettings style={{ marginRight: '0.2rem' }} />

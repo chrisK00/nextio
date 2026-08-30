@@ -167,6 +167,7 @@ public sealed class TmdbApi(HttpClient httpClient, IConfiguration configuration,
                 VoteAverage = response.VoteAverage,
                 VoteCount = response.VoteCount,
                 Runtime = response.Runtime ?? response.EpisodeRunTime?.FirstOrDefault(),
+                Genres = response.Genres.Select(g => g.Name).Where(g => !string.IsNullOrWhiteSpace(g)).ToArray(),
             };
         }
         catch (Exception)

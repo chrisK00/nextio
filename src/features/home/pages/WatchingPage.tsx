@@ -6,6 +6,8 @@ import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import { isRunningShow } from '../../show/utils/show'
 import FilterButton from '../../../components/common/FilterButton'
+import useGenreFilter from '../../../hooks/useGenreFilter'
+import GenreSelect from '../../../components/common/GenreSelect'
 
 type WatchingFilter = 'inProgress' | 'notStarted' | 'completed' | 'running' | 'unplanned' | 'all'
 
@@ -89,24 +91,28 @@ function getEmptyState(filter: WatchingFilter) {
 	}
 }
 
-import { useState, useRef } from 'react'
-import { CiSearch } from "react-icons/ci"
+import { useState, useRef, useEffect } from 'react'
 
 export default function WatchingPage() {
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
 	const { shows, loading } = useShows('watching')
 	const watchingFilter = (searchParams.get('filter') as WatchingFilter | null) ?? 'running'
-	const [libraryQuery, setLibraryQuery] = useState('')
+	const [libraryQuery, setLibraryQuery] = useState(() => sessionStorage.getItem('watching_search') ?? '')
+	const [genre, setGenre] = useState('')
 	const searchInputRef = useRef<HTMLInputElement>(null)
+	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(shows)
+
+	useEffect(() => {
+		sessionStorage.setItem('watching_search', libraryQuery)
+	}, [libraryQuery])
 
 	const filteredShows = useMemo(() => {
 		const base = shows.filter((show) => matchesFilter(show, watchingFilter))
 		const sorted = sortShows(base, watchingFilter)
-		if (!libraryQuery.trim()) return sorted
 		const q = libraryQuery.toLowerCase().trim()
-		return sorted.filter((s) => s.title.toLowerCase().includes(q))
-	}, [shows, watchingFilter, libraryQuery])
+		return filterByGenre(q, genre).filter((s) => sorted.some((sortedShow) => sortedShow.id === s.id))
+	}, [shows, watchingFilter, libraryQuery, filterByGenre, genre])
 
 	function setWatchingFilter(filter: WatchingFilter) {
 		const params = new URLSearchParams(searchParams)
@@ -120,10 +126,6 @@ export default function WatchingPage() {
 
 	function handleShowClick(show: TvShow) {
 		navigate(`/show/${encodeURIComponent(show.id)}`)
-	}
-
-	function focusSearch() {
-		searchInputRef.current?.focus()
 	}
 
 	if(loading) {
@@ -150,15 +152,7 @@ export default function WatchingPage() {
 						))}
 					</div>
 					<div className={styles.librarySearchWrap}>
-						<button
-							className={styles.secondaryButton}
-							onClick={focusSearch}
-							type="button"
-							style={{ padding: '8px 12px', minHeight: '36px', display: 'flex', alignItems: 'center', gap: '4px' }}
-							title="Focus Search"
-						>
-							<CiSearch size={18} />
-						</button>
+						<div className={styles.searchInputWrap}>
 						<input
 							ref={searchInputRef}
 							type="text"
@@ -167,6 +161,9 @@ export default function WatchingPage() {
 							placeholder="Filter by show name..."
 							className={styles.librarySearchInput}
 						/>
+						{libraryQuery && <button onClick={() => setLibraryQuery('')} className={styles.librarySearchClear} type="button" title="Clear filter">✕</button>}
+						</div>
+						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
 						{libraryQuery && (
 							<button
 								onClick={() => setLibraryQuery('')}
@@ -186,9 +183,8 @@ export default function WatchingPage() {
 							<div>
 								<p>No followed shows matching "{libraryQuery}" in this view.</p>
 								<button
-									className={styles.primaryButton}
-									style={{ marginTop: '12px' }}
-									onClick={() => navigate(`/search`)}
+									className={styles.globalSearchButton}
+									onClick={() => navigate(`/search?q=${encodeURIComponent(libraryQuery)}`)}
 									type="button"
 								>
 									Search TMDb globally

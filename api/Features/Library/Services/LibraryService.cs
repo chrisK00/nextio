@@ -541,11 +541,20 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
             }
         }
 
+        // Auto-following a new item can save and mutate other tracked entities
+        // (including during metadata sync). Reload the list graph before adding
+        // the list item so the final save never uses a stale tracked instance.
+        _db.ChangeTracker.Clear();
+        list = await _db.UserLists
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == listId, cancellationToken);
+        if (list is null) return null;
+
         var existingItem = list.Items.FirstOrDefault(x => x.ItemId == request.ItemId);
         if (existingItem is null)
         {
             var maxOrder = list.Items.Count > 0 ? list.Items.Max(x => x.Order) : 0;
-            list.Items.Add(new UserListItem
+            var listItem = new UserListItem
             {
                 Id = Guid.NewGuid(),
                 UserListId = list.Id,
@@ -555,8 +564,10 @@ public sealed class LibraryService(ApplicationDbContext db, ILibrarySyncService 
                 ReleaseDate = request.ReleaseDate,
                 Order = maxOrder + 1,
                 AddedAt = DateTime.UtcNow
-            });
-            list.UpdatedAt = DateTime.UtcNow;
+            };
+            // Adding an item only needs an INSERT. Updating the parent list here
+            // can conflict with another request that has already touched it.
+            _db.UserListItems.Add(listItem);
             await _db.SaveChangesAsync(cancellationToken);
         }
 

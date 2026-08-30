@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
@@ -7,6 +7,8 @@ import useShows from '../hooks/useShows'
 import FilterButton from '../../../components/common/FilterButton'
 import { hasRecentLibraryExport } from '../../../services/api'
 import { useAppContext } from '../../../state/AppContext'
+import useGenreFilter from '../../../hooks/useGenreFilter'
+import GenreSelect from '../../../components/common/GenreSelect'
 
 type UnwatchedFilter = 'continue' | 'all' | 'notStarted'
 
@@ -33,6 +35,7 @@ export default function UnwatchedPage() {
 	const { shows, loading } = useShows('unwatched')
 	const { username } = useAppContext()
 	const filter = (searchParams.get('filter') as UnwatchedFilter | null) ?? 'continue'
+	const [genre, setGenre] = useState('')
 
 	const filteredShows = useMemo(() => {
 		return shows.filter((show) => {
@@ -46,6 +49,8 @@ export default function UnwatchedPage() {
 			}
 		})
 	}, [shows, filter])
+	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(filteredShows)
+	const visibleShows = filterByGenre('', genre)
 
 	function handleShowClick(show: TvShow) {
 		navigate(`/show/${encodeURIComponent(show.id)}`)
@@ -90,13 +95,14 @@ export default function UnwatchedPage() {
 								onClick={() => setFilter(item.key)}
 							/>
 						))}
+						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
 					</div>
 				</div>
-				{filteredShows.length === 0 ? (
+				{visibleShows.length === 0 ? (
 					<div className={styles.emptyState}>{getEmptyState(filter)}</div>
 				) : (
 					<div className={styles.unwatchedGrid}>
-						{filteredShows.map((show) => (
+						{visibleShows.map((show) => (
 							<ShowCard
 								key={show.id}
 								show={show}

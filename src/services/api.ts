@@ -33,6 +33,10 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 	const status = String(result.status ?? result.Status ?? '');
 	const rawVoteAverage = result.voteAverage ?? result.VoteAverage ?? result.vote_average;
 	const voteAverage = typeof rawVoteAverage === 'number' ? rawVoteAverage : undefined;
+	const rawGenres = result.genres ?? result.Genres;
+	const genres = Array.isArray(rawGenres)
+		? rawGenres.map((genre) => typeof genre === 'string' ? genre : String((genre as Record<string, unknown>).name ?? '')).filter(Boolean)
+		: undefined;
 	const rawVoteCount = result.voteCount ?? result.VoteCount ?? result.vote_count;
 	const voteCount = typeof rawVoteCount === 'number' ? rawVoteCount : undefined;
 	const rawRuntime = result.runtime ?? result.Runtime;
@@ -49,6 +53,7 @@ function mapSearchItem(result: Record<string, unknown>): TvShow {
 		description: String(result.description ?? result.Description ?? `Search result for ${title}`),
 		posterUrl: posterPath.startsWith('http') ? posterPath : (posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : undefined),
 		voteAverage,
+		genres,
 		voteCount,
 		runtime,
 	}
@@ -92,7 +97,7 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 		}
 
 		const result = data as Record<string, unknown>
-		const show = mapSearchItem(result)
+	const show = mapSearchItem(result)
 		return show
 	} catch {
 		return null
@@ -306,6 +311,12 @@ export async function getUserLists(mediaType?: string): Promise<import('./apiTyp
 	const query = mediaType ? `?mediaType=${encodeURIComponent(mediaType)}` : ''
 	const res = await fetchWithAuth(`/library/lists${query}`)
 	if(!res.ok) return []
+	return res.json()
+}
+
+export async function getUserList(id: string): Promise<import('./apiTypes').UserList> {
+	const res = await fetchWithAuth(`/library/lists/${encodeURIComponent(id)}`)
+	if(!res.ok) throw new Error(await res.text())
 	return res.json()
 }
 

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import SearchPanel from './components/SearchPanel'
 import type { TvShow } from "../../services/apiTypes"
 import { useAppContext } from '../../state/AppContext'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import styles from '../../App.module.css'
 import useSearch from './hooks/useSearch'
+import useGenreFilter from '../../hooks/useGenreFilter'
 
 export default function SearchPage() {
   useAppContext()
@@ -20,6 +21,13 @@ export default function SearchPage() {
   }
 
   const { results, loading } = useSearch(query) 
+  const allResults = useMemo(() => [...(results?.tvShows ?? []), ...(results?.movies ?? [])], [results])
+  const { genres, counts, filter } = useGenreFilter(allResults)
+  const [genre, setGenre] = useState('')
+  const filteredResults = useMemo(() => {
+    const filtered = new Set(filter('', genre).map((show) => show.id))
+    return results ? { tvShows: results.tvShows.filter((show) => filtered.has(show.id)), movies: results.movies.filter((show) => filtered.has(show.id)) } : null
+  }, [results, filter, genre])
 
   const updateQuery = (value: string) => {
     setQuery(value)
@@ -45,10 +53,14 @@ export default function SearchPage() {
 
       <SearchPanel
         searchQuery={query}
-        searchResults={results}
+        searchResults={filteredResults}
         isLoading={loading}
         onQueryChange={updateQuery}
         onShowClick={openShow}
+        genres={genres}
+        genreCounts={counts}
+        genre={genre}
+        onGenreChange={setGenre}
       />
     </main>
   )
