@@ -2,6 +2,7 @@ import type { SearchResults } from "../../../services/apiTypes"
 import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
+import GenreSelect from '../../../components/common/GenreSelect'
 
 type SearchPanelProps = {
   searchQuery: string
@@ -33,9 +34,7 @@ export default function SearchPanel({ searchQuery, searchResults, isLoading = fa
           />
           {searchQuery && <button className={styles.globalSearchClear} onClick={() => onQueryChange('')} type="button" aria-label="Clear search">✕</button>}
         </div>
-        {onGenreChange && <select className={styles.genreSelect} value={genre} onChange={(event) => onGenreChange(event.target.value)} aria-label="Filter by genre">
-          <option value="">All genres</option>{genres.map((itemGenre) => <option key={itemGenre} value={itemGenre}>{itemGenre} ({genreCounts[itemGenre] ?? 0})</option>)}
-        </select>}
+        {onGenreChange && <GenreSelect genres={genres} counts={genreCounts} value={genre} onChange={onGenreChange} />}
       </div>
 
       <div className={styles.searchResults}>

@@ -11,7 +11,7 @@ export default function GenreSelect({ genres, counts, loading, value, onChange }
   }, [])
   const label = loading ? 'Loading…' : value || 'All genres'
   return <div className={styles.genreDropdown} ref={ref}>
-    <button className={styles.genreButton} type="button" disabled={loading} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)}>{label}<span aria-hidden="true">⌄</span></button>
+    <button className={`${styles.genreButton} ${value ? styles.genreButtonActive : ''}`} type="button" disabled={loading} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)}>{label}<span className={styles.genreChevron} aria-hidden="true" /></button>
     {open && <div className={styles.genreMenu} role="listbox" aria-label="Filter by genre">
       <button className={styles.genreOption} type="button" onClick={() => { onChange(''); setOpen(false) }}>All genres</button>
       {genres.map((genre) => <button className={styles.genreOption} type="button" key={genre} onClick={() => { onChange(genre); setOpen(false) }}>{genre} ({counts[genre] ?? 0})</button>)}
