@@ -1526,19 +1526,24 @@ input:focus-visible {
 
 @media (max-width: 600px) {
 	.watchingToolbar {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
+		display: block;
 		align-items: stretch;
+		min-width: 0;
+		max-width: 100%;
 	}
 
 	.watchingToolbar .sortControls {
-		flex-wrap: wrap;
-		overflow-x: visible;
+		display: flex;
+		flex-wrap: nowrap;
+		overflow-x: auto;
 		min-width: 0;
 		max-width: 100%;
 		padding-bottom: 2px;
 		scrollbar-width: none;
 	}
+
+	.watchingToolbar .sortControls::-webkit-scrollbar { display: none; }
+	.watchingToolbar .sortControls > * { flex: 0 0 auto; }
 
 	.watchingToolbar .sortControls {
 		display: flex;
