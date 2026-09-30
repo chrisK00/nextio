@@ -94,7 +94,7 @@ function getEmptyState(filter: WatchingFilter) {
 export default function WatchingPage() {
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
-	const { shows, loading } = useShows('watching')
+	const { shows, loading, error, retry } = useShows('watching')
 	const watchingFilter = (searchParams.get('filter') as WatchingFilter | null) ?? 'running'
 	const [libraryQuery, setLibraryQuery] = useState(() => sessionStorage.getItem('watching_search') ?? '')
 	const [genre, setGenre] = useState('')
@@ -137,6 +137,9 @@ export default function WatchingPage() {
 				<div className={styles.loadingBar} />
 			</main>
 		)
+	}
+	if(error) {
+		return <main className={styles.mainPanel}><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
 	}
 
 	return (

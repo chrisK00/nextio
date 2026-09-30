@@ -63,7 +63,7 @@ function UpcomingCard({ show, onClick }: { show: TvShow; onClick: (show: TvShow)
 export default function UpcomingPage() {
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
-    const { shows, loading } = useShows('upcoming')
+    const { shows, loading, error, retry } = useShows('upcoming')
     const { settings } = useAppContext()
     const viewMode = settings?.defaultUpcomingView ?? 'list'
     const [genre, setGenre] = useState('')
@@ -113,6 +113,9 @@ export default function UpcomingPage() {
     if(loading) {
         return <main className={styles.mainPanel}><div className={styles.loadingBar} /></main>
     }
+    if(error) {
+        return <main className={styles.mainPanel}><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
+    }
 
     return (
         <main className={styles.mainPanel}>
@@ -130,24 +133,6 @@ export default function UpcomingPage() {
                         ))}
 						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
                     </div>
-                    {false && <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                            className={`${styles.secondaryButton} ${viewMode === 'list' ? styles.primaryButton : ''}`}
-                            onClick={() => undefined}
-                            type="button"
-                            style={{ padding: '6px 12px', minHeight: '34px', fontSize: '0.82rem' }}
-                        >
-                            List
-                        </button>
-                        <button
-                            className={`${styles.secondaryButton} ${viewMode === 'calendar' ? styles.primaryButton : ''}`}
-                            onClick={() => undefined}
-                            type="button"
-                            style={{ padding: '6px 12px', minHeight: '34px', fontSize: '0.82rem' }}
-                        >
-                            📅 Calendar
-                        </button>
-                    </div>}
                 </div>
 
                 {visibleShows.length === 0 ? (

@@ -102,7 +102,9 @@ namespace Controllers
             {
                 HttpOnly = true,
                 Expires = expires,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                SameSite = _environment.IsDevelopment()
+                    ? Microsoft.AspNetCore.Http.SameSiteMode.Lax
+                    : Microsoft.AspNetCore.Http.SameSiteMode.None,
                 Secure = !_environment.IsDevelopment()
             });
         }

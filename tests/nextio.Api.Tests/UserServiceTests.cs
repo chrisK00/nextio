@@ -75,6 +75,7 @@ public class UserServiceTests : IDisposable
         Assert.NotNull(token);
         Assert.Equal(user.Id, token.UserId);
         Assert.False(token.IsRevoked);
+        Assert.InRange(token.ExpiresAt, DateTime.UtcNow.AddDays(29), DateTime.UtcNow.AddDays(31));
 
         // 2. Rotate token
         var (rotatedUser, newToken) = await _userService.RotateRefreshTokenAsync(token.Token);
@@ -82,6 +83,7 @@ public class UserServiceTests : IDisposable
         Assert.Equal(user.Id, rotatedUser.Id);
         Assert.NotNull(newToken);
         Assert.NotEqual(token.Token, newToken.Token);
+        Assert.InRange(newToken.ExpiresAt, DateTime.UtcNow.AddDays(29), DateTime.UtcNow.AddDays(31));
 
         // Old token should be revoked now
         var oldTokenInDb = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.Token == token.Token);

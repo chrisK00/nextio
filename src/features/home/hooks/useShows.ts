@@ -23,7 +23,7 @@ type ShowStatus = 'unwatched' | 'upcoming' | 'watching'
  * until the shared data is ready, without redundant requests.
  */
 export default function useShows(status: ShowStatus) {
-    const { tvShows, isLibraryLoaded } = useAppContext()
+    const { tvShows, isLibraryLoaded, libraryError, refresh } = useAppContext()
 
     const shows = useMemo(() => {
         const filtered = tvShows.filter((show) => {
@@ -63,5 +63,5 @@ export default function useShows(status: ShowStatus) {
 
     }, [status, tvShows])
 
-    return { shows, loading: !isLibraryLoaded }
+    return { shows, loading: !isLibraryLoaded, error: libraryError, retry: refresh }
 }

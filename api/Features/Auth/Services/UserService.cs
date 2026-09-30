@@ -8,6 +8,7 @@ namespace Services;
 
 public class UserService : IUserService
 {
+    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
     private readonly ApplicationDbContext _db;
     private readonly IPasswordHasher<User> _passwordHasher;
 
@@ -51,7 +52,7 @@ public class UserService : IUserService
 
         var tokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var created = DateTime.UtcNow;
-        var expires = created.AddDays(7);
+        var expires = created.Add(RefreshTokenLifetime);
 
         var token = new RefreshToken
         {
@@ -79,7 +80,7 @@ public class UserService : IUserService
 
         var tokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var created = DateTime.UtcNow;
-        var expires = created.AddDays(7);
+        var expires = created.Add(RefreshTokenLifetime);
 
         var newToken = new RefreshToken
         {

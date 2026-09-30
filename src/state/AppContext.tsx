@@ -49,6 +49,7 @@ type AppContextType = {
   settings: Settings | null
   isLoading: boolean
   isLibraryLoaded: boolean
+  libraryError: string | null
   refresh: () => Promise<void>
   followShow: (show: TvShow) => Promise<void>
   unfollowShow: (showId: string, mediaType?: 'tv' | 'movie') => Promise<void>
@@ -77,6 +78,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [isLibraryLoaded, setIsLibraryLoaded] = useState(false)
+  const [libraryError, setLibraryError] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
   const [authLoading, setAuthLoading] = useState(false)
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem('username'))
@@ -90,11 +92,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if(!token) {
       // Mark the library as loaded even when signed out so pages can render their empty states.
       setWatchlist([])
+      setLibraryError(null)
       setIsLibraryLoaded(true)
       return
     }
-    const library = await api.getLibrary<LibraryTvShow>(ShowMediaType.Tv)
-    applyLibrary(library)
+    try {
+      const library = await api.getLibrary<LibraryTvShow>(ShowMediaType.Tv)
+      applyLibrary(library)
+      setLibraryError(null)
+    } catch (error: unknown) {
+      console.error('Failed to load library:', error)
+      setLibraryError(error instanceof Error ? error.message : 'Could not load your library.')
+      setIsLibraryLoaded(true)
+    }
   }, [applyLibrary, token])
 
 
@@ -132,6 +142,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadLibrary, token])
 
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('username')
+      setToken(null)
+      setUsername(null)
+    }
+
+    window.addEventListener('nextio:auth-expired', handleAuthExpired)
+    return () => window.removeEventListener('nextio:auth-expired', handleAuthExpired)
+  }, [])
+
   // validate token on startup
   useEffect(() => {
 
@@ -142,13 +164,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setAuthLoading(true)
         await api.getProtectedTest()
       } catch(error: unknown) {
-        console.error('Token validation failed:', error)
-        // invalid token
-        if(!mounted) return
-        localStorage.removeItem('token')
-        localStorage.removeItem('username')
-        setToken(null)
-        setUsername(null)
+        if(error instanceof api.AuthExpiredError) {
+          if(!mounted) return
+          localStorage.removeItem('token')
+          localStorage.removeItem('username')
+          setToken(null)
+          setUsername(null)
+        } else {
+          // Keep the saved session when startup validation fails because of a temporary network issue.
+          console.warn('Token validation could not reach the server:', error)
+        }
       } finally {
         if(mounted) setAuthLoading(false)
       }
@@ -203,6 +228,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     settings,
     isLoading: isLoadingSettings,
     isLibraryLoaded: isLibraryLoaded,
+    libraryError,
     refresh,
     followShow,
     unfollowShow,
@@ -241,7 +267,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setToken(null)
       setUsername(null)
     }
-  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, updateSetting, loadLibrary, authLoading])
+  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, libraryError, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, updateSetting, loadLibrary, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

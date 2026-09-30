@@ -32,7 +32,7 @@ function getEmptyState(filter: UnwatchedFilter) {
 export default function UnwatchedPage() {
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
-	const { shows, loading } = useShows('unwatched')
+	const { shows, loading, error, retry } = useShows('unwatched')
 	useAppContext()
 	const [lastExportAt, setLastExportAt] = useState<string | null>(null)
 	const [exportStatusLoaded, setExportStatusLoaded] = useState(false)
@@ -76,6 +76,9 @@ export default function UnwatchedPage() {
 				<div className={styles.loadingBar} />
 			</main>
 		)
+	}
+	if(error) {
+		return <main className={styles.mainPanel}><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
 	}
 
 	return (

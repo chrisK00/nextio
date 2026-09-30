@@ -15,6 +15,8 @@ export default function ListsPage() {
   const [mediaType, setMediaType] = useState<'tv' | 'movie'>('movie')
   const [isCreateExpanded, setIsCreateExpanded] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const refresh = useCallback(async (mediaType: 'movie' | 'tv' = listMediaType) => {
     setLists(await getUserLists(mediaType))
@@ -22,11 +24,27 @@ export default function ListsPage() {
 
   useEffect(() => {
     let cancelled = false
-    void getUserLists(listMediaType).then((nextLists) => {
-      if(!cancelled) setLists(nextLists)
-    })
+    const fetchLists = async () => {
+      try {
+        const nextLists = await getUserLists(listMediaType)
+        if(cancelled) return
+        setLists(nextLists)
+        setError('')
+      } catch(e: unknown) {
+        if(!cancelled) setError(e instanceof Error ? e.message : 'Could not load lists.')
+      } finally {
+        if(!cancelled) setLoading(false)
+      }
+    }
+    void fetchLists()
     return () => { cancelled = true }
-  }, [listMediaType])
+  }, [listMediaType, reloadKey])
+
+  function changeListMediaType(nextMediaType: 'movie' | 'tv') {
+    setLoading(true)
+    setError('')
+    setListMediaType(nextMediaType)
+  }
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault()
@@ -73,10 +91,15 @@ export default function ListsPage() {
           </form>
         )}
         <div className={styles.mediaFilters} role="tablist" aria-label="List type">
-          <FilterButton label="Movies" active={listMediaType === 'movie'} onClick={() => setListMediaType('movie')} />
-          <FilterButton label="TV shows" active={listMediaType === 'tv'} onClick={() => setListMediaType('tv')} />
+          <FilterButton label="Movies" active={listMediaType === 'movie'} onClick={() => changeListMediaType('movie')} />
+          <FilterButton label="TV shows" active={listMediaType === 'tv'} onClick={() => changeListMediaType('tv')} />
         </div>
-        {lists.length === 0 ? <div className={styles.emptyState}>No {listMediaType === 'movie' ? 'movie' : 'TV'} lists yet. Create one above.</div> : (
+        {loading ? <div className={styles.emptyState} role="status">Loading lists...</div> : error ? (
+          <div className={styles.emptyState} role="alert">
+            <p>Could not load lists: {error}</p>
+            <button className={appStyles.secondaryButton} type="button" onClick={() => { setLoading(true); setReloadKey((key) => key + 1) }}>Try again</button>
+          </div>
+        ) : lists.length === 0 ? <div className={styles.emptyState}>No {listMediaType === 'movie' ? 'movie' : 'TV'} lists yet. Create one above.</div> : (
           <div className={styles.listGrid}>
             {lists.map((list) => (
               <div key={list.id} className={styles.listCard} onClick={() => navigate(`/lists/${list.id}`)}>

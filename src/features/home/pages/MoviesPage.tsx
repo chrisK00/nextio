@@ -25,6 +25,7 @@ export default function MoviesPage() {
   const filter = (searchParams.get('status') as MovieFilter | null) ?? 'all'
   const [loading, setLoading] = useState(!cachedMovies[filter])
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
   const [movies, setMovies] = useState<WatchlistItem[]>(() => cachedMovies[filter] ?? [])
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function MoviesPage() {
 
     void fetchMovies()
     return () => { mounted = false }
-  }, [filter])
+  }, [filter, reloadKey])
 
   async function toggleWatched(movie: WatchlistItem) {
     const watched = movie.status !== 'Watched'
@@ -132,7 +133,10 @@ export default function MoviesPage() {
   if (error) {
     return (
       <main className={styles.mainPanel}>
-        <div className={styles.emptyState}>Error: {error}</div>
+        <div className={styles.emptyState} role="alert">
+          <p>Could not load movies: {error}</p>
+          <button className={styles.secondaryButton} type="button" onClick={() => setReloadKey((key) => key + 1)}>Try again</button>
+        </div>
       </main>
     )
   }

@@ -181,14 +181,14 @@ export async function saveAppSettings(settings: Settings): Promise<Settings> {
 }
 
 export async function getLibrary<T>(mediaType: string, status?: string): Promise<LibraryResponse<T>> {
-	try {
+	return retryAfterDelay(async () => {
 		const params = status ? `?${new URLSearchParams({ status }).toString()}` : ''
 		const res = await fetchWithAuth(`/library/${mediaType}${params}`)
-		if(!res.ok) return { items: [], length: 0 }
+		if(!res.ok) {
+			throw new Error(await getResponseError(res))
+		}
 		return normalizeLibrary(await res.json())
-	} catch {
-		return { items: [], length: 0 }
-	}
+	}, (library) => library.items.length === 0)
 }
 
 export async function getLibraryTvShow(id: string): Promise<LibraryTvShowDetails | null> {
@@ -330,9 +330,13 @@ export async function getBackups(): Promise<import('./apiTypes').BackupInfo[]> {
 
 export async function getUserLists(mediaType?: string): Promise<import('./apiTypes').UserList[]> {
 	const query = mediaType ? `?mediaType=${encodeURIComponent(mediaType)}` : ''
-	const res = await fetchWithAuth(`/library/lists${query}`)
-	if(!res.ok) return []
-	return res.json()
+	return retryAfterDelay(async () => {
+		const res = await fetchWithAuth(`/library/lists${query}`)
+		if(!res.ok) {
+			throw new Error(await getResponseError(res))
+		}
+		return res.json()
+	}, (lists) => lists.length === 0)
 }
 
 export async function getUserList(id: string): Promise<import('./apiTypes').UserList> {
@@ -384,7 +388,36 @@ type AuthResponse = {
 	expiresInSeconds: number
 }
 
+export class AuthExpiredError extends Error {
+	constructor() {
+		super('Your session has expired')
+		this.name = 'AuthExpiredError'
+	}
+}
+
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api`;
+
+async function retryAfterDelay<T>(request: () => Promise<T>, shouldRetry: (result: T) => boolean = () => false): Promise<T> {
+	let result: T
+	try {
+		result = await request()
+	} catch {
+		await new Promise<void>((resolve) => window.setTimeout(resolve, 1000))
+		return request()
+	}
+
+	if(!shouldRetry(result)) {
+		return result
+	}
+
+	await new Promise<void>((resolve) => window.setTimeout(resolve, 1000))
+	return request()
+}
+
+async function getResponseError(response: Response): Promise<string> {
+	const detail = await response.text()
+	return detail || `Request failed (${response.status})`
+}
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
 	const res = await fetch(`${API_BASE}${path}`, {
@@ -406,6 +439,31 @@ export async function authLogin(username: string, password: string): Promise<Aut
 	return postJson<AuthResponse>('/auth/login', { username, password })
 }
 
+let refreshInFlight: Promise<AuthResponse | null> | null = null
+
+function refreshAccessToken(): Promise<AuthResponse | null> {
+	if(!refreshInFlight) {
+		refreshInFlight = (async () => {
+			const response = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+			if(response.status === 401 || response.status === 403) {
+				localStorage.removeItem('token')
+				localStorage.removeItem('username')
+				window.dispatchEvent(new Event('nextio:auth-expired'))
+				return null
+			}
+			if(!response.ok) throw new Error(`Token refresh failed with status ${response.status}`)
+
+			const data = await response.json() as AuthResponse
+			localStorage.setItem('token', data.token)
+			return data
+		})().finally(() => {
+			refreshInFlight = null
+		})
+	}
+
+	return refreshInFlight
+}
+
 export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promise<Response> {
 	const token = localStorage.getItem('token')
 	const headers = new Headers(opts.headers || {})
@@ -416,24 +474,11 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 	const res = await fetch(url, fetchOpts)
 
 	if(res.status === 401) {
-		// attempt refresh
-		try {
-			const r = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
-			if(r.ok) {
-				const data = await r.json() as AuthResponse
-				localStorage.setItem('token', data.token)
-				// retry original request once
-				const retryHeaders = new Headers(opts.headers || {})
-				retryHeaders.set('Authorization', `Bearer ${data.token}`)
-				const retryUrl = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
-				return fetch(retryUrl, { ...opts, credentials: 'include', headers: retryHeaders })
-			} else {
-				localStorage.removeItem('token')
-				localStorage.removeItem('username')
-			}
-		} catch {
-			localStorage.removeItem('token')
-			localStorage.removeItem('username')
+		const data = await refreshAccessToken()
+		if(data) {
+			const retryHeaders = new Headers(opts.headers || {})
+			retryHeaders.set('Authorization', `Bearer ${data.token}`)
+			return fetch(url, { ...opts, credentials: 'include', headers: retryHeaders })
 		}
 	}
 
@@ -442,5 +487,6 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 
 export async function getProtectedTest(): Promise<void> {
 	const res = await fetchWithAuth('/test/auth')
+	if(res.status === 401) throw new AuthExpiredError()
 	if(!res.ok) throw new Error(await res.text())
 }
