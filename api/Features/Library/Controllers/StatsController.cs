@@ -5,13 +5,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Extensions;
 using nextio.Api.Features.Library.Services;
+using nextio.Api.Extensions;
+using Services;
 
 namespace nextio.Api.Features.Library.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public sealed class StatsController(ApplicationDbContext db, ILibrarySyncStatusStore syncStatusStore) : ControllerBase
+public sealed class StatsController(ApplicationDbContext db, ILibrarySyncStatusStore syncStatusStore, InMemoryLogProvider logProvider, IConfiguration configuration) : ControllerBase
 {
     [HttpGet("library")]
     public async Task<IActionResult> GetLibraryStats(CancellationToken cancellationToken)
@@ -43,11 +45,15 @@ public sealed class StatsController(ApplicationDbContext db, ILibrarySyncStatusS
     [HttpPost("backup")]
     public async Task<IActionResult> TriggerBackup([FromServices] BackupService backupService, CancellationToken cancellationToken)
     {
+        if (!User.HasDiagnosticsAccess(configuration)) return Forbid();
         var path = await backupService.CreateBackupAsync(cancellationToken);
         return Ok(new { success = true, backupFile = Path.GetFileName(path) });
     }
 
     [HttpGet("backups")]
-    public IActionResult GetBackups([FromServices] BackupService backupService) => Ok(backupService.GetBackups());
+    public IActionResult GetBackups([FromServices] BackupService backupService) => User.HasDiagnosticsAccess(configuration) ? Ok(backupService.GetBackups()) : Forbid();
+
+    [HttpGet("logs")]
+    public IActionResult GetLogs([FromQuery] int count = 200) => User.HasDiagnosticsAccess(configuration) ? Ok(logProvider.GetRecent(count)) : Forbid();
 
 }

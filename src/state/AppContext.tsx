@@ -147,6 +147,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('token')
       localStorage.removeItem('username')
       localStorage.removeItem('refreshToken')
+      localStorage.removeItem('diagnosticsToken')
       setToken(null)
       setUsername(null)
     }
@@ -170,6 +171,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('token')
           localStorage.removeItem('username')
           localStorage.removeItem('refreshToken')
+          localStorage.removeItem('diagnosticsToken')
           setToken(null)
           setUsername(null)
         } else {
@@ -249,7 +251,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if(res.refreshToken) {
           localStorage.setItem('refreshToken', res.refreshToken)
         } else {
-          localStorage.removeItem('refreshToken')
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('diagnosticsToken')
         }
         setIsLibraryLoaded(false)
         setLibraryError(null)
@@ -266,7 +269,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if(res.refreshToken) {
           localStorage.setItem('refreshToken', res.refreshToken)
         } else {
-          localStorage.removeItem('refreshToken')
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('diagnosticsToken')
         }
         setIsLibraryLoaded(false)
         setLibraryError(null)
@@ -282,6 +286,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('token')
       localStorage.removeItem('username')
       localStorage.removeItem('refreshToken')
+      localStorage.removeItem('diagnosticsToken')
       setToken(null)
       setUsername(null)
     }

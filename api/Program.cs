@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.HttpOverrides;
 using nextio.Api.Features.Library.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var logBuffer = new Services.InMemoryLogProvider();
+builder.Logging.AddProvider(logBuffer);
+builder.Services.AddSingleton(logBuffer);
 
 // JWT configuration (reads from appsettings.json)
 var configuredJwtKey = builder.Configuration["Jwt:Key"];

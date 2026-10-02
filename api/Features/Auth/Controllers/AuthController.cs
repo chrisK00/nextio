@@ -4,16 +4,18 @@ using Services;
 using Microsoft.AspNetCore.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IUserService userService, JwtService jwtService, IWebHostEnvironment environment) : ControllerBase
+    public class AuthController(IUserService userService, JwtService jwtService, IWebHostEnvironment environment, IConfiguration configuration) : ControllerBase
     {
         private readonly IUserService _userService = userService;
         private readonly JwtService _jwtService = jwtService;
         private readonly IWebHostEnvironment _environment = environment;
+        private readonly IConfiguration _configuration = configuration;
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest req)
@@ -48,6 +50,21 @@ namespace Controllers
 
             var returnRefreshLogin = Request.Headers.TryGetValue("X-Return-RefreshToken", out var lrv) && string.Equals(lrv.ToString(), "true", StringComparison.OrdinalIgnoreCase);
             return Ok(new AuthResponse(token, (long)TimeSpan.FromHours(1).TotalSeconds, returnRefreshLogin ? refresh.Token : null));
+        }
+
+        [Authorize]
+        [HttpPost("diagnostics/unlock")]
+        public async Task<IActionResult> UnlockDiagnostics([FromBody] DiagnosticsUnlockRequest req)
+        {
+            var configuredAdminPassword = _configuration["Diagnostics:AdminPassword"];
+            if (string.IsNullOrWhiteSpace(configuredAdminPassword) || !CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(configuredAdminPassword), System.Text.Encoding.UTF8.GetBytes(req.Password ?? string.Empty)))
+                return Unauthorized(new { error = "Invalid password" });
+            var username = User.FindFirstValue(JwtRegisteredClaimNames.UniqueName) ?? User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(username)) return Unauthorized();
+            var user = await _userService.GetByUsernameAsync(username);
+            if (user is null) return Unauthorized();
+            var token = _jwtService.CreateToken(user.Id.ToString(), user.Username, TimeSpan.FromDays(3650), diagnostics: true, diagnosticsKey: configuredAdminPassword);
+            return Ok(new { token });
         }
 
         [HttpPost("refresh")]
@@ -131,4 +148,5 @@ namespace Controllers
     }
 
     record RefreshRequest(string? RefreshToken);
+    public record DiagnosticsUnlockRequest(string? Password);
 }

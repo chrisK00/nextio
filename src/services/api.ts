@@ -87,57 +87,119 @@ export async function searchShows(query: string, includeAdult: boolean = false):
 }
 
 export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
-	try {
-		const [mediaType, rawId] = imdbId.includes(':') ? imdbId.split(':', 2) : ['tv', imdbId]
-		const response = await fetch(`${API_BASE}/search/${encodeURIComponent(mediaType)}/${encodeURIComponent(rawId)}`)
-		const data = await response.json()
+	const [mediaType, rawId] = imdbId.includes(':') ? imdbId.split(':', 2) : ['tv', imdbId]
+	const cacheKey = `${mediaType}:${rawId}`
+	const cached = cachedShowDetails.get(cacheKey)
+	if(cached && cached.expiresAt > Date.now()) {
+		return cached.show
+	}
 
-		if(!data) {
+	const pendingRequest = showDetailsRequests.get(cacheKey)
+	if(pendingRequest) {
+		return pendingRequest
+	}
+
+	const request = (async (): Promise<TvShow | null> => {
+		try {
+			const response = await fetch(`${API_BASE}/search/${encodeURIComponent(mediaType)}/${encodeURIComponent(rawId)}`)
+			const data = await response.json()
+
+			if(!data) {
+				return null
+			}
+
+			return mapSearchItem(data as Record<string, unknown>)
+		} catch {
 			return null
 		}
+	})()
+	showDetailsRequests.set(cacheKey, request)
 
-		const result = data as Record<string, unknown>
-		const show = mapSearchItem(result)
+	try {
+		const show = await request
+		if(show) {
+			cachedShowDetails.set(cacheKey, { show, expiresAt: Date.now() + CACHE_TTL_MS })
+			trimOldestCacheEntries(cachedShowDetails, MAX_CACHED_SHOW_DETAILS)
+		}
 		return show
-	} catch {
-		return null
+	} finally {
+		if(showDetailsRequests.get(cacheKey) === request) {
+			showDetailsRequests.delete(cacheKey)
+		}
 	}
 }
 
 type TmdbSeasonEpisode = { episodeNumber: number; name: string; airDate?: string }
 type TmdbSeason = { seasonNumber: number; name: string; episodes: TmdbSeasonEpisode[] }
 
-let cachedShow: { showId: string; seasons: Season[]; expiresAt: number } | null = null;
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const MAX_CACHED_SHOW_DETAILS = 1
+const MAX_CACHED_SEASON_SHOWS = 1
+const cachedShowDetails = new Map<string, { show: TvShow; expiresAt: number }>()
+const showDetailsRequests = new Map<string, Promise<TvShow | null>>()
+const cachedSeasons = new Map<string, { seasons: Season[]; expiresAt: number }>()
+const seasonRequests = new Map<string, Promise<Season[]>>()
+
+function trimOldestCacheEntries<T>(cache: Map<string, T>, maxEntries: number) {
+	while(cache.size > maxEntries) {
+		const oldestKey = cache.keys().next().value
+		if(oldestKey === undefined) {
+			return
+		}
+		cache.delete(oldestKey)
+	}
+}
 
 export async function getShowSeasons(showId: string): Promise<Season[]> {
-	if(cachedShow && cachedShow.showId === showId && cachedShow.expiresAt > Date.now()) {
-		return cachedShow.seasons;
+	const cached = cachedSeasons.get(showId)
+	if(cached && cached.expiresAt > Date.now()) {
+		return cached.seasons;
 	}
+
+	const pendingRequest = seasonRequests.get(showId)
+	if(pendingRequest) {
+		return pendingRequest
+	}
+
+	const request = (async (): Promise<Season[]> => {
+		try {
+			const [, rawId] = showId.includes(':') ? showId.split(':', 2) : ['tv', showId];
+			const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/seasons`);
+			if(!res.ok) return [];
+			const data = await res.json() as TmdbSeason[];
+			return data.map((s) => ({
+				season: s.seasonNumber,
+				episodes: s.episodes.map((e) => ({
+					id: `${showId}-${s.seasonNumber}-${e.episodeNumber}`,
+					season: s.seasonNumber,
+					episode: e.episodeNumber,
+					title: e.name,
+					airDate: e.airDate,
+					watched: false,
+				})),
+			}));
+		} catch {
+			return [];
+		}
+	})()
+	seasonRequests.set(showId, request)
 
 	try {
-		const [, rawId] = showId.includes(':') ? showId.split(':', 2) : ['tv', showId];
-		const res = await fetch(`${API_BASE}/search/tv/${encodeURIComponent(rawId)}/seasons`);
-		if(!res.ok) return [];
-		const data = await res.json() as TmdbSeason[];
-		const seasons = data.map((s) => ({
-			season: s.seasonNumber,
-			episodes: s.episodes.map((e) => ({
-				id: `${showId}-${s.seasonNumber}-${e.episodeNumber}`,
-				season: s.seasonNumber,
-				episode: e.episodeNumber,
-				title: e.name,
-				airDate: e.airDate,
-				watched: false,
-			})),
-		}));
-
-		cachedShow = { showId, seasons, expiresAt: Date.now() + CACHE_TTL_MS };
-
-		return seasons;
-	} catch {
-		return [];
+		const seasons = await request
+		if(seasons.length > 0) {
+			cachedSeasons.set(showId, { seasons, expiresAt: Date.now() + CACHE_TTL_MS })
+			trimOldestCacheEntries(cachedSeasons, MAX_CACHED_SEASON_SHOWS)
+		}
+		return seasons
+	} finally {
+		if(seasonRequests.get(showId) === request) {
+			seasonRequests.delete(showId)
+		}
 	}
+}
+
+export async function prefetchShowDetails(showId: string): Promise<void> {
+	await Promise.all([getShowDetails(showId), getShowSeasons(showId)])
 }
 export async function clearLibraryProgress(showId: string): Promise<void> {
 	await fetchWithAuth(`/library/tv/${encodeURIComponent(showId)}/episodes`, { method: 'DELETE' })
@@ -282,7 +344,7 @@ export async function getLibraryStats(): Promise<import('./apiTypes').LibrarySta
 }
 
 export async function triggerBackup(): Promise<{ success: boolean; backupFile: string }> {
-	const res = await fetchWithAuth('/stats/backup', { method: 'POST' })
+	const res = await fetchWithDiagnostics('/stats/backup', { method: 'POST' })
 	if(!res.ok) throw new Error(await res.text())
 	return res.json()
 }
@@ -323,7 +385,7 @@ export async function getLastLibraryExport(): Promise<string | null> {
 }
 
 export async function getBackups(): Promise<import('./apiTypes').BackupInfo[]> {
-	const res = await fetchWithAuth('/stats/backups')
+	const res = await fetchWithDiagnostics('/stats/backups')
 	if(!res.ok) return []
 	return res.json()
 }
@@ -378,9 +440,34 @@ export async function removeListItem(listId: string, itemId: string): Promise<im
 }
 
 export async function syncLibrary(): Promise<import('./apiTypes').LibrarySyncResponse> {
-	const res = await fetchWithAuth('/library/sync', { method: 'POST' })
+	const res = await fetchWithDiagnostics('/library/sync', { method: 'POST' })
 	if(!res.ok) throw new Error(await res.text())
 	return res.json() as Promise<import('./apiTypes').LibrarySyncResponse>
+}
+
+export async function unlockDiagnostics(password: string): Promise<void> {
+	const res = await fetchWithAuth('/auth/diagnostics/unlock', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ password }),
+	})
+	if(!res.ok) throw new Error(res.status === 401 ? 'Invalid password' : await res.text())
+	const data = await res.json() as { token: string }
+	localStorage.setItem('diagnosticsToken', data.token)
+}
+
+export function hasDiagnosticsUnlock(): boolean {
+	return Boolean(localStorage.getItem('diagnosticsToken'))
+}
+
+export function clearDiagnosticsUnlock(): void {
+	localStorage.removeItem('diagnosticsToken')
+}
+
+export async function getServerLogs(): Promise<import('./apiTypes').ServerLogEntry[]> {
+	const res = await fetchWithDiagnostics('/stats/logs?count=200')
+	if(!res.ok) throw new Error(await res.text())
+	return res.json()
 }
 
 type AuthResponse = {
@@ -494,7 +581,7 @@ function refreshAccessToken(): Promise<AuthResponse | null> {
 export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promise<Response> {
 	const token = localStorage.getItem('token')
 	const headers = new Headers(opts.headers || {})
-	if(token) headers.set('Authorization', `Bearer ${token}`)
+	if(token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`)
 
 	const fetchOpts: RequestInit = { credentials: 'include', ...opts, headers }
 	const url = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
@@ -504,12 +591,19 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 		const data = await refreshAccessToken()
 		if(data) {
 			const retryHeaders = new Headers(opts.headers || {})
-			retryHeaders.set('Authorization', `Bearer ${data.token}`)
+			if(!retryHeaders.has('Authorization')) retryHeaders.set('Authorization', `Bearer ${data.token}`)
 			return fetch(url, { ...opts, credentials: 'include', headers: retryHeaders })
 		}
 	}
 
 	return res
+}
+
+async function fetchWithDiagnostics(path: string, opts: RequestInit = {}): Promise<Response> {
+	const diagnosticsToken = localStorage.getItem('diagnosticsToken')
+	const headers = new Headers(opts.headers || {})
+	if(diagnosticsToken) headers.set('Authorization', `Bearer ${diagnosticsToken}`)
+	return fetchWithAuth(path, { ...opts, headers })
 }
 
 export async function getProtectedTest(): Promise<void> {

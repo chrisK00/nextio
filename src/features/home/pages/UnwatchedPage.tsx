@@ -5,7 +5,7 @@ import ShowCard from '../../show/components/ShowCard'
 import styles from '../../../App.module.css'
 import useShows from '../hooks/useShows'
 import FilterButton from '../../../components/common/FilterButton'
-import { getLastLibraryExport, hasRecentLibraryExport } from '../../../services/api'
+import { getLastLibraryExport, hasRecentLibraryExport, prefetchShowDetails } from '../../../services/api'
 import { useAppContext } from '../../../state/AppContext'
 import useGenreFilter from '../../../hooks/useGenreFilter'
 import GenreSelect from '../../../components/common/GenreSelect'
@@ -38,6 +38,12 @@ export default function UnwatchedPage() {
 	const [exportStatusLoaded, setExportStatusLoaded] = useState(false)
 	const [showBackupReminder, setShowBackupReminder] = useState(true)
 	useEffect(() => { void getLastLibraryExport().then(setLastExportAt).finally(() => setExportStatusLoaded(true)) }, [])
+	useEffect(() => {
+		const mostRecentlyWatchedShow = shows.find((show) => show.episodesWatched > 0)
+		if(mostRecentlyWatchedShow) {
+			void prefetchShowDetails(mostRecentlyWatchedShow.id)
+		}
+	}, [shows])
 	const filter = (searchParams.get('filter') as UnwatchedFilter | null) ?? 'continue'
 	const [genre, setGenre] = useState(() => sessionStorage.getItem('unwatched_genre') ?? '')
 	useEffect(() => {

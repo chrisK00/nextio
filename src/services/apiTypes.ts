@@ -143,3 +143,11 @@ export type BackupInfo = {
     sizeBytes: number
     createdAt: string
 }
+
+export type ServerLogEntry = {
+    timestamp: string
+    level: string
+    category: string
+    message: string
+    exception?: string | null
+}

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useAppContext } from '../../state/AppContext'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import styles from './SettingsPage.module.css'
 import appStyles from '../../App.module.css'
 import * as api from '../../services/api'
-import type { LibrarySyncResponse, LibrarySyncItem, TvShow, LibraryMovie } from '../../services/apiTypes'
+import type { LibrarySyncResponse, LibrarySyncItem, TvShow, LibraryMovie, ServerLogEntry } from '../../services/apiTypes'
 import { ShowMediaType } from '../../services/apiTypes'
 
 export default function SettingsPage() {
@@ -15,10 +15,40 @@ export default function SettingsPage() {
   const [syncError, setSyncError] = useState<string | null>(null)
   const [stats, setStats] = useState<import('../../services/apiTypes').LibraryStats | null>(null)
   const [showUnfollowedProgress, setShowUnfollowedProgress] = useState(false)
+  const [diagnosticsUnlocked, setDiagnosticsUnlocked] = useState(() => api.hasDiagnosticsUnlock())
+  const [diagnosticsPassword, setDiagnosticsPassword] = useState('')
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null)
+  const [logs, setLogs] = useState<ServerLogEntry[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
 
   useEffect(() => {
     api.getLibraryStats().then(setStats)
   }, [])
+
+  const loadLogs = async () => {
+    setLogsLoading(true)
+    try { setLogs(await api.getServerLogs()) } catch(error) { setDiagnosticsError(error instanceof Error ? error.message : 'Could not load server logs') }
+    finally { setLogsLoading(false) }
+  }
+
+  const unlockDiagnostics = async () => {
+    setDiagnosticsError(null)
+    try {
+      await api.unlockDiagnostics(diagnosticsPassword)
+      setDiagnosticsPassword('')
+      setDiagnosticsUnlocked(true)
+    } catch(error) { setDiagnosticsError(error instanceof Error ? error.message : 'Could not unlock diagnostics') }
+  }
+
+  const downloadLogs = () => {
+    const text = logs.map((entry) => `[${new Date(entry.timestamp).toLocaleString()}] ${entry.level} ${entry.category}: ${entry.message}${entry.exception ? `\n${entry.exception}` : ''}`).join('\n')
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `nextio-server-logs-${new Date().toISOString().slice(0, 10)}.txt`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   const handleSync = async (throwOnFailure = false): Promise<LibrarySyncResponse | null> => {
     setSyncLoading(true)
@@ -218,9 +248,11 @@ export default function SettingsPage() {
                   id="unfollowed-shows-list"
                   hidden={!showUnfollowedProgress}
                 >
-                  {stats.unfollowedShowsWithProgress.map((show) => (
-                    <li key={show.id}>{show.title}</li>
-                  ))}
+                    {stats.unfollowedShowsWithProgress.map((show) => (
+                      <li key={show.id}>
+                        <Link className={styles.progressShowLink} to={`/show/${encodeURIComponent(show.id)}`}>{show.title}</Link>
+                      </li>
+                    ))}
                 </ul>
               </div>
             ) : (
@@ -290,6 +322,17 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {!diagnosticsUnlocked && (
+          <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
+            <div className={styles.diagnosticsPrompt}>
+              <strong>Server diagnostics</strong>
+              <input type="password" value={diagnosticsPassword} onChange={(event) => setDiagnosticsPassword(event.target.value)} placeholder="Server admin password" aria-label="Server admin password" />
+              <button className={appStyles.primaryButton} onClick={() => void unlockDiagnostics()} type="button" disabled={!diagnosticsPassword}>Unlock diagnostics</button>
+            </div>
+            {diagnosticsError && <p className={styles.diagnosticsError}>{diagnosticsError}</p>}
+          </section>
+        )}
+
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
             <strong>Server SQLite Backups</strong>
@@ -306,6 +349,7 @@ export default function SettingsPage() {
               }
             }}
             type="button"
+            disabled={!diagnosticsUnlocked}
           >
             💾 Create Server Snapshot Now
           </button>
@@ -316,7 +360,7 @@ export default function SettingsPage() {
             <strong>Import library</strong>
             <p>Restore from a previously exported JSON file. Existing entries will not be duplicated.</p>
           </div>
-          <button className={appStyles.secondaryButton} onClick={handleImport} type="button" disabled={importLoading}>
+          <button className={appStyles.secondaryButton} onClick={handleImport} type="button" disabled={importLoading || !diagnosticsUnlocked}>
             {importLoading ? 'Importing…' : 'Import JSON'}
           </button>
           {importResult && <p>{importResult}</p>}
@@ -349,7 +393,7 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-          <button className={appStyles.primaryButton} onClick={() => void handleSync()} type="button" disabled={syncLoading}>
+          <button className={appStyles.primaryButton} onClick={() => void handleSync()} type="button" disabled={syncLoading || !diagnosticsUnlocked}>
             {syncLoading ? 'Syncing...' : 'Sync now'}
           </button>
           {syncError && <p>{syncError}</p>}
@@ -366,6 +410,19 @@ export default function SettingsPage() {
             </div>
           )}
         </section>
+
+        {diagnosticsUnlocked && (
+          <section style={{ marginTop: '10px' }} className={`${styles.settingsCard} ${appStyles.wideCard}`}>
+            <div className={styles.logsHeader}>
+              <div><strong>Server logs</strong></div>
+              <div className={styles.diagnosticsUnlock}>
+                <button className={appStyles.secondaryButton} onClick={() => void loadLogs()} type="button" disabled={logsLoading}>{logsLoading ? 'Loading...' : 'Load logs'}</button>
+                <button className={appStyles.secondaryButton} onClick={downloadLogs} type="button" disabled={!logs.length}>Download</button>
+              </div>
+            </div>
+            <pre className={styles.logViewer}>{logs.length ? logs.map((entry) => `[${new Date(entry.timestamp).toLocaleString()}] ${entry.level} ${entry.category}: ${entry.message}${entry.exception ? `\n${entry.exception}` : ''}`).join('\n') : ''}</pre>
+          </section>
+        )}
       </div>
     </main>
   )

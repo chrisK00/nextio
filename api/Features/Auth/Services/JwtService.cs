@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 
 namespace Services;
 
@@ -18,16 +19,19 @@ public class JwtService
         _audience = config["Jwt:Audience"] ?? "nextio_clients";
     }
 
-    public string CreateToken(string userId, string username, TimeSpan? expires = null)
+    public string CreateToken(string userId, string username, TimeSpan? expires = null, bool diagnostics = false, string? diagnosticsKey = null)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId),
             new Claim(JwtRegisteredClaimNames.UniqueName, username)
         };
+        if (diagnostics) claims.Add(new Claim("diagnostics", "true"));
+        if (diagnostics && diagnosticsKey is not null)
+            claims.Add(new Claim("diagnostics_key", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(diagnosticsKey)))));
 
         var token = new JwtSecurityToken(
             issuer: _issuer,

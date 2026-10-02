@@ -10,7 +10,7 @@ namespace nextio.Api.Features.Library.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public sealed class LibraryController(ILibraryService libraryService) : ControllerBase
+public sealed class LibraryController(ILibraryService libraryService, IConfiguration configuration) : ControllerBase
 {
     private readonly ILibraryService _libraryService = libraryService;
 
@@ -132,6 +132,7 @@ public sealed class LibraryController(ILibraryService libraryService) : Controll
     [HttpPost("sync")]
     public async Task<IActionResult> SyncLibrary([FromServices] ILibrarySyncService syncService, CancellationToken cancellationToken)
     {
+        if (!User.HasDiagnosticsAccess(configuration)) return Forbid();
         var result = await syncService.SyncAllAsync(cancellationToken);
         return Ok(result);
     }
