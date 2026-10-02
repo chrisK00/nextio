@@ -61,11 +61,26 @@ export async function writeCachedLibrary(username: string, library: LibraryRespo
   const database = await openDatabase()
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(STORE_NAME, 'readwrite')
-    transaction.objectStore(STORE_NAME).put({
-      username: normalizeUsername(username),
+    const store = transaction.objectStore(STORE_NAME)
+    const cacheKey = normalizeUsername(username)
+    const write = () => store.put({
+      username: cacheKey,
       library,
       cachedAt: new Date().toISOString(),
     } satisfies CachedLibrary)
+
+    if(library.items.length > 0) {
+      write()
+    } else {
+      const request = store.get(cacheKey) as IDBRequest<CachedLibrary | undefined>
+      request.onsuccess = () => {
+        if(!request.result?.library.items.length) {
+          write()
+        }
+      }
+      request.onerror = () => transaction.abort()
+    }
+
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error ?? new Error('Could not save the offline library.'))
     transaction.onabort = () => reject(transaction.error ?? new Error('Saving the offline library was aborted.'))

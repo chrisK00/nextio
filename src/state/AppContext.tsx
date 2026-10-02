@@ -145,11 +145,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return null
       })
       : Promise.resolve(null)
-    const networkLibraryPromise = api.getLibrary<LibraryTvShow>(ShowMediaType.Tv).then(
-      (library) => ({ library } as const),
-      (error: unknown) => ({ error } as const),
-    )
-
     let hasCachedLibrary = false
     try {
       const cached = await cachedLibraryPromise
@@ -163,12 +158,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLibraryLastUpdatedAt(cached.cachedAt)
       }
 
+      if(!navigator.onLine) {
+        if(cached) {
+          setOfflineAuthenticated(true)
+        }
+        setLibraryIsRefreshing(false)
+        setIsLibraryLoaded(true)
+        return
+      }
+
+      const networkLibraryPromise = api.getLibrary<LibraryTvShow>(ShowMediaType.Tv).then(
+        (library) => ({ library } as const),
+        (error: unknown) => ({ error } as const),
+      )
+
       const result = await networkLibraryPromise
       if(!isCurrentRequest()) {
         return
       }
       if('error' in result) {
         throw result.error
+      }
+
+      if(result.library.items.length === 0 && cached && cached.library.items.length > 0) {
+        setLibraryIsStale(true)
+        setLibraryLastUpdatedAt(cached.cachedAt)
+        setIsLibraryLoaded(true)
+        return
       }
 
       applyLibrary(result.library)
@@ -186,6 +202,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       console.error('Failed to load library:', error)
       if(hasCachedLibrary || libraryHasData.current) {
+        if(hasCachedLibrary) {
+          const cached = await readCachedLibrary(cacheUsername).catch(() => null)
+          if(cached && isCurrentRequest()) {
+            applyLibrary(cached.library)
+            setLibraryLastUpdatedAt(cached.cachedAt)
+          }
+        }
         setLibraryIsStale(true)
         setLibraryError(null)
       } else {

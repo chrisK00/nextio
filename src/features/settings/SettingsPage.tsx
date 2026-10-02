@@ -26,6 +26,7 @@ export default function SettingsPage() {
   }, [])
 
   const loadLogs = async () => {
+    setDiagnosticsError(null)
     setLogsLoading(true)
     try { setLogs(await api.getServerLogs()) } catch(error) { setDiagnosticsError(error instanceof Error ? error.message : 'Could not load server logs') }
     finally { setLogsLoading(false) }
@@ -53,6 +54,7 @@ export default function SettingsPage() {
   const handleSync = async (throwOnFailure = false): Promise<LibrarySyncResponse | null> => {
     setSyncLoading(true)
     setSyncError(null)
+    setDiagnosticsError(null)
     try {
       const result = await api.syncLibrary()
       setSyncResult(result)
@@ -322,17 +324,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {!diagnosticsUnlocked && (
-          <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
-            <div className={styles.diagnosticsPrompt}>
-              <strong>Server diagnostics</strong>
-              <input type="password" value={diagnosticsPassword} onChange={(event) => setDiagnosticsPassword(event.target.value)} placeholder="Server admin password" aria-label="Server admin password" />
-              <button className={appStyles.primaryButton} onClick={() => void unlockDiagnostics()} type="button" disabled={!diagnosticsPassword}>Unlock diagnostics</button>
-            </div>
-            {diagnosticsError && <p className={styles.diagnosticsError}>{diagnosticsError}</p>}
-          </section>
-        )}
-
         <section className={`${styles.settingsCard} ${appStyles.wideCard}`}>
           <div>
             <strong>Server SQLite Backups</strong>
@@ -411,18 +402,32 @@ export default function SettingsPage() {
           )}
         </section>
 
-        {diagnosticsUnlocked && (
-          <section style={{ marginTop: '10px' }} className={`${styles.settingsCard} ${appStyles.wideCard}`}>
-            <div className={styles.logsHeader}>
-              <div><strong>Server logs</strong></div>
-              <div className={styles.diagnosticsUnlock}>
-                <button className={appStyles.secondaryButton} onClick={() => void loadLogs()} type="button" disabled={logsLoading}>{logsLoading ? 'Loading...' : 'Load logs'}</button>
-                <button className={appStyles.secondaryButton} onClick={downloadLogs} type="button" disabled={!logs.length}>Download</button>
-              </div>
+        <section style={{ marginTop: '10px' }} className={`${styles.settingsCard} ${appStyles.wideCard}`}>
+          <div className={styles.logsHeader}>
+            <div><strong>Server logs</strong></div>
+            <div className={styles.diagnosticsUnlock}>
+              {diagnosticsUnlocked ? (
+                <>
+                  <button className={appStyles.secondaryButton} onClick={() => void loadLogs()} type="button" disabled={logsLoading}>{logsLoading ? 'Loading...' : 'Load logs'}</button>
+                  <button className={appStyles.secondaryButton} onClick={downloadLogs} type="button" disabled={!logs.length}>Download</button>
+                  <button className={appStyles.secondaryButton} onClick={() => {
+                    api.clearDiagnosticsUnlock()
+                    setDiagnosticsUnlocked(false)
+                    setDiagnosticsError(null)
+                    setLogs([])
+                  }} type="button">Re-enter admin password</button>
+                </>
+              ) : (
+                <>
+                  <input type="password" value={diagnosticsPassword} onChange={(event) => setDiagnosticsPassword(event.target.value)} placeholder="Server admin password" aria-label="Server admin password" />
+                  <button className={appStyles.primaryButton} onClick={() => void unlockDiagnostics()} type="button" disabled={!diagnosticsPassword}>Unlock diagnostics</button>
+                </>
+              )}
             </div>
-            <pre className={styles.logViewer}>{logs.length ? logs.map((entry) => `[${new Date(entry.timestamp).toLocaleString()}] ${entry.level} ${entry.category}: ${entry.message}${entry.exception ? `\n${entry.exception}` : ''}`).join('\n') : ''}</pre>
-          </section>
-        )}
+          </div>
+          {diagnosticsError && <p className={styles.diagnosticsError} role="alert">{diagnosticsError}</p>}
+          <pre className={styles.logViewer}>{logs.length ? logs.map((entry) => `[${new Date(entry.timestamp).toLocaleString()}] ${entry.level} ${entry.category}: ${entry.message}${entry.exception ? `\n${entry.exception}` : ''}`).join('\n') : ''}</pre>
+        </section>
       </div>
     </main>
   )

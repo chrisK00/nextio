@@ -441,7 +441,7 @@ export async function removeListItem(listId: string, itemId: string): Promise<im
 
 export async function syncLibrary(): Promise<import('./apiTypes').LibrarySyncResponse> {
 	const res = await fetchWithDiagnostics('/library/sync', { method: 'POST' })
-	if(!res.ok) throw new Error(await res.text())
+	if(!res.ok) throw new Error(await getResponseError(res))
 	return res.json() as Promise<import('./apiTypes').LibrarySyncResponse>
 }
 
@@ -451,7 +451,7 @@ export async function unlockDiagnostics(password: string): Promise<void> {
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ password }),
 	})
-	if(!res.ok) throw new Error(res.status === 401 ? 'Invalid password' : await res.text())
+	if(!res.ok) throw new Error(res.status === 401 ? 'Invalid password' : await getResponseError(res))
 	const data = await res.json() as { token: string }
 	localStorage.setItem('diagnosticsToken', data.token)
 }
@@ -466,7 +466,7 @@ export function clearDiagnosticsUnlock(): void {
 
 export async function getServerLogs(): Promise<import('./apiTypes').ServerLogEntry[]> {
 	const res = await fetchWithDiagnostics('/stats/logs?count=200')
-	if(!res.ok) throw new Error(await res.text())
+	if(!res.ok) throw new Error(await getResponseError(res))
 	return res.json()
 }
 
@@ -504,7 +504,16 @@ async function retryAfterDelay<T>(request: () => Promise<T>, shouldRetry: (resul
 
 async function getResponseError(response: Response): Promise<string> {
 	const detail = await response.text()
-	return detail || `Request failed (${response.status})`
+	if(!detail) return `Request failed (${response.status})`
+	try {
+		const body = JSON.parse(detail) as { title?: unknown; detail?: unknown; message?: unknown; error?: unknown }
+		for(const value of [body.title, body.detail, body.message, body.error]) {
+			if(typeof value === 'string' && value.trim()) return value
+		}
+	} catch {
+		// Use the raw response body for non-JSON errors.
+	}
+	return detail
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
