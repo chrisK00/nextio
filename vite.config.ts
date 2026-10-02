@@ -1,12 +1,24 @@
 import { defineConfig } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
 	plugins: [
 		react(),
-		babel({ presets: [reactCompilerPreset()] })
+		babel({ presets: [reactCompilerPreset()] }),
+		VitePWA({
+			registerType: 'autoUpdate',
+			injectRegister: 'auto',
+			manifest: false,
+			includeAssets: ['favicon.svg', 'icons.svg', 'manifest.json'],
+			workbox: {
+				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+				navigateFallback: 'index.html',
+				cleanupOutdatedCaches: true,
+			},
+		})
 	],
 	define: {
 		'process.env': {
