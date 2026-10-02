@@ -10,6 +10,17 @@ export const parseReleaseDate = (value: string) => {
     return new Date(value)
 }
 
+export const isReleaseDateUpcoming = (value?: string | null) => {
+    if(!value) return false
+
+    const release = parseReleaseDate(value)
+    const now = new Date()
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+    const releaseUtc = Date.UTC(release.getFullYear(), release.getMonth(), release.getDate())
+
+    return releaseUtc >= todayUtc
+}
+
 export const getReleaseCountdown = (show: TvShow) => {
     if(!show?.nextAiringEpisode?.releaseDate) return 'TBD'
     const now = new Date()

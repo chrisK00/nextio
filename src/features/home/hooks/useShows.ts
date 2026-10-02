@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useAppContext } from '../../../state/AppContext'
-import { sortShowsByLastUpdated } from '../../show/utils/show'
+import { isReleaseDateUpcoming, sortShowsByLastUpdated } from '../../show/utils/show'
 
 type ShowStatus = 'unwatched' | 'upcoming' | 'watching'
 
@@ -44,7 +44,7 @@ export default function useShows(status: ShowStatus) {
                         show.nextUserEpisode.season !== show.nextAiringEpisode?.season
                     );
                 case 'upcoming':
-                    return Boolean(show.nextAiringEpisode)
+                    return Boolean(show.nextAiringEpisode?.releaseDate) && isReleaseDateUpcoming(show.nextAiringEpisode!.releaseDate)
             }
         })
 

@@ -79,8 +79,8 @@ export default function UpcomingPage() {
         }
         return shows
     }, [shows, filter])
-	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(filteredShows)
-	const visibleShows = filterByGenre('', genre)
+    const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(filteredShows)
+    const visibleShows = filterByGenre('', genre)
 
     useLayoutEffect(() => {
         if(loading || (genre && genresLoading)) {
@@ -106,9 +106,9 @@ export default function UpcomingPage() {
 
     const calendarGroups = useMemo(() => {
         const groups: Record<string, TvShow[]> = {}
-        for (const show of visibleShows) {
+        for(const show of visibleShows) {
             const episode = show.nextAiringEpisode
-            if (!episode?.releaseDate) continue
+            if(!episode?.releaseDate) continue
             const date = parseReleaseDate(episode.releaseDate)
             const today = new Date()
             const todayKey = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
@@ -119,7 +119,7 @@ export default function UpcomingPage() {
                 : dayOffset === 1
                     ? 'Tomorrow'
                     : date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric' })
-            if (!groups[dateKey]) groups[dateKey] = []
+            if(!groups[dateKey]) groups[dateKey] = []
             groups[dateKey].push(show)
         }
         return Object.entries(groups)
@@ -156,7 +156,7 @@ export default function UpcomingPage() {
                                 onClick={() => setFilter(f.key)}
                             />
                         ))}
-						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
+                        <GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
                     </div>
                 </div>
 

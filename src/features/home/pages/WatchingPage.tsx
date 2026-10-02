@@ -111,7 +111,7 @@ export default function WatchingPage() {
 	}, [genre])
 
 	useEffect(() => {
-		if (searchOpen) searchInputRef.current?.focus()
+		if(searchOpen) searchInputRef.current?.focus()
 	}, [searchOpen])
 
 	const filteredShows = useMemo(() => {
@@ -187,15 +187,15 @@ export default function WatchingPage() {
 					</div>
 					{searchOpen && <div className={styles.librarySearchWrap}>
 						<div className={styles.searchInputWrap}>
-						<input
-							ref={searchInputRef}
-							type="text"
-							value={libraryQuery}
-							onChange={(e) => setLibraryQuery(e.target.value)}
-							placeholder="Filter by show name..."
-							className={styles.librarySearchInput}
-						/>
-						{libraryQuery && <button onClick={() => setLibraryQuery('')} className={styles.librarySearchClear} type="button" title="Clear filter">✕</button>}
+							<input
+								ref={searchInputRef}
+								type="text"
+								value={libraryQuery}
+								onChange={(e) => setLibraryQuery(e.target.value)}
+								placeholder="Filter by show name..."
+								className={styles.librarySearchInput}
+							/>
+							{libraryQuery && <button onClick={() => setLibraryQuery('')} className={styles.librarySearchClear} type="button" title="Clear filter">✕</button>}
 						</div>
 						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
 						{libraryQuery && (

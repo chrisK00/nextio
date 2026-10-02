@@ -1019,6 +1019,9 @@ input:focus-visible {
 	border: 2px solid var(--border);
 	border-radius: 12px;
 	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
 	min-height: 48px;
 	text-align: center;
 	transition: all 0.2s ease;
