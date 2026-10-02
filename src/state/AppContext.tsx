@@ -415,8 +415,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if(res.refreshToken) {
           localStorage.setItem('refreshToken', res.refreshToken)
         } else {
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('diagnosticsToken')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('diagnosticsToken')
         }
         setIsLibraryLoaded(false)
         libraryHasData.current = false
@@ -439,8 +439,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if(res.refreshToken) {
           localStorage.setItem('refreshToken', res.refreshToken)
         } else {
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('diagnosticsToken')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('diagnosticsToken')
         }
         setIsLibraryLoaded(false)
         libraryHasData.current = false

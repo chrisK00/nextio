@@ -250,11 +250,11 @@ export default function SettingsPage() {
                   id="unfollowed-shows-list"
                   hidden={!showUnfollowedProgress}
                 >
-                    {stats.unfollowedShowsWithProgress.map((show) => (
-                      <li key={show.id}>
-                        <Link className={styles.progressShowLink} to={`/show/${encodeURIComponent(show.id)}`}>{show.title}</Link>
-                      </li>
-                    ))}
+                  {stats.unfollowedShowsWithProgress.map((show) => (
+                    <li key={show.id}>
+                      <Link className={styles.progressShowLink} to={`/show/${encodeURIComponent(show.id)}`}>{show.title}</Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
             ) : (
@@ -415,7 +415,7 @@ export default function SettingsPage() {
                     setDiagnosticsUnlocked(false)
                     setDiagnosticsError(null)
                     setLogs([])
-                  }} type="button">Re-enter admin password</button>
+                  }} type="button">admin password</button>
                 </>
               ) : (
                 <>

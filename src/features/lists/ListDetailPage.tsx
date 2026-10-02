@@ -20,7 +20,7 @@ export default function ListDetailPage() {
   const [errorListId, setErrorListId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!id) return
+    if(!id) return
     let active = true
 
     getUserList(id).then((loaded) => {
@@ -57,8 +57,8 @@ export default function ListDetailPage() {
   const genreCounts = useMemo(() => Object.fromEntries(genres.map((itemGenre) => [itemGenre, currentDisplayItems.filter((item) => item.genres.includes(itemGenre)).length])), [genres, currentDisplayItems])
   const items = useMemo(() => currentDisplayItems.filter((item) => item.title.toLowerCase().includes(query.toLowerCase().trim()) && (!genre || item.genres.includes(genre))), [currentDisplayItems, query, genre])
 
-  if (currentError) return <main className={appStyles.mainPanel}><div className={styles.emptyState}>{currentError}</div></main>
-  if (!currentList) return <main className={appStyles.mainPanel}><div className={styles.emptyState}>Loading list...</div></main>
+  if(currentError) return <main className={appStyles.mainPanel}><div className={styles.emptyState}>{currentError}</div></main>
+  if(!currentList) return <main className={appStyles.mainPanel}><div className={styles.emptyState}>Loading list...</div></main>
 
   return <main className={appStyles.mainPanel}><section className={styles.page}>
     <button className={styles.backButton} type="button" onClick={() => navigate('/lists')}>← Back to lists</button>

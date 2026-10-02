@@ -38,7 +38,17 @@ export default function UnwatchedPage() {
 	const [lastExportAt, setLastExportAt] = useState<string | null>(null)
 	const [exportStatusLoaded, setExportStatusLoaded] = useState(false)
 	const [showBackupReminder, setShowBackupReminder] = useState(true)
-	useEffect(() => { void getLastLibraryExport().then(setLastExportAt).finally(() => setExportStatusLoaded(true)) }, [])
+	useEffect(() => {
+		let active = true
+		void (async () => {
+			const exportAt = await getLastLibraryExport()
+			if(active && exportAt !== undefined) {
+				setLastExportAt(exportAt)
+				setExportStatusLoaded(true)
+			}
+		})()
+		return () => { active = false }
+	}, [])
 	useEffect(() => {
 		const mostRecentlyWatchedShow = shows.find((show) => show.episodesWatched > 0)
 		if(mostRecentlyWatchedShow) {

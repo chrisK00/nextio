@@ -374,13 +374,13 @@ export async function recordLibraryExport(): Promise<void> {
 	await fetchWithAuth('/auth/library-export', { method: 'POST' })
 }
 
-export async function getLastLibraryExport(): Promise<string | null> {
+export async function getLastLibraryExport(): Promise<string | null | undefined> {
 	try {
 		const response = await fetchWithAuth('/auth/library-export')
-		if(!response.ok) return null
+		if(!response.ok) return undefined
 		return (await response.json() as { lastExportAt?: string | null }).lastExportAt ?? null
 	} catch {
-		return null
+		return undefined
 	}
 }
 
