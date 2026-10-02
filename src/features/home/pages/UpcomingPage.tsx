@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useState, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import styles from '../../../App.module.css'
@@ -66,7 +66,10 @@ export default function UpcomingPage() {
     const { shows, loading, error, retry } = useShows('upcoming')
     const { settings } = useAppContext()
     const viewMode = settings?.defaultUpcomingView ?? 'list'
-    const [genre, setGenre] = useState('')
+    const [genre, setGenre] = useState(() => sessionStorage.getItem('upcoming_genre') ?? '')
+    useEffect(() => {
+        sessionStorage.setItem('upcoming_genre', genre)
+    }, [genre])
 
     const filter = (searchParams.get('filter') as UpcomingFilter | null) ?? 'continue'
 
@@ -78,6 +81,28 @@ export default function UpcomingPage() {
     }, [shows, filter])
 	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(filteredShows)
 	const visibleShows = filterByGenre('', genre)
+
+    useLayoutEffect(() => {
+        if(loading || (genre && genresLoading)) {
+            return
+        }
+
+        const savedScroll = sessionStorage.getItem('upcoming_scroll')
+        if(savedScroll === null) {
+            return
+        }
+
+        sessionStorage.removeItem('upcoming_scroll')
+        const scrollTop = Number(savedScroll)
+        if(Number.isFinite(scrollTop)) {
+            window.scrollTo({ top: scrollTop, behavior: 'instant' as ScrollBehavior })
+        }
+    }, [loading, genresLoading, visibleShows, genre])
+
+    function openShow(show: TvShow) {
+        sessionStorage.setItem('upcoming_scroll', String(window.scrollY))
+        navigate(`/show/${encodeURIComponent(show.id)}`)
+    }
 
     const calendarGroups = useMemo(() => {
         const groups: Record<string, TvShow[]> = {}
@@ -135,7 +160,9 @@ export default function UpcomingPage() {
                     </div>
                 </div>
 
-                {visibleShows.length === 0 ? (
+                {genre && genresLoading && visibleShows.length === 0 ? (
+                    <div className={styles.loadingBar} />
+                ) : visibleShows.length === 0 ? (
                     <div className={styles.emptyState}>
                         {filter === 'continue'
                             ? 'No upcoming episodes for shows you\'re watching. Switch to All to see everything.'
@@ -147,7 +174,7 @@ export default function UpcomingPage() {
                             <UpcomingCard
                                 key={show.id}
                                 show={show}
-                                onClick={(s) => navigate(`/show/${encodeURIComponent(s.id)}`)}
+                                onClick={openShow}
                             />
                         ))}
                     </div>
@@ -164,7 +191,7 @@ export default function UpcomingPage() {
                                         <UpcomingCard
                                             key={show.id}
                                             show={show}
-                                            onClick={(s) => navigate(`/show/${encodeURIComponent(s.id)}`)}
+                                            onClick={openShow}
                                         />
                                     ))}
                                 </div>

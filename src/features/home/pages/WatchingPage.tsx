@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
@@ -97,7 +97,7 @@ export default function WatchingPage() {
 	const { shows, loading, error, retry } = useShows('watching')
 	const watchingFilter = (searchParams.get('filter') as WatchingFilter | null) ?? 'running'
 	const [libraryQuery, setLibraryQuery] = useState(() => sessionStorage.getItem('watching_search') ?? '')
-	const [genre, setGenre] = useState('')
+	const [genre, setGenre] = useState(() => sessionStorage.getItem('watching_genre') ?? '')
 	const [searchOpen, setSearchOpen] = useState(Boolean(libraryQuery))
 	const searchInputRef = useRef<HTMLInputElement>(null)
 	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(shows)
@@ -105,6 +105,10 @@ export default function WatchingPage() {
 	useEffect(() => {
 		sessionStorage.setItem('watching_search', libraryQuery)
 	}, [libraryQuery])
+
+	useEffect(() => {
+		sessionStorage.setItem('watching_genre', genre)
+	}, [genre])
 
 	useEffect(() => {
 		if (searchOpen) searchInputRef.current?.focus()
@@ -117,6 +121,23 @@ export default function WatchingPage() {
 		return filterByGenre(q, genre).filter((s) => sorted.some((sortedShow) => sortedShow.id === s.id))
 	}, [shows, watchingFilter, libraryQuery, filterByGenre, genre])
 
+	useLayoutEffect(() => {
+		if(loading || (genre && genresLoading)) {
+			return
+		}
+
+		const savedScroll = sessionStorage.getItem('watching_scroll')
+		if(savedScroll === null) {
+			return
+		}
+
+		sessionStorage.removeItem('watching_scroll')
+		const scrollTop = Number(savedScroll)
+		if(Number.isFinite(scrollTop)) {
+			window.scrollTo({ top: scrollTop, behavior: 'instant' as ScrollBehavior })
+		}
+	}, [loading, genresLoading, filteredShows, genre])
+
 	function setWatchingFilter(filter: WatchingFilter) {
 		const params = new URLSearchParams(searchParams)
 		if(filter === 'running') {
@@ -128,6 +149,7 @@ export default function WatchingPage() {
 	}
 
 	function handleShowClick(show: TvShow) {
+		sessionStorage.setItem('watching_scroll', String(window.scrollY))
 		navigate(`/show/${encodeURIComponent(show.id)}`)
 	}
 
@@ -189,7 +211,9 @@ export default function WatchingPage() {
 					</div>}
 				</div>
 
-				{filteredShows.length === 0 ? (
+				{genre && genresLoading && filteredShows.length === 0 ? (
+					<div className={styles.loadingBar} />
+				) : filteredShows.length === 0 ? (
 					<div className={styles.emptyState}>
 						{libraryQuery ? (
 							<div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { TvShow } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
@@ -39,7 +39,10 @@ export default function UnwatchedPage() {
 	const [showBackupReminder, setShowBackupReminder] = useState(true)
 	useEffect(() => { void getLastLibraryExport().then(setLastExportAt).finally(() => setExportStatusLoaded(true)) }, [])
 	const filter = (searchParams.get('filter') as UnwatchedFilter | null) ?? 'continue'
-	const [genre, setGenre] = useState('')
+	const [genre, setGenre] = useState(() => sessionStorage.getItem('unwatched_genre') ?? '')
+	useEffect(() => {
+		sessionStorage.setItem('unwatched_genre', genre)
+	}, [genre])
 
 	const filteredShows = useMemo(() => {
 		return shows.filter((show) => {
@@ -56,7 +59,25 @@ export default function UnwatchedPage() {
 	const { genres, counts, loading: genresLoading, filter: filterByGenre } = useGenreFilter(filteredShows)
 	const visibleShows = filterByGenre('', genre)
 
+	useLayoutEffect(() => {
+		if(loading || (genre && genresLoading)) {
+			return
+		}
+
+		const savedScroll = sessionStorage.getItem('unwatched_scroll')
+		if(savedScroll === null) {
+			return
+		}
+
+		sessionStorage.removeItem('unwatched_scroll')
+		const scrollTop = Number(savedScroll)
+		if(Number.isFinite(scrollTop)) {
+			window.scrollTo({ top: scrollTop, behavior: 'instant' as ScrollBehavior })
+		}
+	}, [loading, genresLoading, visibleShows, genre])
+
 	function handleShowClick(show: TvShow) {
+		sessionStorage.setItem('unwatched_scroll', String(window.scrollY))
 		navigate(`/show/${encodeURIComponent(show.id)}`)
 	}
 
@@ -110,7 +131,9 @@ export default function UnwatchedPage() {
 						<GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
 					</div>
 				</div>
-				{visibleShows.length === 0 ? (
+				{genre && genresLoading && visibleShows.length === 0 ? (
+					<div className={styles.loadingBar} />
+				) : visibleShows.length === 0 ? (
 					<div className={styles.emptyState}>{getEmptyState(filter)}</div>
 				) : (
 					<div className={styles.unwatchedGrid}>

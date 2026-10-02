@@ -50,13 +50,35 @@ export default function ShowDetailPanel({ show, isLoading, onBack, onToggleEpiso
 
 	useEffect(() => {
 		if(!isMovie && displayShow?.seasons && displayShow.seasons.length > 0) {
+			let animationFrame = 0
 			const timer = setTimeout(() => {
 				const firstUnwatched = document.querySelector(`.${styles.episodeButton}:not(.${styles.episodeWatched})`)
 				if(firstUnwatched && window.scrollY < 50) {
-					firstUnwatched.scrollIntoView({ behavior: 'smooth', block: 'center' })
+					const targetScrollY = firstUnwatched.getBoundingClientRect().top + window.scrollY - (window.innerHeight - firstUnwatched.getBoundingClientRect().height) / 2
+					if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+						window.scrollTo(0, targetScrollY)
+						return
+					}
+
+					const startScrollY = window.scrollY
+					const distance = targetScrollY - startScrollY
+					const startTime = performance.now()
+					const duration = 400
+					const animateScroll = (time: number) => {
+						const progress = Math.min((time - startTime) / duration, 1)
+						const easedProgress = 1 - Math.pow(1 - progress, 3)
+						window.scrollTo(0, startScrollY + distance * easedProgress)
+						if(progress < 1) {
+							animationFrame = window.requestAnimationFrame(animateScroll)
+						}
+					}
+					animationFrame = window.requestAnimationFrame(animateScroll)
 				}
 			}, 300)
-			return () => clearTimeout(timer)
+			return () => {
+				clearTimeout(timer)
+				window.cancelAnimationFrame(animationFrame)
+			}
 		}
 	}, [displayShow?.id, displayShow?.seasons, isMovie])
 

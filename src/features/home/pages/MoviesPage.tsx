@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ShowMediaType, type LibraryMovie } from "../../../services/apiTypes"
 import ShowCard from '../../show/components/ShowCard'
@@ -56,13 +56,6 @@ export default function MoviesPage() {
         if(mounted) {
           cachedMovies[filter] = mapped
           setMovies(mapped)
-          const savedScroll = sessionStorage.getItem('movies_scroll')
-          if(savedScroll) {
-            sessionStorage.removeItem('movies_scroll')
-            requestAnimationFrame(() => {
-              window.scrollTo({ top: Number(savedScroll), behavior: 'instant' as ScrollBehavior })
-            })
-          }
         }
       } catch(e: unknown) {
         console.error('Failed to fetch movies:', e)
@@ -100,13 +93,34 @@ export default function MoviesPage() {
   }
 
   const [movieQuery, setMovieQuery] = useState(() => sessionStorage.getItem('movies_search') ?? '')
-  const [genre, setGenre] = useState('')
+  const [genre, setGenre] = useState(() => sessionStorage.getItem('movies_genre') ?? '')
   const searchInputRef = useRef<HTMLInputElement>(null)
   const { genres, counts, loading: genresLoading, filter: filterMovies } = useGenreFilter(movies)
 
   useEffect(() => {
     sessionStorage.setItem('movies_search', movieQuery)
   }, [movieQuery])
+
+  useEffect(() => {
+    sessionStorage.setItem('movies_genre', genre)
+  }, [genre])
+
+  useLayoutEffect(() => {
+    if(loading || genresLoading) {
+      return
+    }
+
+    const savedScroll = sessionStorage.getItem('movies_scroll')
+    if(savedScroll === null) {
+      return
+    }
+
+    sessionStorage.removeItem('movies_scroll')
+    const scrollTop = Number(savedScroll)
+    if(Number.isFinite(scrollTop)) {
+      window.scrollTo({ top: scrollTop, behavior: 'instant' as ScrollBehavior })
+    }
+  }, [loading, genresLoading, movies, genre])
 
   const filteredMovies = useMemo(() => {
     return filterMovies(movieQuery, genre)
