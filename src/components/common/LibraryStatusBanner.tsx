@@ -5,7 +5,9 @@ import styles from './LibraryStatusBanner.module.css'
 export default function LibraryStatusBanner() {
     const { isAuthenticated, isLibraryLoaded, libraryIsStale, libraryIsRefreshing, libraryLastUpdatedAt, isOnline } = useAppContext()
 
-    if(!isAuthenticated || !isLibraryLoaded || (isOnline && !libraryIsStale && !libraryIsRefreshing)) {
+    const isRefreshingCachedLibrary = isOnline && libraryIsStale && libraryIsRefreshing
+
+    if(!isAuthenticated || !isLibraryLoaded || isRefreshingCachedLibrary || (isOnline && !libraryIsStale && !libraryIsRefreshing)) {
         return null
     }
 
