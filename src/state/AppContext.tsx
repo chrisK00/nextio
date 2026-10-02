@@ -4,19 +4,19 @@
  *
  * ## What lives here
  * - `tvShows`      – The user's TV library (followed shows with episode progress).
- *                    Loaded once on mount / after login and refreshed after mutations.
+ *                    Restored from IndexedDB when available, then refreshed from the API.
  * - `settings`     – UI preferences (dark mode, notifications, genres).
- * - `isLibraryLoaded` – False until the first `/library/tv` response arrives.
+ * - `isLibraryLoaded` – False until cached or server library data is available.
  *                       Pages check this before rendering to avoid an empty flash.
  *
  * ## Data flow
  * 1. On mount: `loadSettings()` and `loadLibrary()` fire in parallel via two separate
  *    `useEffect`s. This keeps settings (static) and library (auth-dependent) independent.
- * 2. After login/logout: `token` state changes → `loadLibrary` dependency array re-runs
- *    → the library is re-fetched (or cleared) automatically.
+ * 2. After login/logout: `token` state changes → `loadLibrary` restores that user's cache,
+ *    refreshes from the API, or clears the in-memory library on logout.
  * 3. Mutations (`toggleEpisode`, `followShow`, etc.) call the API then call `loadLibrary()`
- *    to keep the client in sync with the server. This is intentionally simple over an
- *    optimistic-only approach so the library state always reflects server truth.
+ *    to keep the client in sync with the server and refresh its offline snapshot. This
+ *    avoids treating unconfirmed offline mutations as server-saved progress.
  *
  * ## Why `useCallback` everywhere
  * All mutator functions are wrapped in `useCallback` so their identities are stable
@@ -31,12 +31,13 @@
  * current, but reading from it inside a callback doesn't add it to that callback's
  * dependency array.
  */
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { ShowMediaType, type Settings } from "../services/apiTypes"
 import type { LibraryResponse } from "../services/apiTypes"
 import type { LibraryTvShow } from "../services/apiTypes"
 import type { TvShow } from "../services/apiTypes"
 import * as api from '../services/api'
+import { deleteCachedLibrary, readCachedLibrary, writeCachedLibrary } from '../services/libraryCache'
 
 type WatchlistItem = TvShow & {
   lastUpdatedAt?: string
@@ -50,6 +51,10 @@ type AppContextType = {
   isLoading: boolean
   isLibraryLoaded: boolean
   libraryError: string | null
+  libraryIsStale: boolean
+  libraryIsRefreshing: boolean
+  libraryLastUpdatedAt: string | null
+  isOnline: boolean
   refresh: () => Promise<void>
   followShow: (show: TvShow) => Promise<void>
   unfollowShow: (showId: string, mediaType?: 'tv' | 'movie') => Promise<void>
@@ -79,33 +84,100 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [isLibraryLoaded, setIsLibraryLoaded] = useState(false)
   const [libraryError, setLibraryError] = useState<string | null>(null)
+  const [libraryIsStale, setLibraryIsStale] = useState(false)
+  const [libraryIsRefreshing, setLibraryIsRefreshing] = useState(false)
+  const [libraryLastUpdatedAt, setLibraryLastUpdatedAt] = useState<string | null>(null)
+  const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
   const [authLoading, setAuthLoading] = useState(false)
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem('username'))
+  const libraryRequestId = useRef(0)
+  const libraryHasData = useRef(false)
 
   const applyLibrary = useCallback((library: LibraryResponse<LibraryTvShow>) => {
     setWatchlist(library.items.map(mapLibraryTvShow))
+    libraryHasData.current = true
     setIsLibraryLoaded(true)
   }, [])
 
   const loadLibrary = useCallback(async () => {
+    const requestId = ++libraryRequestId.current
+    const isCurrentRequest = () => requestId === libraryRequestId.current
     if(!token) {
       // Mark the library as loaded even when signed out so pages can render their empty states.
       setWatchlist([])
+      libraryHasData.current = false
       setLibraryError(null)
+      setLibraryIsStale(false)
+      setLibraryLastUpdatedAt(null)
+      setLibraryIsRefreshing(false)
       setIsLibraryLoaded(true)
       return
     }
+
+    const cacheUsername = username?.trim() ?? ''
+    setLibraryIsRefreshing(true)
+    setLibraryError(null)
+
+    const cachedLibraryPromise = cacheUsername
+      ? readCachedLibrary(cacheUsername).catch((error: unknown) => {
+        console.warn('Could not read the saved library:', error)
+        return null
+      })
+      : Promise.resolve(null)
+    const networkLibraryPromise = api.getLibrary<LibraryTvShow>(ShowMediaType.Tv).then(
+      (library) => ({ library } as const),
+      (error: unknown) => ({ error } as const),
+    )
+
+    let hasCachedLibrary = false
     try {
-      const library = await api.getLibrary<LibraryTvShow>(ShowMediaType.Tv)
-      applyLibrary(library)
+      const cached = await cachedLibraryPromise
+      if(!isCurrentRequest()) {
+        return
+      }
+      if(cached) {
+        hasCachedLibrary = true
+        applyLibrary(cached.library)
+        setLibraryIsStale(true)
+        setLibraryLastUpdatedAt(cached.cachedAt)
+      }
+
+      const result = await networkLibraryPromise
+      if(!isCurrentRequest()) {
+        return
+      }
+      if('error' in result) {
+        throw result.error
+      }
+
+      applyLibrary(result.library)
+      setLibraryIsStale(false)
+      setLibraryLastUpdatedAt(new Date().toISOString())
       setLibraryError(null)
+      if(cacheUsername) {
+        void writeCachedLibrary(cacheUsername, result.library).catch((error: unknown) => {
+          console.warn('Could not save the library for offline use:', error)
+        })
+      }
     } catch(error: unknown) {
+      if(!isCurrentRequest()) {
+        return
+      }
       console.error('Failed to load library:', error)
-      setLibraryError(error instanceof Error ? error.message : 'Could not load your library.')
+      if(hasCachedLibrary || libraryHasData.current) {
+        setLibraryIsStale(true)
+        setLibraryError(null)
+      } else {
+        setLibraryError(error instanceof Error ? error.message : 'Could not load your library.')
+      }
       setIsLibraryLoaded(true)
+    } finally {
+      if(isCurrentRequest()) {
+        setLibraryIsRefreshing(false)
+      }
     }
-  }, [applyLibrary, token])
+  }, [applyLibrary, token, username])
 
 
   const loadSettings = useCallback(async () => {
@@ -143,18 +215,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadLibrary, token])
 
   useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      void loadLibrary()
+    }
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [loadLibrary])
+
+  useEffect(() => {
     const handleAuthExpired = () => {
+      libraryRequestId.current++
+      if(username) {
+        void deleteCachedLibrary(username).catch((error: unknown) => {
+          console.warn('Could not clear the saved library after session expiry:', error)
+        })
+      }
       localStorage.removeItem('token')
       localStorage.removeItem('username')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('diagnosticsToken')
       setToken(null)
       setUsername(null)
+      setWatchlist([])
+      libraryHasData.current = false
+      setLibraryIsStale(false)
+      setLibraryIsRefreshing(false)
+      setLibraryLastUpdatedAt(null)
+      setLibraryError(null)
+      setIsLibraryLoaded(true)
     }
 
     window.addEventListener('nextio:auth-expired', handleAuthExpired)
     return () => window.removeEventListener('nextio:auth-expired', handleAuthExpired)
-  }, [])
+  }, [username])
 
   // validate token on startup
   useEffect(() => {
@@ -233,6 +332,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isLoading: isLoadingSettings,
     isLibraryLoaded: isLibraryLoaded,
     libraryError,
+    libraryIsStale,
+    libraryIsRefreshing,
+    libraryLastUpdatedAt,
+    isOnline,
     refresh,
     followShow,
     unfollowShow,
@@ -255,7 +358,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('diagnosticsToken')
         }
         setIsLibraryLoaded(false)
+        libraryHasData.current = false
         setLibraryError(null)
+        setLibraryIsStale(false)
+        setLibraryLastUpdatedAt(null)
         setToken(res.token)
         setUsername(username)
       } finally { setAuthLoading(false) }
@@ -273,13 +379,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('diagnosticsToken')
         }
         setIsLibraryLoaded(false)
+        libraryHasData.current = false
         setLibraryError(null)
+        setLibraryIsStale(false)
+        setLibraryLastUpdatedAt(null)
         setToken(res.token)
         setUsername(username)
       } finally { setAuthLoading(false) }
     },
 
     logout: () => {
+      libraryRequestId.current++
+      if(username) {
+        void deleteCachedLibrary(username).catch((error: unknown) => {
+          console.warn('Could not clear the saved library during logout:', error)
+        })
+      }
       void api.authLogout().catch((error: unknown) => {
         console.warn('Failed to revoke the refresh token during logout:', error)
       })
@@ -289,8 +404,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('diagnosticsToken')
       setToken(null)
       setUsername(null)
+      setWatchlist([])
+      libraryHasData.current = false
+      setLibraryError(null)
+      setLibraryIsStale(false)
+      setLibraryIsRefreshing(false)
+      setLibraryLastUpdatedAt(null)
+      setIsLibraryLoaded(true)
     }
-  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, libraryError, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, updateSetting, loadLibrary, authLoading])
+  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, libraryError, libraryIsStale, libraryIsRefreshing, libraryLastUpdatedAt, isOnline, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, updateSetting, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

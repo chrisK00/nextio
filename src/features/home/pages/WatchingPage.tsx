@@ -8,6 +8,7 @@ import { isRunningShow } from '../../show/utils/show'
 import FilterButton from '../../../components/common/FilterButton'
 import useGenreFilter from '../../../hooks/useGenreFilter'
 import GenreSelect from '../../../components/common/GenreSelect'
+import LibraryStatusBanner from '../../../components/common/LibraryStatusBanner'
 
 type WatchingFilter = 'inProgress' | 'notStarted' | 'completed' | 'running' | 'unplanned' | 'all'
 
@@ -156,16 +157,18 @@ export default function WatchingPage() {
 	if(loading) {
 		return (
 			<main className={styles.mainPanel}>
+				<LibraryStatusBanner />
 				<div className={styles.loadingBar} />
 			</main>
 		)
 	}
 	if(error) {
-		return <main className={styles.mainPanel}><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
+		return <main className={styles.mainPanel}><LibraryStatusBanner /><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
 	}
 
 	return (
 		<main className={styles.mainPanel}>
+			<LibraryStatusBanner />
 			<section className={styles.tabContent}>
 				<div className={`${styles.watchingToolbar} ${styles.myShowsToolbar}`}>
 					<div className={styles.sortControls}>

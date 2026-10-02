@@ -8,6 +8,7 @@ import FilterButton from '../../../components/common/FilterButton'
 import { useAppContext } from '../../../state/AppContext'
 import useGenreFilter from '../../../hooks/useGenreFilter'
 import GenreSelect from '../../../components/common/GenreSelect'
+import LibraryStatusBanner from '../../../components/common/LibraryStatusBanner'
 
 type UpcomingFilter = 'continue' | 'all'
 
@@ -136,14 +137,15 @@ export default function UpcomingPage() {
     }
 
     if(loading) {
-        return <main className={styles.mainPanel}><div className={styles.loadingBar} /></main>
+        return <main className={styles.mainPanel}><LibraryStatusBanner /><div className={styles.loadingBar} /></main>
     }
     if(error) {
-        return <main className={styles.mainPanel}><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
+        return <main className={styles.mainPanel}><LibraryStatusBanner /><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
     }
 
     return (
         <main className={styles.mainPanel}>
+            <LibraryStatusBanner />
             <section className={styles.tabContent}>
                 <div className={styles.watchingToolbar}>
                     <div className={styles.sortControls}>

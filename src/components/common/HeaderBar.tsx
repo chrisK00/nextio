@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAppContext } from '../../state/AppContext'
 import appStyles from '../../App.module.css'
 import styles from './HeaderBar.module.css'
-import { CiSearch, CiSettings, CiVideoOn  } from "react-icons/ci";
+import { CiSearch, CiSettings, CiVideoOn } from "react-icons/ci";
+import { FiLogOut } from 'react-icons/fi'
 
 
 export default function HeaderBar() {
@@ -18,13 +19,15 @@ export default function HeaderBar() {
 			<div className={styles.headerTitle}>
 				{isAuthenticated ? (
 					<>
-								<div className={styles.flexCenter}>
-									<p className={styles.eyebrow}>nextio</p>
-									<div className={styles.signedInUserContainer}>
-										<span className={styles.username}>{username}</span>
-										<button className={appStyles.ghostButton} onClick={() => { logout(); navigateTo('/') }} type="button">Logout</button>
-									</div>
-								</div>
+						<div className={styles.flexCenter}>
+							<p className={styles.eyebrow}>nextio</p>
+							<div className={styles.signedInUserContainer}>
+								<span className={styles.username}>{username}</span>
+								<button aria-label="Log out" className={`${appStyles.ghostButton} ${styles.logoutButton}`} onClick={() => { logout(); navigateTo('/') }} type="button">
+									<FiLogOut aria-hidden="true" size={18} />
+								</button>
+							</div>
+						</div>
 					</>
 				) : (
 					<>
@@ -34,7 +37,6 @@ export default function HeaderBar() {
 					</>
 				)}
 			</div>
-
 			<div className={styles.headerActions}>
 				<button className={appStyles.secondaryButton} onClick={() => navigateTo('/search')} type="button">
 					<CiSearch style={{ marginRight: '0.2rem' }} />

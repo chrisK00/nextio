@@ -9,6 +9,7 @@ import { getLastLibraryExport, hasRecentLibraryExport, prefetchShowDetails } fro
 import { useAppContext } from '../../../state/AppContext'
 import useGenreFilter from '../../../hooks/useGenreFilter'
 import GenreSelect from '../../../components/common/GenreSelect'
+import LibraryStatusBanner from '../../../components/common/LibraryStatusBanner'
 
 type UnwatchedFilter = 'continue' | 'all' | 'notStarted'
 
@@ -100,16 +101,18 @@ export default function UnwatchedPage() {
 	if(loading) {
 		return (
 			<main className={styles.mainPanel}>
+				<LibraryStatusBanner />
 				<div className={styles.loadingBar} />
 			</main>
 		)
 	}
 	if(error) {
-		return <main className={styles.mainPanel}><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
+		return <main className={styles.mainPanel}><LibraryStatusBanner /><div className={styles.emptyState} role="alert"><p>Could not load shows: {error}</p><button className={styles.secondaryButton} type="button" onClick={() => void retry()}>Try again</button></div></main>
 	}
 
 	return (
 		<main className={styles.mainPanel}>
+			<LibraryStatusBanner />
 			{exportStatusLoaded && showBackupReminder && !hasRecentLibraryExport(lastExportAt) && (
 				<div className={styles.backupReminder} role="status">
 					<div className={styles.backupReminderHeader}>
