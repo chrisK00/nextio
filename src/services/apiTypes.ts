@@ -112,6 +112,7 @@ export type LibraryStats = {
     totalMovies: number
     totalTvShows: number
     showsWithEpisodesButNotFollowed: number
+    unfollowedShowsWithProgress: { id: string; title: string }[]
     lastSyncAt: string | null
     lastSyncSucceeded: boolean | null
     lastSyncMessage: string | null

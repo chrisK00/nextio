@@ -78,7 +78,10 @@ public sealed record LibraryStatsResponse(
     int ShowsWithEpisodesButNotFollowed,
     DateTime? LastSyncAt,
     bool? LastSyncSucceeded,
-    string? LastSyncMessage);
+    string? LastSyncMessage,
+    IReadOnlyList<UnfollowedShowWithProgressDto> UnfollowedShowsWithProgress);
+
+public sealed record UnfollowedShowWithProgressDto(string Id, string Title);
 
 public sealed record UserListItemDto(
     Guid Id,

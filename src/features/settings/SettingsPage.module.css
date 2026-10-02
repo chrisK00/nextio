@@ -17,6 +17,44 @@
 	gap: 14px;
 }
 
+.progressStat {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.progressCountButton {
+	padding: 0 2px;
+	border: 0;
+	background: transparent;
+	color: var(--accent);
+	font: inherit;
+	font-weight: 700;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.progressCountButton:disabled {
+	text-decoration: none;
+	cursor: default;
+}
+
+.progressShowList {
+	flex-basis: 100%;
+	margin: 0;
+	padding: 0 0 0 20px;
+	color: var(--text);
+}
+
+.progressShowList[hidden] {
+	display: none;
+}
+
+.progressShowList li + li {
+	margin-top: 6px;
+}
+
 @media (min-width: 860px) {
 	.settingsGrid {
 		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

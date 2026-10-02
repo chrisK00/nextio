@@ -20,18 +20,24 @@ public sealed class StatsController(ApplicationDbContext db, ILibrarySyncStatusS
 
         var totalMoviesTask = db.UserMovies.CountAsync(x => x.UserId == userId, cancellationToken);
         var totalTvShowsTask = db.UserTvShows.CountAsync(x => x.UserId == userId && x.IsFollowing, cancellationToken);
-        var showsWithEpisodesButNotFollowedTask = db.UserTvShows.CountAsync(x => x.UserId == userId && !x.IsFollowing && x.Episodes.Any(), cancellationToken);
+        var unfollowedShowsWithProgressTask = db.UserTvShows
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && !x.IsFollowing && x.Episodes.Any())
+            .OrderBy(x => x.Title)
+            .Select(x => new UnfollowedShowWithProgressDto(x.ShowId, x.Title))
+            .ToListAsync(cancellationToken);
 
-        await Task.WhenAll(totalMoviesTask, totalTvShowsTask, showsWithEpisodesButNotFollowedTask);
+        await Task.WhenAll(totalMoviesTask, totalTvShowsTask, unfollowedShowsWithProgressTask);
 
         var (LastSyncAt, LastSyncSucceeded, LastSyncMessage) = syncStatusStore.Snapshot();
         return Ok(new LibraryStatsResponse(
             TotalMovies: await totalMoviesTask,
             TotalTvShows: await totalTvShowsTask,
-            ShowsWithEpisodesButNotFollowed: await showsWithEpisodesButNotFollowedTask,
+            ShowsWithEpisodesButNotFollowed: (await unfollowedShowsWithProgressTask).Count,
             LastSyncAt: LastSyncAt,
             LastSyncSucceeded: LastSyncSucceeded,
-            LastSyncMessage: LastSyncMessage));
+            LastSyncMessage: LastSyncMessage,
+            UnfollowedShowsWithProgress: await unfollowedShowsWithProgressTask));
     }
 
     [HttpPost("backup")]

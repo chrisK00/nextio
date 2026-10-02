@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const [syncResult, setSyncResult] = useState<LibrarySyncResponse | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [stats, setStats] = useState<import('../../services/apiTypes').LibraryStats | null>(null)
+  const [showUnfollowedProgress, setShowUnfollowedProgress] = useState(false)
 
   useEffect(() => {
     api.getLibraryStats().then(setStats)
@@ -198,7 +199,29 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', gap: '30px', marginTop: '10px', flexWrap: 'wrap' }}>
                 <div>Total Movies: <strong style={{ color: 'var(--accent)' }}>{stats.totalMovies}</strong></div>
                 <div>Total TV Shows: <strong style={{ color: 'var(--accent)' }}>{stats.totalTvShows}</strong></div>
-                <div>Unfollowed Shows with Progress: <strong style={{ color: 'var(--accent)' }}>{stats.showsWithEpisodesButNotFollowed}</strong></div>
+                <div className={styles.progressStat}>
+                  <span>Unfollowed Shows with Progress:</span>
+                  <button
+                    className={styles.progressCountButton}
+                    type="button"
+                    onClick={() => setShowUnfollowedProgress((isVisible) => !isVisible)}
+                    aria-expanded={showUnfollowedProgress}
+                    aria-controls="unfollowed-shows-list"
+                    aria-label={`Show ${stats.showsWithEpisodesButNotFollowed} unfollowed shows with progress`}
+                    disabled={stats.showsWithEpisodesButNotFollowed === 0}
+                  >
+                    {stats.showsWithEpisodesButNotFollowed}
+                  </button>
+                </div>
+                <ul
+                  className={styles.progressShowList}
+                  id="unfollowed-shows-list"
+                  hidden={!showUnfollowedProgress}
+                >
+                  {stats.unfollowedShowsWithProgress.map((show) => (
+                    <li key={show.id}>{show.title}</li>
+                  ))}
+                </ul>
               </div>
             ) : (
               <p>Loading statistics...</p>
