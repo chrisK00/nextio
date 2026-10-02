@@ -94,4 +94,33 @@ public class UserServiceTests : IDisposable
         var revokedTokenInDb = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.Token == newToken.Token);
         Assert.True(revokedTokenInDb?.IsRevoked);
     }
+
+    [Fact]
+    public async Task RefreshTokens_ShouldAllowIndependentSessionsForSameUser()
+    {
+        var user = await _userService.CreateAsync("multisessionuser", "Pass!123");
+
+        var firstDeviceToken = await _userService.CreateRefreshTokenAsync(user.Id);
+        var secondDeviceToken = await _userService.CreateRefreshTokenAsync(user.Id);
+
+        Assert.NotEqual(firstDeviceToken.Token, secondDeviceToken.Token);
+
+        var (firstDeviceUser, rotatedFirstDeviceToken) = await _userService.RotateRefreshTokenAsync(firstDeviceToken.Token);
+        var (secondDeviceUser, rotatedSecondDeviceToken) = await _userService.RotateRefreshTokenAsync(secondDeviceToken.Token);
+
+        Assert.NotNull(firstDeviceUser);
+        Assert.NotNull(secondDeviceUser);
+        Assert.Equal(user.Id, firstDeviceUser.Id);
+        Assert.Equal(user.Id, secondDeviceUser.Id);
+        Assert.NotNull(rotatedFirstDeviceToken);
+        Assert.NotNull(rotatedSecondDeviceToken);
+        Assert.NotEqual(rotatedFirstDeviceToken.Token, rotatedSecondDeviceToken.Token);
+
+        await _userService.RevokeRefreshTokenAsync(rotatedFirstDeviceToken.Token);
+
+        var (stillSignedInUser, nextSecondDeviceToken) = await _userService.RotateRefreshTokenAsync(rotatedSecondDeviceToken.Token);
+        Assert.NotNull(stillSignedInUser);
+        Assert.Equal(user.Id, stillSignedInUser.Id);
+        Assert.NotNull(nextSecondDeviceToken);
+    }
 }

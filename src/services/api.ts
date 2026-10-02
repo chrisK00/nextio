@@ -97,7 +97,7 @@ export async function getShowDetails(imdbId: string): Promise<TvShow | null> {
 		}
 
 		const result = data as Record<string, unknown>
-	const show = mapSearchItem(result)
+		const show = mapSearchItem(result)
 		return show
 	} catch {
 		return null
@@ -158,7 +158,7 @@ export async function getEpisodeDetail(showId: string, season: number, episode: 
 
 export async function getAppSettings(): Promise<Settings> {
 	const saved = localStorage.getItem('settings')
-	if (saved) {
+	if(saved) {
 		try {
 			return JSON.parse(saved) as Settings
 		} catch {
@@ -304,7 +304,7 @@ export async function getTrendingShows(includeAdult: boolean = false): Promise<S
 const EXPORT_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
 
 export function hasRecentLibraryExport(lastExportAt?: string | null): boolean {
-	if (!lastExportAt) return false
+	if(!lastExportAt) return false
 	return Date.now() - Date.parse(lastExportAt) < EXPORT_REMINDER_INTERVAL_MS
 }
 
@@ -315,7 +315,7 @@ export async function recordLibraryExport(): Promise<void> {
 export async function getLastLibraryExport(): Promise<string | null> {
 	try {
 		const response = await fetchWithAuth('/auth/library-export')
-		if (!response.ok) return null
+		if(!response.ok) return null
 		return (await response.json() as { lastExportAt?: string | null }).lastExportAt ?? null
 	} catch {
 		return null
@@ -386,6 +386,7 @@ export async function syncLibrary(): Promise<import('./apiTypes').LibrarySyncRes
 type AuthResponse = {
 	token: string
 	expiresInSeconds: number
+	refreshToken?: string | null
 }
 
 export class AuthExpiredError extends Error {
@@ -423,7 +424,10 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 	const res = await fetch(`${API_BASE}${path}`, {
 		method: 'POST',
 		credentials: 'include',
-		headers: { 'Content-Type': 'application/json' },
+		headers: {
+			'Content-Type': 'application/json',
+			'X-Return-RefreshToken': 'true',
+		},
 		body: JSON.stringify(body),
 	})
 
@@ -439,15 +443,35 @@ export async function authLogin(username: string, password: string): Promise<Aut
 	return postJson<AuthResponse>('/auth/login', { username, password })
 }
 
+export async function authLogout(): Promise<void> {
+	const refreshToken = localStorage.getItem('refreshToken')
+	await fetch(`${API_BASE}/auth/logout`, {
+		method: 'POST',
+		credentials: 'include',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ refreshToken }),
+	})
+}
+
 let refreshInFlight: Promise<AuthResponse | null> | null = null
 
 function refreshAccessToken(): Promise<AuthResponse | null> {
 	if(!refreshInFlight) {
 		refreshInFlight = (async () => {
-			const response = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+			const refreshToken = localStorage.getItem('refreshToken')
+			const response = await fetch(`${API_BASE}/auth/refresh`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Return-RefreshToken': 'true',
+				},
+				body: JSON.stringify({ refreshToken }),
+			})
 			if(response.status === 401 || response.status === 403) {
 				localStorage.removeItem('token')
 				localStorage.removeItem('username')
+				localStorage.removeItem('refreshToken')
 				window.dispatchEvent(new Event('nextio:auth-expired'))
 				return null
 			}
@@ -455,6 +479,9 @@ function refreshAccessToken(): Promise<AuthResponse | null> {
 
 			const data = await response.json() as AuthResponse
 			localStorage.setItem('token', data.token)
+			if(data.refreshToken) {
+				localStorage.setItem('refreshToken', data.refreshToken)
+			}
 			return data
 		})().finally(() => {
 			refreshInFlight = null

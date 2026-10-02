@@ -23,7 +23,7 @@ export default function MoviesPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const filter = (searchParams.get('status') as MovieFilter | null) ?? 'all'
-  const [loading, setLoading] = useState(!cachedMovies[filter])
+  const [loading, setLoading] = useState(!cachedMovies[filter]?.length)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [movies, setMovies] = useState<WatchlistItem[]>(() => cachedMovies[filter] ?? [])
@@ -32,7 +32,7 @@ export default function MoviesPage() {
     let mounted = true
     const fetchMovies = async () => {
       try {
-        if(!cachedMovies[filter]) {
+        if(!cachedMovies[filter]?.length) {
           setLoading(true)
         }
         setError('')
@@ -64,7 +64,7 @@ export default function MoviesPage() {
             })
           }
         }
-      } catch (e: unknown) {
+      } catch(e: unknown) {
         console.error('Failed to fetch movies:', e)
         if(mounted) setError(e instanceof Error ? e.message : 'Something went wrong')
       } finally {
@@ -86,7 +86,7 @@ export default function MoviesPage() {
             ? { ...item, status: watched ? 'Watched' : 'Unwatched', episodesWatched: watched ? 1 : 0, lastUpdatedAt: new Date().toISOString() }
             : item,
         )
-      if (filter === 'all') {
+      if(filter === 'all') {
         return next
       }
       return next.filter((item) => item.status.toLowerCase() === filter)
@@ -114,7 +114,7 @@ export default function MoviesPage() {
 
   function setFilter(nextFilter: MovieFilter) {
     const params = new URLSearchParams(searchParams)
-    if (nextFilter === 'all') {
+    if(nextFilter === 'all') {
       params.delete('status')
     } else {
       params.set('status', nextFilter)
@@ -122,7 +122,7 @@ export default function MoviesPage() {
     setSearchParams(params)
   }
 
-  if (loading) {
+  if(loading) {
     return (
       <main className={styles.mainPanel}>
         <div className={styles.loadingBar} />
@@ -130,7 +130,7 @@ export default function MoviesPage() {
     )
   }
 
-  if (error) {
+  if(error) {
     return (
       <main className={styles.mainPanel}>
         <div className={styles.emptyState} role="alert">
@@ -158,15 +158,15 @@ export default function MoviesPage() {
           </div>
           <div className={styles.librarySearchWrap}>
             <div className={styles.searchInputWrap}>
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={movieQuery}
-              onChange={(e) => setMovieQuery(e.target.value)}
-              placeholder="Filter by movie name..."
-              className={styles.librarySearchInput}
-            />
-            {movieQuery && <button onClick={() => setMovieQuery('')} className={styles.librarySearchClear} type="button" title="Clear filter">✕</button>}
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={movieQuery}
+                onChange={(e) => setMovieQuery(e.target.value)}
+                placeholder="Filter by movie name..."
+                className={styles.librarySearchInput}
+              />
+              {movieQuery && <button onClick={() => setMovieQuery('')} className={styles.librarySearchClear} type="button" title="Clear filter">✕</button>}
             </div>
             <GenreSelect genres={genres} counts={counts} loading={genresLoading} value={genre} onChange={setGenre} />
             {movieQuery && (

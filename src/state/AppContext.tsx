@@ -100,7 +100,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const library = await api.getLibrary<LibraryTvShow>(ShowMediaType.Tv)
       applyLibrary(library)
       setLibraryError(null)
-    } catch (error: unknown) {
+    } catch(error: unknown) {
       console.error('Failed to load library:', error)
       setLibraryError(error instanceof Error ? error.message : 'Could not load your library.')
       setIsLibraryLoaded(true)
@@ -146,6 +146,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const handleAuthExpired = () => {
       localStorage.removeItem('token')
       localStorage.removeItem('username')
+      localStorage.removeItem('refreshToken')
       setToken(null)
       setUsername(null)
     }
@@ -168,6 +169,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if(!mounted) return
           localStorage.removeItem('token')
           localStorage.removeItem('username')
+          localStorage.removeItem('refreshToken')
           setToken(null)
           setUsername(null)
         } else {
@@ -244,9 +246,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const res = await api.authLogin(username, password)
         localStorage.setItem('token', res.token)
         localStorage.setItem('username', username)
+        if(res.refreshToken) {
+          localStorage.setItem('refreshToken', res.refreshToken)
+        } else {
+          localStorage.removeItem('refreshToken')
+        }
+        setIsLibraryLoaded(false)
+        setLibraryError(null)
         setToken(res.token)
         setUsername(username)
-        await loadLibrary()
       } finally { setAuthLoading(false) }
     },
     register: async (username: string, password: string) => {
@@ -255,15 +263,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const res = await api.authRegister(username, password)
         localStorage.setItem('token', res.token)
         localStorage.setItem('username', username)
+        if(res.refreshToken) {
+          localStorage.setItem('refreshToken', res.refreshToken)
+        } else {
+          localStorage.removeItem('refreshToken')
+        }
+        setIsLibraryLoaded(false)
+        setLibraryError(null)
         setToken(res.token)
         setUsername(username)
-        await loadLibrary()
       } finally { setAuthLoading(false) }
     },
 
     logout: () => {
+      void api.authLogout().catch((error: unknown) => {
+        console.warn('Failed to revoke the refresh token during logout:', error)
+      })
       localStorage.removeItem('token')
       localStorage.removeItem('username')
+      localStorage.removeItem('refreshToken')
       setToken(null)
       setUsername(null)
     }

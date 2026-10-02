@@ -53,24 +53,44 @@ namespace Controllers
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh()
         {
-            var refreshToken = Request.Cookies["refreshToken"] ?? (await HttpContext.Request.ReadFromJsonAsync<RefreshRequest>())?.RefreshToken;
-            if (string.IsNullOrEmpty(refreshToken)) return Unauthorized();
+            var request = await HttpContext.Request.ReadFromJsonAsync<RefreshRequest>();
+            var cookieRefreshToken = Request.Cookies["refreshToken"];
+            (User? User, RefreshToken? NewToken) rotation = (null, null);
 
-            var (user, newRefresh) = await _userService.RotateRefreshTokenAsync(refreshToken);
-            if (user is null || newRefresh is null) return Unauthorized();
+            if (!string.IsNullOrEmpty(cookieRefreshToken))
+            {
+                rotation = await _userService.RotateRefreshTokenAsync(cookieRefreshToken);
+            }
 
-            SetRefreshTokenCookie(newRefresh.Token, newRefresh.ExpiresAt);
+            if (rotation.User is null
+                && !string.IsNullOrEmpty(request?.RefreshToken)
+                && !string.Equals(request.RefreshToken, cookieRefreshToken, StringComparison.Ordinal))
+            {
+                rotation = await _userService.RotateRefreshTokenAsync(request.RefreshToken);
+            }
 
-            var newAccess = _jwtService.CreateToken(user.Id.ToString(), user.Username);
+            if (rotation.User is null || rotation.NewToken is null)
+            {
+                return Unauthorized();
+            }
+
+            SetRefreshTokenCookie(rotation.NewToken.Token, rotation.NewToken.ExpiresAt);
+
+            var newAccess = _jwtService.CreateToken(rotation.User.Id.ToString(), rotation.User.Username);
             var returnRefreshRefresh = Request.Headers.TryGetValue("X-Return-RefreshToken", out var rrv) && string.Equals(rrv.ToString(), "true", StringComparison.OrdinalIgnoreCase);
-            return Ok(new AuthResponse(newAccess, (long)TimeSpan.FromHours(1).TotalSeconds, returnRefreshRefresh ? newRefresh.Token : null));
+            return Ok(new AuthResponse(newAccess, (long)TimeSpan.FromHours(1).TotalSeconds, returnRefreshRefresh ? rotation.NewToken.Token : null));
         }
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            var refreshToken = Request.Cookies["refreshToken"];
-            if (!string.IsNullOrEmpty(refreshToken))
+            var request = await HttpContext.Request.ReadFromJsonAsync<RefreshRequest>();
+            var refreshTokens = new[] { Request.Cookies["refreshToken"], request?.RefreshToken }
+                .OfType<string>()
+                .Where(token => !string.IsNullOrEmpty(token))
+                .Distinct(StringComparer.Ordinal);
+
+            foreach (var refreshToken in refreshTokens)
             {
                 await _userService.RevokeRefreshTokenAsync(refreshToken);
             }
@@ -110,5 +130,5 @@ namespace Controllers
         }
     }
 
-    record RefreshRequest(string RefreshToken);
+    record RefreshRequest(string? RefreshToken);
 }
