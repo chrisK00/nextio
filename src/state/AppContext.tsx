@@ -89,8 +89,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [libraryLastUpdatedAt, setLibraryLastUpdatedAt] = useState<string | null>(null)
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
-  const [authLoading, setAuthLoading] = useState(false)
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem('username'))
+  const [authLoading, setAuthLoading] = useState(() => !localStorage.getItem('token') && Boolean(localStorage.getItem('username')))
+  const [offlineAuthenticated, setOfflineAuthenticated] = useState(false)
   const libraryRequestId = useRef(0)
   const libraryHasData = useRef(false)
 
@@ -103,19 +104,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadLibrary = useCallback(async () => {
     const requestId = ++libraryRequestId.current
     const isCurrentRequest = () => requestId === libraryRequestId.current
+    const cacheUsername = username?.trim() ?? ''
     if(!token) {
-      // Mark the library as loaded even when signed out so pages can render their empty states.
-      setWatchlist([])
-      libraryHasData.current = false
+      let cached = null
+      if(cacheUsername) {
+        cached = await readCachedLibrary(cacheUsername).catch((error: unknown) => {
+          console.warn('Could not read the saved library for offline access:', error)
+          return null
+        })
+      }
+      if(!isCurrentRequest()) {
+        return
+      }
+      if(cached) {
+        applyLibrary(cached.library)
+        setLibraryIsStale(true)
+        setLibraryLastUpdatedAt(cached.cachedAt)
+        setOfflineAuthenticated(true)
+      } else {
+        setWatchlist([])
+        libraryHasData.current = false
+        setLibraryIsStale(false)
+        setLibraryLastUpdatedAt(null)
+        setOfflineAuthenticated(false)
+      }
       setLibraryError(null)
-      setLibraryIsStale(false)
-      setLibraryLastUpdatedAt(null)
       setLibraryIsRefreshing(false)
       setIsLibraryLoaded(true)
+      setAuthLoading(false)
       return
     }
 
-    const cacheUsername = username?.trim() ?? ''
+    setOfflineAuthenticated(false)
     setLibraryIsRefreshing(true)
     setLibraryError(null)
 
@@ -217,33 +237,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true)
-      void loadLibrary()
+      if(token) {
+        void loadLibrary()
+      } else if(offlineAuthenticated && localStorage.getItem('refreshToken')) {
+        void api.getProtectedTest().then(() => {
+          const refreshedToken = localStorage.getItem('token')
+          if(refreshedToken) {
+            setToken(refreshedToken)
+            setOfflineAuthenticated(false)
+          }
+        }).catch((error: unknown) => {
+          console.warn('Could not restore the online session:', error)
+        })
+      }
     }
-    const handleOffline = () => setIsOnline(false)
+    const handleOffline = () => {
+      setIsOnline(false)
+      if(!token) {
+        void loadLibrary()
+      }
+    }
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [loadLibrary])
+  }, [loadLibrary, offlineAuthenticated, token])
 
   useEffect(() => {
     const handleAuthExpired = () => {
       libraryRequestId.current++
-      if(username) {
-        void deleteCachedLibrary(username).catch((error: unknown) => {
-          console.warn('Could not clear the saved library after session expiry:', error)
-        })
-      }
       localStorage.removeItem('token')
-      localStorage.removeItem('username')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('diagnosticsToken')
       setToken(null)
-      setUsername(null)
       setWatchlist([])
       libraryHasData.current = false
+      setOfflineAuthenticated(false)
       setLibraryIsStale(false)
       setLibraryIsRefreshing(false)
       setLibraryLastUpdatedAt(null)
@@ -253,26 +284,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('nextio:auth-expired', handleAuthExpired)
     return () => window.removeEventListener('nextio:auth-expired', handleAuthExpired)
-  }, [username])
+  }, [])
 
   // validate token on startup
   useEffect(() => {
 
     let mounted = true
     void (async () => {
-      if(!token) return
+      if(!token && (!navigator.onLine || !localStorage.getItem('refreshToken'))) return
       try {
         setAuthLoading(true)
         await api.getProtectedTest()
+        const refreshedToken = localStorage.getItem('token')
+        if(refreshedToken && refreshedToken !== token) {
+          setToken(refreshedToken)
+          setOfflineAuthenticated(false)
+        }
       } catch(error: unknown) {
         if(error instanceof api.AuthExpiredError) {
           if(!mounted) return
+          if(localStorage.getItem('token') !== token) return
           localStorage.removeItem('token')
-          localStorage.removeItem('username')
           localStorage.removeItem('refreshToken')
           localStorage.removeItem('diagnosticsToken')
           setToken(null)
-          setUsername(null)
+          setOfflineAuthenticated(false)
         } else {
           // Keep the saved session when startup validation fails because of a temporary network issue.
           console.warn('Token validation could not reach the server:', error)
@@ -342,11 +378,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toggleEpisode,
     toggleSetting,
     updateSetting,
-    isAuthenticated: !!token,
+    isAuthenticated: !!token || offlineAuthenticated,
     authLoading: authLoading,
     username,
     login: async (username: string, password: string) => {
       setAuthLoading(true)
+      libraryRequestId.current++
+      api.invalidateAuthRequests()
       try {
         const res = await api.authLogin(username, password)
         localStorage.setItem('token', res.token)
@@ -362,12 +400,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLibraryError(null)
         setLibraryIsStale(false)
         setLibraryLastUpdatedAt(null)
+        setOfflineAuthenticated(false)
         setToken(res.token)
         setUsername(username)
       } finally { setAuthLoading(false) }
     },
     register: async (username: string, password: string) => {
       setAuthLoading(true)
+      libraryRequestId.current++
+      api.invalidateAuthRequests()
       try {
         const res = await api.authRegister(username, password)
         localStorage.setItem('token', res.token)
@@ -383,6 +424,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLibraryError(null)
         setLibraryIsStale(false)
         setLibraryLastUpdatedAt(null)
+        setOfflineAuthenticated(false)
         setToken(res.token)
         setUsername(username)
       } finally { setAuthLoading(false) }
@@ -390,6 +432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     logout: () => {
       libraryRequestId.current++
+      api.invalidateAuthRequests()
       if(username) {
         void deleteCachedLibrary(username).catch((error: unknown) => {
           console.warn('Could not clear the saved library during logout:', error)
@@ -404,6 +447,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('diagnosticsToken')
       setToken(null)
       setUsername(null)
+      setOfflineAuthenticated(false)
       setWatchlist([])
       libraryHasData.current = false
       setLibraryError(null)
@@ -412,7 +456,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLibraryLastUpdatedAt(null)
       setIsLibraryLoaded(true)
     }
-  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, libraryError, libraryIsStale, libraryIsRefreshing, libraryLastUpdatedAt, isOnline, token, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, updateSetting, authLoading])
+  }), [tvShows, settings, isLoadingSettings, isLibraryLoaded, libraryError, libraryIsStale, libraryIsRefreshing, libraryLastUpdatedAt, isOnline, token, offlineAuthenticated, username, refresh, followShow, unfollowShow, toggleEpisode, toggleSetting, updateSetting, authLoading])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

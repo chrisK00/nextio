@@ -523,11 +523,17 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function authRegister(username: string, password: string): Promise<AuthResponse> {
-	return postJson<AuthResponse>('/auth/register', { username, password })
+	const generation = authRequestGeneration
+	const response = await postJson<AuthResponse>('/auth/register', { username, password })
+	if(generation !== authRequestGeneration) throw new Error('Authentication request was superseded.')
+	return response
 }
 
 export async function authLogin(username: string, password: string): Promise<AuthResponse> {
-	return postJson<AuthResponse>('/auth/login', { username, password })
+	const generation = authRequestGeneration
+	const response = await postJson<AuthResponse>('/auth/login', { username, password })
+	if(generation !== authRequestGeneration) throw new Error('Authentication request was superseded.')
+	return response
 }
 
 export async function authLogout(): Promise<void> {
@@ -540,11 +546,23 @@ export async function authLogout(): Promise<void> {
 	})
 }
 
-let refreshInFlight: Promise<AuthResponse | null> | null = null
+type RefreshFlight = {
+	generation: number
+	promise: Promise<AuthResponse | null>
+}
+
+let authRequestGeneration = 0
+let refreshInFlight: RefreshFlight | null = null
+
+export function invalidateAuthRequests(): void {
+	authRequestGeneration++
+	refreshInFlight = null
+}
 
 function refreshAccessToken(): Promise<AuthResponse | null> {
-	if(!refreshInFlight) {
-		refreshInFlight = (async () => {
+	const generation = authRequestGeneration
+	if(!refreshInFlight || refreshInFlight.generation !== generation) {
+		const request = (async () => {
 			const refreshToken = localStorage.getItem('refreshToken')
 			const response = await fetch(`${API_BASE}/auth/refresh`, {
 				method: 'POST',
@@ -555,9 +573,9 @@ function refreshAccessToken(): Promise<AuthResponse | null> {
 				},
 				body: JSON.stringify({ refreshToken }),
 			})
+			if(generation !== authRequestGeneration) return null
 			if(response.status === 401 || response.status === 403) {
 				localStorage.removeItem('token')
-				localStorage.removeItem('username')
 				localStorage.removeItem('refreshToken')
 				window.dispatchEvent(new Event('nextio:auth-expired'))
 				return null
@@ -565,20 +583,24 @@ function refreshAccessToken(): Promise<AuthResponse | null> {
 			if(!response.ok) throw new Error(`Token refresh failed with status ${response.status}`)
 
 			const data = await response.json() as AuthResponse
+			if(generation !== authRequestGeneration) return null
 			localStorage.setItem('token', data.token)
 			if(data.refreshToken) {
 				localStorage.setItem('refreshToken', data.refreshToken)
 			}
 			return data
-		})().finally(() => {
-			refreshInFlight = null
+		})()
+		const promise = request.finally(() => {
+			if(refreshInFlight?.generation === generation) refreshInFlight = null
 		})
+		refreshInFlight = { generation, promise }
 	}
 
-	return refreshInFlight
+	return refreshInFlight.promise
 }
 
 export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promise<Response> {
+	const generation = authRequestGeneration
 	const token = localStorage.getItem('token')
 	const headers = new Headers(opts.headers || {})
 	if(token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`)
@@ -587,7 +609,7 @@ export async function fetchWithAuth(path: string, opts: RequestInit = {}): Promi
 	const url = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
 	const res = await fetch(url, fetchOpts)
 
-	if(res.status === 401) {
+	if(res.status === 401 && generation === authRequestGeneration) {
 		const data = await refreshAccessToken()
 		if(data) {
 			const retryHeaders = new Headers(opts.headers || {})
